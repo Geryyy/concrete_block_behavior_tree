@@ -1,0 +1,7 @@
+<root main_tree_to_execute="DummyStart">
+  <BehaviorTree ID="DummyStart">
+    <Sequence>
+      <AlwaysSuccess/>
+    </Sequence>
+  </BehaviorTree>
+</root>

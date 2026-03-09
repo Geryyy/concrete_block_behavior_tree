@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    bt_loop_duration: 100
+    always_reload_bt_xml: true
+    plugin_lib_names: []
+    behaviortree: "src/concrete_block_stack/concrete_block_behavior_tree/behavior_trees/dummy_start.xml"
+    logging:
+      enable_groot_monitoring: false
+      enable_file_logging: false
+      enable_cout_logging: true
+
+lifecycle_manager:
+  ros__parameters:
+    autostart: true
+    node_names: ["bt_action_server"]
+    bond_timeout: 4.0
+    attempt_respawn_reconnection: true
+    bond_respawn_max_duration: 10.0
