@@ -9,6 +9,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp_v3
   concrete_block_motion_planning
   concrete_block_perception
+  geometry_msgs
   lsrl_behavior_tree
   nav2_behavior_tree
   nav_msgs
@@ -35,6 +36,12 @@ list(APPEND plugin_libs BT_cb_compute_trajectory_action)
 
 add_library(BT_cb_execute_trajectory_action SHARED src/plugins/action/execute_trajectory.cpp)
 list(APPEND plugin_libs BT_cb_execute_trajectory_action)
+
+add_library(BT_cb_move_to_named_configuration_action SHARED src/plugins/action/move_to_named_configuration.cpp)
+list(APPEND plugin_libs BT_cb_move_to_named_configuration_action)
+
+add_library(BT_cb_get_next_assembly_task_action SHARED src/plugins/action/get_next_assembly_task.cpp)
+list(APPEND plugin_libs BT_cb_get_next_assembly_task_action)
 
 foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${THIS_PACKAGE_INCLUDE_DEPENDS})

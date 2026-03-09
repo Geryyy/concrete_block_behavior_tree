@@ -2,14 +2,71 @@
   <BehaviorTree ID="ConcreteBlockAssembly">
     <Fallback name="assembly_with_recovery">
       <Sequence name="main_sequence">
-        <RunPoseEstimation
-          service_name="/world_model_node/run_pose_estimation"
-          mode="SCENE_DISCOVERY"
-          target_block_id=""
-          enable_debug="true"
-          timeout_s="8.0"
-          perception_ok="{perception_ok}"
-          perception_message="{perception_message}"/>
+        <Sequence name="scene_scan_fixed_viewpoints">
+          <MoveToNamedConfiguration
+            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+            configuration_name="scan_left"
+            timeout_s="20.0"
+            dry_run="false"
+            trajectory_id="{scan_left_traj_id}"
+            move_ok="{scan_left_ok}"
+            move_message="{scan_left_msg}"/>
+          <RunPoseEstimation
+            service_name="/world_model_node/run_pose_estimation"
+            mode="SCENE_DISCOVERY"
+            target_block_id=""
+            enable_debug="true"
+            timeout_s="8.0"
+            perception_ok="{perception_ok}"
+            perception_message="{perception_message}"/>
+
+          <MoveToNamedConfiguration
+            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+            configuration_name="scan_center"
+            timeout_s="20.0"
+            dry_run="false"
+            trajectory_id="{scan_center_traj_id}"
+            move_ok="{scan_center_ok}"
+            move_message="{scan_center_msg}"/>
+          <RunPoseEstimation
+            service_name="/world_model_node/run_pose_estimation"
+            mode="SCENE_DISCOVERY"
+            target_block_id=""
+            enable_debug="true"
+            timeout_s="8.0"
+            perception_ok="{perception_ok}"
+            perception_message="{perception_message}"/>
+
+          <MoveToNamedConfiguration
+            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+            configuration_name="scan_right"
+            timeout_s="20.0"
+            dry_run="false"
+            trajectory_id="{scan_right_traj_id}"
+            move_ok="{scan_right_ok}"
+            move_message="{scan_right_msg}"/>
+          <RunPoseEstimation
+            service_name="/world_model_node/run_pose_estimation"
+            mode="SCENE_DISCOVERY"
+            target_block_id=""
+            enable_debug="true"
+            timeout_s="8.0"
+            perception_ok="{perception_ok}"
+            perception_message="{perception_message}"/>
+        </Sequence>
+
+        <GetNextAssemblyTask
+          service_name="/concrete_block_motion_planning_node/get_next_assembly_task"
+          wall_plan_name="basic_interlocking_3_2"
+          reset_plan="false"
+          task_id="{task_id}"
+          target_block_id="{target_block_id}"
+          reference_block_id="{reference_block_id}"
+          target_block_pose_coarse="{target_block_pose_coarse}"
+          target_block_pose_precise="{target_block_pose_precise}"
+          reference_block_pose_precise="{reference_block_pose_precise}"
+          plan_has_task="{plan_has_task}"
+          plan_message="{plan_message}"/>
 
         <RunPoseEstimation
           service_name="/world_model_node/run_pose_estimation"

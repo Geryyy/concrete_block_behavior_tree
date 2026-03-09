@@ -17,6 +17,7 @@
   <depend>lsrl_behavior_tree</depend>
   <depend>concrete_block_perception</depend>
   <depend>concrete_block_motion_planning</depend>
+  <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>trajectory_msgs</depend>
 

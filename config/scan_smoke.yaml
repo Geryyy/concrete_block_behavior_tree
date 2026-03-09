@@ -9,7 +9,7 @@
       - BT_cb_execute_trajectory_action
       - BT_cb_move_to_named_configuration_action
       - BT_cb_get_next_assembly_task_action
-    behaviortree: "src/concrete_block_stack/concrete_block_behavior_tree/behavior_trees/concrete_block_assembly.xml"
+    behaviortree: "src/concrete_block_stack/concrete_block_behavior_tree/behavior_trees/scan_sequence_smoke.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true
@@ -22,3 +22,4 @@ lifecycle_manager:
     bond_timeout: 4.0
     attempt_respawn_reconnection: true
     bond_respawn_max_duration: 10.0
+
