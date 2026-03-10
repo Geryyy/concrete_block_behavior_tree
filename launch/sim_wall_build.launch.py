@@ -1,8 +1,8 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -20,6 +20,7 @@ def generate_launch_description():
     start_bt_action_server = LaunchConfiguration("start_bt_action_server")
     bt_params_file = LaunchConfiguration("bt_params_file")
     bt_start_delay_s = LaunchConfiguration("bt_start_delay_s")
+    gazebo_master_port = LaunchConfiguration("gazebo_master_port")
 
     gazebo_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -114,12 +115,18 @@ def generate_launch_description():
         actions=[bt_launch_dummy],
     )
 
+    gazebo_master_uri = SetEnvironmentVariable(
+        name="GAZEBO_MASTER_URI",
+        value=PythonExpression(["'http://127.0.0.1:' + str(", gazebo_master_port, ")"]),
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="True"),
             DeclareLaunchArgument("gui", default_value="True"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="epsilon_7040_description"),
+            DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("use_perception", default_value="False"),
             DeclareLaunchArgument("concrete_rviz", default_value="True"),
             DeclareLaunchArgument("start_bt_action_server", default_value="True"),
@@ -136,6 +143,7 @@ def generate_launch_description():
                     [FindPackageShare("concrete_block_behavior_tree"), "rviz", "concrete_bt.rviz"]
                 ),
             ),
+            gazebo_master_uri,
             gazebo_bringup,
             motion_planning_launch,
             delayed_bt_launch_full,
