@@ -18,7 +18,6 @@ def generate_launch_description():
                     "use_perception": "True",
                     "concrete_rviz": "True",
                     "cleanup_stale_gazebo": "True",
-                    "log_on_truck": "False",
                     "tool": "pzs100_description",
                     "bt_start_delay_s": "10.0",
                 }.items(),

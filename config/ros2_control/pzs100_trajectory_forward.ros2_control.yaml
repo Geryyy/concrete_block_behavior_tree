@@ -1,0 +1,13 @@
+trajectory_controllers:
+  ros__parameters:
+    type: trajectory_forward_controller/TrajectoryForwardController
+    timeout: 0.5
+    command_interfaces:
+      - velocity
+    command_joints:
+      - theta1_slewing_joint
+      - theta2_boom_joint
+      - theta3_arm_joint
+      - q4_big_telescope
+      - theta8_rotator_joint
+      - q9_left_rail_joint
