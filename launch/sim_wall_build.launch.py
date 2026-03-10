@@ -18,6 +18,9 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     gui = LaunchConfiguration("gui")
+    start_paused = LaunchConfiguration("start_paused")
+    auto_unpause = LaunchConfiguration("auto_unpause")
+    unpause_delay_s = LaunchConfiguration("unpause_delay_s")
     initial_pose = LaunchConfiguration("initial_pose")
     tool = LaunchConfiguration("tool")
     spawn_concrete_block = LaunchConfiguration("spawn_concrete_block")
@@ -153,7 +156,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "world": world_path,
-            "pause": "False",
+            "pause": start_paused,
             "gui": gui,
         }.items(),
     )
@@ -249,6 +252,28 @@ def generate_launch_description():
             target_action=joint_state_broadcaster,
             on_exit=[trajectory_controller],
         )
+    )
+
+    should_unpause = IfCondition(PythonExpression([start_paused, " and ", auto_unpause]))
+    unpause_physics = ExecuteProcess(
+        cmd=["ros2", "service", "call", "/unpause_physics", "std_srvs/srv/Empty", "{}"],
+        output="screen",
+        condition=should_unpause,
+    )
+    delayed_unpause = TimerAction(period=unpause_delay_s, actions=[unpause_physics])
+    unpause_after_block_spawn = RegisterEventHandler(
+        OnProcessExit(
+            target_action=spawn_concrete_block_node,
+            on_exit=[delayed_unpause],
+        ),
+        condition=IfCondition(spawn_concrete_block),
+    )
+    unpause_after_trajectory = RegisterEventHandler(
+        OnProcessExit(
+            target_action=trajectory_controller,
+            on_exit=[delayed_unpause],
+        ),
+        condition=UnlessCondition(spawn_concrete_block),
     )
 
     motion_planning_launch = IncludeLaunchDescription(
@@ -356,13 +381,16 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("use_sim_time", default_value="True"),
             DeclareLaunchArgument("gui", default_value="True"),
+            DeclareLaunchArgument("start_paused", default_value="True"),
+            DeclareLaunchArgument("auto_unpause", default_value="True"),
+            DeclareLaunchArgument("unpause_delay_s", default_value="0.5"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="pzs100_description"),
             DeclareLaunchArgument("spawn_concrete_block", default_value="True"),
             DeclareLaunchArgument("concrete_block_name", default_value="concrete_block_1"),
             DeclareLaunchArgument("concrete_block_x", default_value="6.0"),
             DeclareLaunchArgument("concrete_block_y", default_value="-2.5"),
-            DeclareLaunchArgument("concrete_block_z", default_value="0.1"),
+            DeclareLaunchArgument("concrete_block_z", default_value="0.3"),
             DeclareLaunchArgument("concrete_block_yaw", default_value="0.0"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
@@ -389,9 +417,11 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution([FindPackageShare("gazebo_ros"), "launch", "gazebo.launch.py"])
                 ),
-                launch_arguments={"world": world_path, "pause": "False", "gui": gui}.items(),
+                launch_arguments={"world": world_path, "pause": start_paused, "gui": gui}.items(),
                 condition=UnlessCondition(cleanup_stale_gazebo),
             ),
             delayed_runtime_bringup,
+            unpause_after_block_spawn,
+            unpause_after_trajectory,
         ]
     )
