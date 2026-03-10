@@ -20,6 +20,12 @@ def generate_launch_description():
     gui = LaunchConfiguration("gui")
     initial_pose = LaunchConfiguration("initial_pose")
     tool = LaunchConfiguration("tool")
+    spawn_concrete_block = LaunchConfiguration("spawn_concrete_block")
+    concrete_block_name = LaunchConfiguration("concrete_block_name")
+    concrete_block_x = LaunchConfiguration("concrete_block_x")
+    concrete_block_y = LaunchConfiguration("concrete_block_y")
+    concrete_block_z = LaunchConfiguration("concrete_block_z")
+    concrete_block_yaw = LaunchConfiguration("concrete_block_yaw")
 
     use_perception = LaunchConfiguration("use_perception")
     concrete_rviz = LaunchConfiguration("concrete_rviz")
@@ -43,6 +49,14 @@ def generate_launch_description():
             "config",
             "ros2_control",
             "pzs100_trajectory_forward.ros2_control.yaml",
+        ]
+    )
+    concrete_block_model_path = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "config",
+            "models",
+            "concrete_block.sdf",
         ]
     )
 
@@ -168,6 +182,41 @@ def generate_launch_description():
         output="screen",
     )
 
+    spawn_concrete_block_node = Node(
+        package="gazebo_ros",
+        executable="spawn_entity.py",
+        arguments=[
+            "-file",
+            concrete_block_model_path,
+            "-entity",
+            concrete_block_name,
+            "-timeout",
+            "60",
+            "-x",
+            concrete_block_x,
+            "-y",
+            concrete_block_y,
+            "-z",
+            concrete_block_z,
+            "-R",
+            "0.0",
+            "-P",
+            "0.0",
+            "-Y",
+            concrete_block_yaw,
+        ],
+        output="screen",
+        condition=IfCondition(spawn_concrete_block),
+    )
+
+    spawn_block_after_crane = RegisterEventHandler(
+        OnProcessExit(
+            target_action=spawn_crane,
+            on_exit=[spawn_concrete_block_node],
+        ),
+        condition=IfCondition(spawn_concrete_block),
+    )
+
     static_world_floor = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -266,7 +315,11 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-lc",
-            "pkill -x gzserver || true; pkill -x gzclient || true; sleep 1",
+            (
+                "while pgrep -x gzserver >/dev/null; do pkill -9 -x gzserver || true; sleep 0.2; done; "
+                "while pgrep -x gzclient >/dev/null; do pkill -9 -x gzclient || true; sleep 0.2; done; "
+                "sleep 1"
+            ),
         ],
         output="screen",
         condition=IfCondition(cleanup_stale_gazebo),
@@ -280,12 +333,37 @@ def generate_launch_description():
         condition=IfCondition(cleanup_stale_gazebo),
     )
 
+    delayed_runtime_bringup = TimerAction(
+        period=3.0,
+        actions=[
+            robot_state_publisher_gazebo,
+            robot_state_publisher_rviz,
+            crane_tools_description,
+            spawn_crane,
+            spawn_block_after_crane,
+            static_world_floor,
+            joint_state_broadcaster,
+            trajectory_after_joint_state,
+            motion_planning_launch,
+            delayed_bt_launch_full,
+            delayed_bt_launch_dummy,
+            perception_launch,
+            local_rviz,
+        ],
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="True"),
             DeclareLaunchArgument("gui", default_value="True"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="pzs100_description"),
+            DeclareLaunchArgument("spawn_concrete_block", default_value="True"),
+            DeclareLaunchArgument("concrete_block_name", default_value="concrete_block_1"),
+            DeclareLaunchArgument("concrete_block_x", default_value="6.0"),
+            DeclareLaunchArgument("concrete_block_y", default_value="-2.5"),
+            DeclareLaunchArgument("concrete_block_z", default_value="0.1"),
+            DeclareLaunchArgument("concrete_block_yaw", default_value="0.0"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
@@ -314,17 +392,6 @@ def generate_launch_description():
                 launch_arguments={"world": world_path, "pause": "False", "gui": gui}.items(),
                 condition=UnlessCondition(cleanup_stale_gazebo),
             ),
-            robot_state_publisher_gazebo,
-            robot_state_publisher_rviz,
-            crane_tools_description,
-            spawn_crane,
-            static_world_floor,
-            joint_state_broadcaster,
-            trajectory_after_joint_state,
-            motion_planning_launch,
-            delayed_bt_launch_full,
-            delayed_bt_launch_dummy,
-            perception_launch,
-            local_rviz,
+            delayed_runtime_bringup,
         ]
     )
