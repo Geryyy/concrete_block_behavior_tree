@@ -1,5 +1,11 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+    TimerAction,
+)
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
@@ -21,6 +27,7 @@ def generate_launch_description():
     bt_params_file = LaunchConfiguration("bt_params_file")
     bt_start_delay_s = LaunchConfiguration("bt_start_delay_s")
     gazebo_master_port = LaunchConfiguration("gazebo_master_port")
+    cleanup_stale_gazebo = LaunchConfiguration("cleanup_stale_gazebo")
 
     gazebo_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -120,6 +127,16 @@ def generate_launch_description():
         value=PythonExpression(["'http://127.0.0.1:' + str(", gazebo_master_port, ")"]),
     )
 
+    cleanup_gazebo_processes = ExecuteProcess(
+        cmd=[
+            "bash",
+            "-lc",
+            "pkill -f gzserver || true; pkill -f gzclient || true; sleep 1",
+        ],
+        output="screen",
+        condition=IfCondition(cleanup_stale_gazebo),
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="True"),
@@ -127,6 +144,7 @@ def generate_launch_description():
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="epsilon_7040_description"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
+            DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
             DeclareLaunchArgument("concrete_rviz", default_value="True"),
             DeclareLaunchArgument("start_bt_action_server", default_value="True"),
@@ -144,6 +162,7 @@ def generate_launch_description():
                 ),
             ),
             gazebo_master_uri,
+            cleanup_gazebo_processes,
             gazebo_bringup,
             motion_planning_launch,
             delayed_bt_launch_full,
