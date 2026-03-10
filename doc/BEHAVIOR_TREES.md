@@ -173,6 +173,10 @@ Smoke sequence with real service nodes:
 - Config: `config/scan_smoke.yaml`
 - Launch: `launch/scan_sequence_smoke.launch.py`
 
+Wall-build simulation baseline (phase-1 roadmap entrypoint):
+- Launch: `launch/sim_wall_build.launch.py`
+- Optional perception: `use_perception:=True`
+
 ## 8) Adding a new custom BT node (C++)
 
 1. Add header/source under `include/.../plugins/action/` and `src/plugins/action/`.
