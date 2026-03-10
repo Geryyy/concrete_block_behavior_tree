@@ -1,6 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -19,6 +19,7 @@ def generate_launch_description():
 
     start_bt_action_server = LaunchConfiguration("start_bt_action_server")
     bt_params_file = LaunchConfiguration("bt_params_file")
+    bt_start_delay_s = LaunchConfiguration("bt_start_delay_s")
 
     gazebo_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -51,7 +52,7 @@ def generate_launch_description():
         launch_arguments={"use_sim_time": use_sim_time}.items(),
     )
 
-    bt_launch = IncludeLaunchDescription(
+    bt_launch_full = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
                 [FindPackageShare("concrete_block_behavior_tree"), "launch", "bt.launch.py"]
@@ -62,6 +63,23 @@ def generate_launch_description():
             "start_bt_action_server": start_bt_action_server,
             "bt_params_file": bt_params_file,
         }.items(),
+        condition=IfCondition(use_perception),
+    )
+
+    bt_launch_dummy = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("concrete_block_behavior_tree"), "launch", "bt.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "start_bt_action_server": start_bt_action_server,
+            "bt_params_file": PathJoinSubstitution(
+                [FindPackageShare("concrete_block_behavior_tree"), "config", "dummy_start.yaml"]
+            ),
+        }.items(),
+        condition=UnlessCondition(use_perception),
     )
 
     perception_launch = IncludeLaunchDescription(
@@ -86,6 +104,16 @@ def generate_launch_description():
         condition=IfCondition(concrete_rviz),
     )
 
+    delayed_bt_launch_full = TimerAction(
+        period=bt_start_delay_s,
+        actions=[bt_launch_full],
+    )
+
+    delayed_bt_launch_dummy = TimerAction(
+        period=bt_start_delay_s,
+        actions=[bt_launch_dummy],
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_sim_time", default_value="True"),
@@ -95,6 +123,7 @@ def generate_launch_description():
             DeclareLaunchArgument("use_perception", default_value="False"),
             DeclareLaunchArgument("concrete_rviz", default_value="True"),
             DeclareLaunchArgument("start_bt_action_server", default_value="True"),
+            DeclareLaunchArgument("bt_start_delay_s", default_value="8.0"),
             DeclareLaunchArgument(
                 "bt_params_file",
                 default_value=PathJoinSubstitution(
@@ -109,7 +138,8 @@ def generate_launch_description():
             ),
             gazebo_bringup,
             motion_planning_launch,
-            bt_launch,
+            delayed_bt_launch_full,
+            delayed_bt_launch_dummy,
             perception_launch,
             local_rviz,
         ]
