@@ -176,6 +176,9 @@ Smoke sequence with real service nodes:
 Wall-build simulation baseline (phase-1 roadmap entrypoint):
 - Launch: `launch/sim_wall_build.launch.py`
 - Optional perception: `use_perception:=True`
+- Lean launch profiles:
+  - `launch/sim_wall_build_smoke.launch.py` (no perception, quick iteration)
+  - `launch/sim_wall_build_full.launch.py` (perception enabled)
 
 ## 8) Adding a new custom BT node (C++)
 
