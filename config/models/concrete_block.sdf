@@ -35,16 +35,15 @@
 
       <visual name="visual">
         <geometry>
-          <mesh>
-            <uri>ConcreteBlock.stl</uri>
-            <scale>1 1 1</scale>
-          </mesh>
+          <box>
+            <size>0.9 0.6 0.65</size>
+          </box>
         </geometry>
         <material>
-          <ambient>1.0 0.35 0.0 1</ambient>
-          <diffuse>1.0 0.35 0.0 1</diffuse>
-          <specular>0.2 0.1 0.0 1</specular>
-          <emissive>0.9 0.25 0.0 1</emissive>
+          <ambient>1.0 0.45 0.0 1</ambient>
+          <diffuse>1.0 0.45 0.0 1</diffuse>
+          <specular>0.4 0.15 0.0 1</specular>
+          <emissive>1.0 0.25 0.0 1</emissive>
         </material>
       </visual>
 

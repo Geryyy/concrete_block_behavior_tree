@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -26,15 +26,20 @@ def generate_launch_description():
                 ],
                 condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
             ),
-            Node(
-                package="nav2_lifecycle_manager",
-                executable="lifecycle_manager",
-                output="screen",
-                parameters=[
-                    LaunchConfiguration("bt_params_file"),
-                    {"use_sim_time": LaunchConfiguration("use_sim_time")},
+            TimerAction(
+                period=1.0,
+                actions=[
+                    Node(
+                        package="nav2_lifecycle_manager",
+                        executable="lifecycle_manager",
+                        output="screen",
+                        parameters=[
+                            LaunchConfiguration("bt_params_file"),
+                            {"use_sim_time": LaunchConfiguration("use_sim_time")},
+                        ],
+                        condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
+                    )
                 ],
-                condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
             ),
         ]
     )

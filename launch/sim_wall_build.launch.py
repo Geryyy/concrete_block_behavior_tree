@@ -29,6 +29,13 @@ def generate_launch_description():
     concrete_block_y = LaunchConfiguration("concrete_block_y")
     concrete_block_z = LaunchConfiguration("concrete_block_z")
     concrete_block_yaw = LaunchConfiguration("concrete_block_yaw")
+    cbmp_execution_enabled = LaunchConfiguration("cbmp_execution_enabled")
+    cbmp_execution_topic = LaunchConfiguration("cbmp_execution_topic")
+    enable_rviz_move_empty_interface = LaunchConfiguration("enable_rviz_move_empty_interface")
+    rviz_move_empty_goal_topic = LaunchConfiguration("rviz_move_empty_goal_topic")
+    rviz_move_empty_world_frame = LaunchConfiguration("rviz_move_empty_world_frame")
+    rviz_move_empty_tool_frame = LaunchConfiguration("rviz_move_empty_tool_frame")
+    rviz_move_empty_enable_topic = LaunchConfiguration("rviz_move_empty_enable_topic")
 
     use_perception = LaunchConfiguration("use_perception")
     concrete_rviz = LaunchConfiguration("concrete_rviz")
@@ -282,7 +289,26 @@ def generate_launch_description():
                 [FindPackageShare("concrete_block_motion_planning"), "launch", "motion_planning.launch.py"]
             )
         ),
-        launch_arguments={"use_sim_time": use_sim_time}.items(),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "execution_enabled": cbmp_execution_enabled,
+            "execution_trajectory_topic": cbmp_execution_topic,
+        }.items(),
+    )
+
+    rviz_move_empty_interface = Node(
+        package="concrete_block_motion_planning",
+        executable="rviz_move_empty_interface.py",
+        name="rviz_move_empty_interface",
+        output="screen",
+        parameters=[
+            {"goal_topic": rviz_move_empty_goal_topic},
+            {"world_frame": rviz_move_empty_world_frame},
+            {"tool_frame": rviz_move_empty_tool_frame},
+            {"enable_topic": rviz_move_empty_enable_topic},
+            {"dry_run": False},
+        ],
+        condition=IfCondition(enable_rviz_move_empty_interface),
     )
 
     bt_launch_full = IncludeLaunchDescription(
@@ -370,6 +396,7 @@ def generate_launch_description():
             joint_state_broadcaster,
             trajectory_after_joint_state,
             motion_planning_launch,
+            rviz_move_empty_interface,
             delayed_bt_launch_full,
             delayed_bt_launch_dummy,
             perception_launch,
@@ -392,6 +419,16 @@ def generate_launch_description():
             DeclareLaunchArgument("concrete_block_y", default_value="-2.5"),
             DeclareLaunchArgument("concrete_block_z", default_value="0.3"),
             DeclareLaunchArgument("concrete_block_yaw", default_value="0.0"),
+            DeclareLaunchArgument("cbmp_execution_enabled", default_value="False"),
+            DeclareLaunchArgument(
+                "cbmp_execution_topic",
+                default_value="/trajectory_controllers/joint_trajectory",
+            ),
+            DeclareLaunchArgument("enable_rviz_move_empty_interface", default_value="True"),
+            DeclareLaunchArgument("rviz_move_empty_goal_topic", default_value="/goal_pose"),
+            DeclareLaunchArgument("rviz_move_empty_world_frame", default_value="world"),
+            DeclareLaunchArgument("rviz_move_empty_tool_frame", default_value="K8_tool_center_point"),
+            DeclareLaunchArgument("rviz_move_empty_enable_topic", default_value="/cb_move_empty/enable"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
