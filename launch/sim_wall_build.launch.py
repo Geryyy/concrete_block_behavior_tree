@@ -18,6 +18,7 @@ def generate_launch_description():
     gui = LaunchConfiguration("gui")
     initial_pose = LaunchConfiguration("initial_pose")
     tool = LaunchConfiguration("tool")
+    log_on_truck = LaunchConfiguration("log_on_truck")
 
     use_perception = LaunchConfiguration("use_perception")
     concrete_rviz = LaunchConfiguration("concrete_rviz")
@@ -40,6 +41,7 @@ def generate_launch_description():
             "logs_sim": "False",
             "zed2i_sim": "False",
             "ait_stereo_sim": "False",
+            "log_on_truck": log_on_truck,
             "initial_pose": initial_pose,
             "sw_controller": "1",
             "plot": "False",
@@ -142,7 +144,8 @@ def generate_launch_description():
             DeclareLaunchArgument("use_sim_time", default_value="True"),
             DeclareLaunchArgument("gui", default_value="True"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
-            DeclareLaunchArgument("tool", default_value="epsilon_7040_description"),
+            DeclareLaunchArgument("tool", default_value="pzs100_description"),
+            DeclareLaunchArgument("log_on_truck", default_value="False"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
