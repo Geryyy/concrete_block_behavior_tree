@@ -3,10 +3,12 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    RegisterEventHandler,
     SetEnvironmentVariable,
     TimerAction,
 )
 from launch.conditions import IfCondition, UnlessCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
@@ -19,6 +21,7 @@ def generate_launch_description():
     initial_pose = LaunchConfiguration("initial_pose")
     tool = LaunchConfiguration("tool")
     log_on_truck = LaunchConfiguration("log_on_truck")
+    remove_default_wood_logs = LaunchConfiguration("remove_default_wood_logs")
 
     use_perception = LaunchConfiguration("use_perception")
     concrete_rviz = LaunchConfiguration("concrete_rviz")
@@ -133,9 +136,35 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-lc",
-            "pkill -f gzserver || true; pkill -f gzclient || true; sleep 1",
+            "pkill -x gzserver || true; pkill -x gzclient || true; sleep 1",
         ],
         output="screen",
+        condition=IfCondition(cleanup_stale_gazebo),
+    )
+
+    remove_wood_entities = ExecuteProcess(
+        cmd=[
+            "bash",
+            "-lc",
+            (
+                "for i in $(seq 1 20); do "
+                "ros2 service type /delete_entity >/dev/null 2>&1 && break; "
+                "sleep 0.5; "
+                "done; "
+                "for name in Wood_Log_Truck Wood_Log_1 wood_log_pile_on_pallet; do "
+                "ros2 service call /delete_entity gazebo_msgs/srv/DeleteEntity \"{name: '$name'}\" >/dev/null 2>&1 || true; "
+                "done"
+            ),
+        ],
+        output="screen",
+        condition=IfCondition(remove_default_wood_logs),
+    )
+
+    gazebo_after_cleanup = RegisterEventHandler(
+        OnProcessExit(
+            target_action=cleanup_gazebo_processes,
+            on_exit=[gazebo_bringup],
+        ),
         condition=IfCondition(cleanup_stale_gazebo),
     )
 
@@ -146,6 +175,7 @@ def generate_launch_description():
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="pzs100_description"),
             DeclareLaunchArgument("log_on_truck", default_value="False"),
+            DeclareLaunchArgument("remove_default_wood_logs", default_value="True"),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
@@ -166,11 +196,35 @@ def generate_launch_description():
             ),
             gazebo_master_uri,
             cleanup_gazebo_processes,
-            gazebo_bringup,
+            gazebo_after_cleanup,
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [FindPackageShare("epsilon_crane_bringup_sim"), "launch", "gazebo_model_manual.launch.py"]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "logs_sim": "False",
+                    "zed2i_sim": "False",
+                    "ait_stereo_sim": "False",
+                    "log_on_truck": log_on_truck,
+                    "initial_pose": initial_pose,
+                    "sw_controller": "1",
+                    "plot": "False",
+                    "rviz": "False",
+                    "joystick": "False",
+                    "matlab_excel": "False",
+                    "tool": tool,
+                    "gui": gui,
+                }.items(),
+                condition=UnlessCondition(cleanup_stale_gazebo),
+            ),
             motion_planning_launch,
             delayed_bt_launch_full,
             delayed_bt_launch_dummy,
             perception_launch,
             local_rviz,
+            TimerAction(period=10.0, actions=[remove_wood_entities]),
         ]
     )
