@@ -123,7 +123,7 @@
             geometric_plan_id="{geometric_plan_id}"
             cartesian_path="{cartesian_path}"
             use_direct_path="false"
-            method="ACADOS_PATH_FOLLOWING"
+            method="ACADOS_PATH_FOLLOWING_STABLE"
             timeout_s="10.0"
             validate_dynamics="true"
             trajectory_id="{trajectory_id}"
@@ -148,7 +148,7 @@
         <ExecuteTrajectory
           service_name="/concrete_block_motion_planning_node/execute_trajectory"
           trajectory_id="{trajectory_id}"
-          dry_run="true"
+          dry_run="false"
           execution_ok="{execution_ok}"
           execution_message="{execution_message}"/>
 

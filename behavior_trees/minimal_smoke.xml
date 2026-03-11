@@ -10,28 +10,20 @@
         perception_ok="{perception_ok}"
         perception_message="{perception_message}"/>
 
-      <PlanGeometricPath
-        service_name="/concrete_block_motion_planning_node/plan_geometric_path"
+      <PlanAndComputeTrajectory
+        service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
         start_pose="{target_block_pose_coarse}"
         goal_pose="{target_block_pose_precise}"
         target_block_id="{target_block_id}"
         reference_block_id="{reference_block_id}"
-        method="POWELL"
-        timeout_s="5.0"
+        geometric_method="POWELL"
+        geometric_timeout_s="5.0"
+        trajectory_method="ACADOS_PATH_FOLLOWING"
+        trajectory_timeout_s="10.0"
         use_world_model="true"
-        geometric_plan_id="{geometric_plan_id}"
-        cartesian_path="{cartesian_path}"
-        geometric_ok="{geometric_ok}"
-        geometric_message="{geometric_message}"/>
-
-      <ComputeTrajectory
-        service_name="/concrete_block_motion_planning_node/compute_trajectory"
-        geometric_plan_id="{geometric_plan_id}"
-        cartesian_path="{cartesian_path}"
-        use_direct_path="false"
-        method="ACADOS_PATH_FOLLOWING"
-        timeout_s="10.0"
         validate_dynamics="true"
+        geometric_plan_id="{geometric_plan_id}"
+        cartesian_path="{cartesian_path}"
         trajectory_id="{trajectory_id}"
         joint_trajectory="{joint_trajectory}"
         trajectory_ok="{trajectory_ok}"

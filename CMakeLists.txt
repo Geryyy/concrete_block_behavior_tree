@@ -31,6 +31,9 @@ list(APPEND plugin_libs BT_cb_run_pose_estimation_action)
 add_library(BT_cb_plan_geometric_path_action SHARED src/plugins/action/plan_geometric_path.cpp)
 list(APPEND plugin_libs BT_cb_plan_geometric_path_action)
 
+add_library(BT_cb_plan_and_compute_trajectory_action SHARED src/plugins/action/plan_and_compute_trajectory.cpp)
+list(APPEND plugin_libs BT_cb_plan_and_compute_trajectory_action)
+
 add_library(BT_cb_compute_trajectory_action SHARED src/plugins/action/compute_trajectory.cpp)
 list(APPEND plugin_libs BT_cb_compute_trajectory_action)
 

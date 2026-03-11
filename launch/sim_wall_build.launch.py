@@ -30,7 +30,11 @@ def generate_launch_description():
     concrete_block_z = LaunchConfiguration("concrete_block_z")
     concrete_block_yaw = LaunchConfiguration("concrete_block_yaw")
     cbmp_execution_enabled = LaunchConfiguration("cbmp_execution_enabled")
+    cbmp_execution_backend = LaunchConfiguration("cbmp_execution_backend")
     cbmp_execution_topic = LaunchConfiguration("cbmp_execution_topic")
+    cbmp_execution_action_name = LaunchConfiguration("cbmp_execution_action_name")
+    cbmp_execution_switch_controller = LaunchConfiguration("cbmp_execution_switch_controller")
+    cbmp_execution_activate_controller = LaunchConfiguration("cbmp_execution_activate_controller")
     enable_rviz_move_empty_interface = LaunchConfiguration("enable_rviz_move_empty_interface")
     rviz_move_empty_goal_topic = LaunchConfiguration("rviz_move_empty_goal_topic")
     rviz_move_empty_world_frame = LaunchConfiguration("rviz_move_empty_world_frame")
@@ -292,7 +296,11 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "execution_enabled": cbmp_execution_enabled,
+            "execution_backend": cbmp_execution_backend,
             "execution_trajectory_topic": cbmp_execution_topic,
+            "execution_action_name": cbmp_execution_action_name,
+            "execution_switch_controller": cbmp_execution_switch_controller,
+            "execution_activate_controller": cbmp_execution_activate_controller,
         }.items(),
     )
 
@@ -419,10 +427,20 @@ def generate_launch_description():
             DeclareLaunchArgument("concrete_block_y", default_value="-2.5"),
             DeclareLaunchArgument("concrete_block_z", default_value="0.3"),
             DeclareLaunchArgument("concrete_block_yaw", default_value="0.0"),
-            DeclareLaunchArgument("cbmp_execution_enabled", default_value="False"),
+            DeclareLaunchArgument("cbmp_execution_enabled", default_value="True"),
+            DeclareLaunchArgument("cbmp_execution_backend", default_value="action"),
             DeclareLaunchArgument(
                 "cbmp_execution_topic",
                 default_value="/trajectory_controllers/joint_trajectory",
+            ),
+            DeclareLaunchArgument(
+                "cbmp_execution_action_name",
+                default_value="/trajectory_controller_a2b/follow_joint_trajectory",
+            ),
+            DeclareLaunchArgument("cbmp_execution_switch_controller", default_value="True"),
+            DeclareLaunchArgument(
+                "cbmp_execution_activate_controller",
+                default_value="trajectory_controller_a2b",
             ),
             DeclareLaunchArgument("enable_rviz_move_empty_interface", default_value="True"),
             DeclareLaunchArgument("rviz_move_empty_goal_topic", default_value="/goal_pose"),
