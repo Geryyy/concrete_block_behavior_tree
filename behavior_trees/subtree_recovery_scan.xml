@@ -1,0 +1,14 @@
+<root>
+  <BehaviorTree ID="SubTreeRecoveryScan">
+    <Sequence name="recovery_sequence">
+      <RunPoseEstimation
+        service_name="/world_model_node/run_pose_estimation"
+        mode="SCENE_DISCOVERY"
+        target_block_id=""
+        enable_debug="false"
+        timeout_s="8.0"
+        perception_ok="{perception_ok}"
+        perception_message="{perception_message}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

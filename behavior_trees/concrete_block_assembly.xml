@@ -1,59 +1,19 @@
 <root main_tree_to_execute="ConcreteBlockAssembly">
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_scene_scan.xml"/>
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_transport_block.xml"/>
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_recovery_scan.xml"/>
   <BehaviorTree ID="ConcreteBlockAssembly">
-    <Fallback name="assembly_with_recovery">
-      <Sequence name="main_sequence">
-        <Sequence name="scene_scan_fixed_viewpoints">
-          <MoveToNamedConfiguration
-            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
-            configuration_name="scan_left"
-            timeout_s="20.0"
-            dry_run="false"
-            trajectory_id="{scan_left_traj_id}"
-            move_ok="{scan_left_ok}"
-            move_message="{scan_left_msg}"/>
-          <RunPoseEstimation
-            service_name="/world_model_node/run_pose_estimation"
-            mode="SCENE_DISCOVERY"
-            target_block_id=""
-            enable_debug="true"
-            timeout_s="8.0"
-            perception_ok="{perception_ok}"
-            perception_message="{perception_message}"/>
-
-          <MoveToNamedConfiguration
-            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
-            configuration_name="scan_center"
-            timeout_s="20.0"
-            dry_run="false"
-            trajectory_id="{scan_center_traj_id}"
-            move_ok="{scan_center_ok}"
-            move_message="{scan_center_msg}"/>
-          <RunPoseEstimation
-            service_name="/world_model_node/run_pose_estimation"
-            mode="SCENE_DISCOVERY"
-            target_block_id=""
-            enable_debug="true"
-            timeout_s="8.0"
-            perception_ok="{perception_ok}"
-            perception_message="{perception_message}"/>
-
-          <MoveToNamedConfiguration
-            service_name="/concrete_block_motion_planning_node/execute_named_configuration"
-            configuration_name="scan_right"
-            timeout_s="20.0"
-            dry_run="false"
-            trajectory_id="{scan_right_traj_id}"
-            move_ok="{scan_right_ok}"
-            move_message="{scan_right_msg}"/>
-          <RunPoseEstimation
-            service_name="/world_model_node/run_pose_estimation"
-            mode="SCENE_DISCOVERY"
-            target_block_id=""
-            enable_debug="true"
-            timeout_s="8.0"
-            perception_ok="{perception_ok}"
-            perception_message="{perception_message}"/>
-        </Sequence>
+    <!--
+      KeepRunningUntilFailure loops the inner sequence until it returns FAILURE.
+      GetNextAssemblyTask returns FAILURE when the wall plan is complete,
+      which propagates through the sequence and terminates the loop with SUCCESS.
+    -->
+    <KeepRunningUntilFailure name="assembly_loop">
+      <Sequence name="scan_and_execute">
+        <SubTree ID="SubTreeSceneScan" __shared_blackboard="true"/>
 
         <GetNextAssemblyTask
           service_name="/concrete_block_motion_planning_node/get_next_assembly_task"
@@ -68,110 +28,44 @@
           plan_has_task="{plan_has_task}"
           plan_message="{plan_message}"/>
 
-        <RunPoseEstimation
-          service_name="/world_model_node/run_pose_estimation"
-          mode="REFINE_BLOCK"
-          target_block_id="{target_block_id}"
-          enable_debug="true"
-          timeout_s="8.0"
-          perception_ok="{perception_ok}"
-          perception_message="{perception_message}"/>
-
-        <Fallback name="geometric_stage_with_retry">
-          <PlanGeometricPath
-            service_name="/concrete_block_motion_planning_node/plan_geometric_path"
-            start_pose="{target_block_pose_coarse}"
-            goal_pose="{target_block_pose_precise}"
-            target_block_id="{target_block_id}"
-            reference_block_id="{reference_block_id}"
-            method="POWELL"
-            timeout_s="5.0"
-            use_world_model="true"
-            geometric_plan_id="{geometric_plan_id}"
-            cartesian_path="{cartesian_path}"
-            geometric_ok="{geometric_ok}"
-            geometric_message="{geometric_message}"/>
-
-          <Sequence name="geometric_retry_alt_method">
+        <!--
+          Execution with recovery: perception/planning failures trigger a recovery
+          scan and retry from the current block. GetNextAssemblyTask failures (no
+          tasks left) are NOT caught here — they propagate up to terminate the loop.
+        -->
+        <Fallback name="execute_with_recovery">
+          <Sequence name="execute_sequence">
             <RunPoseEstimation
               service_name="/world_model_node/run_pose_estimation"
-              mode="SCENE_DISCOVERY"
-              target_block_id=""
-              enable_debug="false"
+              mode="REFINE_BLOCK"
+              target_block_id="{target_block_id}"
+              enable_debug="true"
               timeout_s="8.0"
               perception_ok="{perception_ok}"
               perception_message="{perception_message}"/>
-            <PlanGeometricPath
-              service_name="/concrete_block_motion_planning_node/plan_geometric_path"
-              start_pose="{target_block_pose_coarse}"
-              goal_pose="{target_block_pose_precise}"
+
+            <SubTree ID="SubTreeTransportBlock" __shared_blackboard="true"/>
+
+            <RunPoseEstimation
+              service_name="/world_model_node/run_pose_estimation"
+              mode="REFINE_GRASPED"
               target_block_id="{target_block_id}"
-              reference_block_id="{reference_block_id}"
-              method="CEM"
-              timeout_s="5.0"
-              use_world_model="true"
-              geometric_plan_id="{geometric_plan_id}"
-              cartesian_path="{cartesian_path}"
-              geometric_ok="{geometric_ok}"
-              geometric_message="{geometric_message}"/>
+              enable_debug="true"
+              timeout_s="8.0"
+              perception_ok="{perception_ok}"
+              perception_message="{perception_message}"/>
+
+            <SetBlockTaskStatus
+              service_name="/world_model_node/set_block_task_status"
+              block_id="{target_block_id}"
+              task_status="3"
+              status_ok="{status_ok}"
+              status_message="{status_message}"/>
           </Sequence>
+
+          <SubTree ID="SubTreeRecoveryScan" __shared_blackboard="true"/>
         </Fallback>
-
-        <Fallback name="trajectory_stage_with_retry">
-          <ComputeTrajectory
-            service_name="/concrete_block_motion_planning_node/compute_trajectory"
-            geometric_plan_id="{geometric_plan_id}"
-            cartesian_path="{cartesian_path}"
-            use_direct_path="false"
-            method="ACADOS_PATH_FOLLOWING_STABLE"
-            timeout_s="10.0"
-            validate_dynamics="true"
-            trajectory_id="{trajectory_id}"
-            joint_trajectory="{joint_trajectory}"
-            trajectory_ok="{trajectory_ok}"
-            trajectory_message="{trajectory_message}"/>
-
-          <ComputeTrajectory
-            service_name="/concrete_block_motion_planning_node/compute_trajectory"
-            geometric_plan_id="{geometric_plan_id}"
-            cartesian_path="{cartesian_path}"
-            use_direct_path="false"
-            method="ACADOS_PATH_FOLLOWING_FAST"
-            timeout_s="10.0"
-            validate_dynamics="false"
-            trajectory_id="{trajectory_id}"
-            joint_trajectory="{joint_trajectory}"
-            trajectory_ok="{trajectory_ok}"
-            trajectory_message="{trajectory_message}"/>
-        </Fallback>
-
-        <ExecuteTrajectory
-          service_name="/concrete_block_motion_planning_node/execute_trajectory"
-          trajectory_id="{trajectory_id}"
-          dry_run="false"
-          execution_ok="{execution_ok}"
-          execution_message="{execution_message}"/>
-
-        <RunPoseEstimation
-          service_name="/world_model_node/run_pose_estimation"
-          mode="REFINE_GRASPED"
-          target_block_id="{target_block_id}"
-          enable_debug="true"
-          timeout_s="8.0"
-          perception_ok="{perception_ok}"
-          perception_message="{perception_message}"/>
       </Sequence>
-
-      <Sequence name="recovery_sequence">
-        <RunPoseEstimation
-          service_name="/world_model_node/run_pose_estimation"
-          mode="SCENE_DISCOVERY"
-          target_block_id=""
-          enable_debug="false"
-          timeout_s="8.0"
-          perception_ok="{perception_ok}"
-          perception_message="{perception_message}"/>
-      </Sequence>
-    </Fallback>
+    </KeepRunningUntilFailure>
   </BehaviorTree>
 </root>

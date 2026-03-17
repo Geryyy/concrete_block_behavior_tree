@@ -9,7 +9,7 @@
       - BT_cb_execute_trajectory_action
       - BT_cb_move_to_named_configuration_action
       - BT_cb_get_next_assembly_task_action
-    behaviortree: "src/concrete_block_stack/concrete_block_behavior_tree/behavior_trees/scan_sequence_smoke.xml"
+    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/scan_sequence_smoke.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true

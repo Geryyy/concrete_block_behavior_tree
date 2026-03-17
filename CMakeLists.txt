@@ -46,6 +46,12 @@ list(APPEND plugin_libs BT_cb_move_to_named_configuration_action)
 add_library(BT_cb_get_next_assembly_task_action SHARED src/plugins/action/get_next_assembly_task.cpp)
 list(APPEND plugin_libs BT_cb_get_next_assembly_task_action)
 
+add_library(BT_cb_set_block_task_status_action SHARED src/plugins/action/set_block_task_status.cpp)
+list(APPEND plugin_libs BT_cb_set_block_task_status_action)
+
+add_library(BT_cb_gripper_action SHARED src/plugins/action/gripper_action.cpp)
+list(APPEND plugin_libs BT_cb_gripper_action)
+
 foreach(bt_plugin ${plugin_libs})
   ament_target_dependencies(${bt_plugin} ${THIS_PACKAGE_INCLUDE_DEPENDS})
   target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)

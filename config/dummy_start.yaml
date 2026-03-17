@@ -10,7 +10,9 @@
       - BT_cb_execute_trajectory_action
       - BT_cb_move_to_named_configuration_action
       - BT_cb_get_next_assembly_task_action
-    behaviortree: "src/concrete_block_stack/concrete_block_behavior_tree/behavior_trees/dummy_start.xml"
+      - BT_cb_set_block_task_status_action
+      - BT_cb_gripper_action
+    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/dummy_start.xml"
     logging:
       enable_groot_monitoring: false
       enable_file_logging: false
