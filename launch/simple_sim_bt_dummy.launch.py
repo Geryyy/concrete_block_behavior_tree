@@ -46,6 +46,7 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "start_bt_action_server": "True",
+            # Smoke-only BT profile for bringup validation without wall-build actions.
             "bt_params_file": PathJoinSubstitution(
                 [FindPackageShare("concrete_block_behavior_tree"), "config", "dummy_start.yaml"]
             ),

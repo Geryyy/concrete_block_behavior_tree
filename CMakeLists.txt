@@ -25,37 +25,23 @@ endforeach()
 
 include_directories(include)
 
-add_library(BT_cb_run_pose_estimation_action SHARED src/plugins/action/run_pose_estimation.cpp)
-list(APPEND plugin_libs BT_cb_run_pose_estimation_action)
+function(add_bt_plugin plugin_name source_file)
+  add_library(${plugin_name} SHARED ${source_file})
+  ament_target_dependencies(${plugin_name} ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  target_compile_definitions(${plugin_name} PRIVATE BT_PLUGIN_EXPORT)
+  list(APPEND plugin_libs ${plugin_name})
+  set(plugin_libs "${plugin_libs}" PARENT_SCOPE)
+endfunction()
 
-add_library(BT_cb_plan_geometric_path_action SHARED src/plugins/action/plan_geometric_path.cpp)
-list(APPEND plugin_libs BT_cb_plan_geometric_path_action)
-
-add_library(BT_cb_plan_and_compute_trajectory_action SHARED src/plugins/action/plan_and_compute_trajectory.cpp)
-list(APPEND plugin_libs BT_cb_plan_and_compute_trajectory_action)
-
-add_library(BT_cb_compute_trajectory_action SHARED src/plugins/action/compute_trajectory.cpp)
-list(APPEND plugin_libs BT_cb_compute_trajectory_action)
-
-add_library(BT_cb_execute_trajectory_action SHARED src/plugins/action/execute_trajectory.cpp)
-list(APPEND plugin_libs BT_cb_execute_trajectory_action)
-
-add_library(BT_cb_move_to_named_configuration_action SHARED src/plugins/action/move_to_named_configuration.cpp)
-list(APPEND plugin_libs BT_cb_move_to_named_configuration_action)
-
-add_library(BT_cb_get_next_assembly_task_action SHARED src/plugins/action/get_next_assembly_task.cpp)
-list(APPEND plugin_libs BT_cb_get_next_assembly_task_action)
-
-add_library(BT_cb_set_block_task_status_action SHARED src/plugins/action/set_block_task_status.cpp)
-list(APPEND plugin_libs BT_cb_set_block_task_status_action)
-
-add_library(BT_cb_gripper_action SHARED src/plugins/action/gripper_action.cpp)
-list(APPEND plugin_libs BT_cb_gripper_action)
-
-foreach(bt_plugin ${plugin_libs})
-  ament_target_dependencies(${bt_plugin} ${THIS_PACKAGE_INCLUDE_DEPENDS})
-  target_compile_definitions(${bt_plugin} PRIVATE BT_PLUGIN_EXPORT)
-endforeach()
+add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp)
+add_bt_plugin(BT_cb_plan_geometric_path_action src/plugins/action/plan_geometric_path.cpp)
+add_bt_plugin(BT_cb_plan_and_compute_trajectory_action src/plugins/action/plan_and_compute_trajectory.cpp)
+add_bt_plugin(BT_cb_compute_trajectory_action src/plugins/action/compute_trajectory.cpp)
+add_bt_plugin(BT_cb_execute_trajectory_action src/plugins/action/execute_trajectory.cpp)
+add_bt_plugin(BT_cb_move_to_named_configuration_action src/plugins/action/move_to_named_configuration.cpp)
+add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
+add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
+add_bt_plugin(BT_cb_gripper_action src/plugins/action/gripper_action.cpp)
 
 install(DIRECTORY
   behavior_trees

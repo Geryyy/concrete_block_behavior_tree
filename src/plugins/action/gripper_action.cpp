@@ -12,8 +12,8 @@ BT::NodeStatus GripperActionStub::tick()
   std::string command = "OPEN";
   getInput("command", command);
 
-  // Stub: log and succeed. Wire real PZS100 controller service/action here.
-  std::printf("[GripperAction] command=%s (simulation stub)\n", command.c_str());
+  // Smoke-only stub: log and succeed until a real PZS100 controller interface is wired.
+  std::printf("[GripperAction] command=%s (smoke-only stub)\n", command.c_str());
 
   return BT::NodeStatus::SUCCESS;
 }

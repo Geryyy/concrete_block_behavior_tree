@@ -16,6 +16,10 @@ Current default wiring:
 - Default config: `config/default.yaml`
 - Default tree: `behavior_trees/concrete_block_assembly.xml`
 
+Current split:
+- wall-build path: `default.yaml` -> `concrete_block_assembly.xml`
+- smoke-only paths: `scan_smoke.yaml` -> `scan_sequence_smoke.xml`, `dummy_start.yaml` -> `dummy_start.xml`
+
 ## 2) What is required to edit a BT
 
 You need 3 things to stay consistent:
@@ -35,7 +39,8 @@ You need 3 things to stay consistent:
 ## 3) Edit workflow (recommended)
 
 1. Copy an existing tree as a template
-- Start from `behavior_trees/dummy_start.xml` or `behavior_trees/scan_sequence_smoke.xml`.
+- For real commissioning flows, start from `behavior_trees/concrete_block_assembly.xml` or `behavior_trees/scan_sequence_smoke.xml`.
+- Keep `behavior_trees/dummy_start.xml` for smoke-only bringup checks.
 
 2. Add or reorder nodes in XML
 - Use blackboard variables with `{var_name}` to pass outputs to later inputs.
@@ -61,6 +66,8 @@ From `CMakeLists.txt` and plugin registrations:
 - `BT_cb_execute_trajectory_action` -> XML node `ExecuteTrajectory`
 - `BT_cb_move_to_named_configuration_action` -> XML node `MoveToNamedConfiguration`
 - `BT_cb_get_next_assembly_task_action` -> XML node `GetNextAssemblyTask`
+- `BT_cb_set_block_task_status_action` -> XML node `SetBlockTaskStatus`
+- `BT_cb_gripper_action` -> XML node `GripperAction` (smoke-only stub today)
 
 If an XML tag is not registered by a loaded plugin library, tree loading fails.
 
@@ -177,8 +184,13 @@ Wall-build simulation baseline (phase-1 roadmap entrypoint):
 - Launch: `launch/sim_wall_build.launch.py`
 - Optional perception: `use_perception:=True`
 - Lean launch profiles:
-  - `launch/sim_wall_build_smoke.launch.py` (no perception, quick iteration)
+  - `launch/sim_wall_build_smoke.launch.py` (planner/simulation smoke, no perception)
   - `launch/sim_wall_build_full.launch.py` (perception enabled)
+
+Perception scan smoke:
+- XML: `behavior_trees/scan_sequence_smoke.xml`
+- Config: `config/scan_smoke.yaml`
+- Launch: `launch/scan_sequence_smoke.launch.py`
 
 ## 8) Adding a new custom BT node (C++)
 
@@ -189,6 +201,12 @@ Wall-build simulation baseline (phase-1 roadmap entrypoint):
 5. Add the new library to `plugin_lib_names` in your YAML.
 6. Use the registered XML tag in your tree.
 
-## 9) Practical tip for prototyping
+## 9) Current default tree behavior
+
+- `concrete_block_assembly.xml` loops the scan -> task -> refine -> transport -> status-update flow until `GetNextAssemblyTask` reports no remaining task.
+- After transport, the tree calls `SetBlockTaskStatus` so the world model can advance task state.
+- `GripperAction` is currently a smoke-only stub. The tree shape is ready for grasp/release semantics, but the real PZS100 control interface is still a commissioning gap.
+
+## 10) Practical Tip For Prototyping
 
 Use separate YAML + XML pairs for each experiment (`config/*.yaml`, `behavior_trees/*.xml`) instead of constantly editing `default.yaml` and `concrete_block_assembly.xml`. This keeps test scenarios isolated and easier to debug.

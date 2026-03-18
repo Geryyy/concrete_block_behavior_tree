@@ -15,7 +15,7 @@ For your current stack (`behaviortree_cpp_v3`), use **Groot v1** style workflow.
 `config/default.yaml` and `config/scan_smoke.yaml` already set:
 - `enable_groot_monitoring: true`
 
-`config/dummy_start.yaml` sets it to `false` (expected for minimal/dummy run).
+`config/dummy_start.yaml` sets it to `false` because it is a smoke-only dummy profile.
 
 ## 2) Install Groot
 
@@ -36,7 +36,7 @@ Note: exact install command differs by distro and image. If you want, we can pin
 2. Load tree XML from:
 - `behavior_trees/concrete_block_assembly.xml`
 - or `behavior_trees/scan_sequence_smoke.xml`
-- or `behavior_trees/dummy_start.xml`
+- or `behavior_trees/dummy_start.xml` for smoke-only bringup checks
 3. Edit/control flow and node attributes.
 4. Save XML back into `behavior_trees/`.
 5. If you changed node types, make sure corresponding plugin libraries are present in your YAML `plugin_lib_names`.
@@ -46,7 +46,7 @@ Note: exact install command differs by distro and image. If you want, we can pin
 1. Launch BT stack with monitoring enabled config:
 ```bash
 ros2 launch concrete_block_behavior_tree bt.launch.py \
-  bt_params_file:=src/concrete_block_stack/concrete_block_behavior_tree/config/default.yaml
+  bt_params_file:=install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/config/default.yaml
 ```
 
 2. Open Groot monitor/live view and connect to the running BT publisher.
@@ -58,7 +58,7 @@ ros2 launch concrete_block_behavior_tree bt.launch.py \
 1. Full/default behavior tree
 ```bash
 ros2 launch concrete_block_behavior_tree bt.launch.py \
-  bt_params_file:=src/concrete_block_stack/concrete_block_behavior_tree/config/default.yaml
+  bt_params_file:=install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/config/default.yaml
 ```
 
 2. Smoke tree
@@ -66,7 +66,7 @@ ros2 launch concrete_block_behavior_tree bt.launch.py \
 ros2 launch concrete_block_behavior_tree scan_sequence_smoke.launch.py
 ```
 
-3. Dummy startup stack (Gazebo + RViz + dummy BT)
+3. Dummy startup stack (Gazebo + RViz + smoke-only dummy BT)
 ```bash
 ros2 launch concrete_block_behavior_tree simple_sim_bt_dummy.launch.py
 ```

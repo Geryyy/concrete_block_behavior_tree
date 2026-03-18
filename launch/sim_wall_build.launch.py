@@ -10,7 +10,12 @@ from launch.actions import (
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution, PythonExpression
+from launch.substitutions import (
+    Command,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -32,10 +37,19 @@ def generate_launch_description():
     cbmp_execution_enabled = LaunchConfiguration("cbmp_execution_enabled")
     cbmp_execution_backend = LaunchConfiguration("cbmp_execution_backend")
     cbmp_execution_topic = LaunchConfiguration("cbmp_execution_topic")
+    cbmp_default_trajectory_method = LaunchConfiguration(
+        "cbmp_default_trajectory_method"
+    )
     cbmp_execution_action_name = LaunchConfiguration("cbmp_execution_action_name")
-    cbmp_execution_switch_controller = LaunchConfiguration("cbmp_execution_switch_controller")
-    cbmp_execution_activate_controller = LaunchConfiguration("cbmp_execution_activate_controller")
-    enable_rviz_move_empty_interface = LaunchConfiguration("enable_rviz_move_empty_interface")
+    cbmp_execution_switch_controller = LaunchConfiguration(
+        "cbmp_execution_switch_controller"
+    )
+    cbmp_execution_activate_controller = LaunchConfiguration(
+        "cbmp_execution_activate_controller"
+    )
+    enable_rviz_move_empty_interface = LaunchConfiguration(
+        "enable_rviz_move_empty_interface"
+    )
     rviz_move_empty_goal_topic = LaunchConfiguration("rviz_move_empty_goal_topic")
     rviz_move_empty_world_frame = LaunchConfiguration("rviz_move_empty_world_frame")
     rviz_move_empty_tool_frame = LaunchConfiguration("rviz_move_empty_tool_frame")
@@ -52,7 +66,11 @@ def generate_launch_description():
     cleanup_stale_gazebo = LaunchConfiguration("cleanup_stale_gazebo")
 
     xacro_path = PathJoinSubstitution(
-        [FindPackageShare("epsilon_crane_description"), "urdf", "timber_loader_AIT.urdf.xacro"]
+        [
+            FindPackageShare("epsilon_crane_description"),
+            "urdf",
+            "timber_loader_AIT.urdf.xacro",
+        ]
     )
     world_path = PathJoinSubstitution(
         [FindPackageShare("testsite_description"), "worlds", "epsilon_crane.world"]
@@ -155,7 +173,9 @@ def generate_launch_description():
         executable="crane_tools_description_publisher",
         name="crane_tools_description_publisher",
         parameters=[
-            PathJoinSubstitution([FindPackageShare(tool), "config", "gripper_parameter.yaml"]),
+            PathJoinSubstitution(
+                [FindPackageShare(tool), "config", "gripper_parameter.yaml"]
+            ),
             use_sim_time_param,
         ],
         output="screen",
@@ -163,7 +183,9 @@ def generate_launch_description():
 
     gazebo_world = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("gazebo_ros"), "launch", "gazebo.launch.py"])
+            PathJoinSubstitution(
+                [FindPackageShare("gazebo_ros"), "launch", "gazebo.launch.py"]
+            )
         ),
         launch_arguments={
             "world": world_path,
@@ -265,7 +287,9 @@ def generate_launch_description():
         )
     )
 
-    should_unpause = IfCondition(PythonExpression([start_paused, " and ", auto_unpause]))
+    should_unpause = IfCondition(
+        PythonExpression([start_paused, " and ", auto_unpause])
+    )
     unpause_physics = ExecuteProcess(
         cmd=["ros2", "service", "call", "/unpause_physics", "std_srvs/srv/Empty", "{}"],
         output="screen",
@@ -290,11 +314,16 @@ def generate_launch_description():
     motion_planning_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("concrete_block_motion_planning"), "launch", "motion_planning.launch.py"]
+                [
+                    FindPackageShare("concrete_block_motion_planning"),
+                    "launch",
+                    "motion_planning.launch.py",
+                ]
             )
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
+            "default_trajectory_method": cbmp_default_trajectory_method,
             "execution_enabled": cbmp_execution_enabled,
             "execution_backend": cbmp_execution_backend,
             "execution_trajectory_topic": cbmp_execution_topic,
@@ -321,7 +350,13 @@ def generate_launch_description():
 
     bt_launch_full = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("concrete_block_behavior_tree"), "launch", "bt.launch.py"])
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("concrete_block_behavior_tree"),
+                    "launch",
+                    "bt.launch.py",
+                ]
+            )
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
@@ -333,26 +368,49 @@ def generate_launch_description():
 
     bt_launch_dummy = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("concrete_block_behavior_tree"), "launch", "bt.launch.py"])
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("concrete_block_behavior_tree"),
+                    "launch",
+                    "bt.launch.py",
+                ]
+            )
         ),
         launch_arguments={
             "use_sim_time": use_sim_time,
             "start_bt_action_server": start_bt_action_server,
             "bt_params_file": PathJoinSubstitution(
-                [FindPackageShare("concrete_block_behavior_tree"), "config", "dummy_start.yaml"]
+                [
+                    FindPackageShare("concrete_block_behavior_tree"),
+                    "config",
+                    "dummy_start.yaml",
+                ]
             ),
         }.items(),
         condition=UnlessCondition(use_perception),
     )
 
-    delayed_bt_launch_full = TimerAction(period=bt_start_delay_s, actions=[bt_launch_full])
-    delayed_bt_launch_dummy = TimerAction(period=bt_start_delay_s, actions=[bt_launch_dummy])
+    delayed_bt_launch_full = TimerAction(
+        period=bt_start_delay_s, actions=[bt_launch_full]
+    )
+    delayed_bt_launch_dummy = TimerAction(
+        period=bt_start_delay_s, actions=[bt_launch_dummy]
+    )
 
     perception_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("concrete_block_perception"), "launch", "perception.launch.py"])
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("concrete_block_perception"),
+                    "launch",
+                    "perception.launch.py",
+                ]
+            )
         ),
-        launch_arguments={"use_sim_time": use_sim_time, "start_world_model": "true"}.items(),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "start_world_model": "true",
+        }.items(),
         condition=IfCondition(use_perception),
     )
 
@@ -422,13 +480,19 @@ def generate_launch_description():
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="pzs100_description"),
             DeclareLaunchArgument("spawn_concrete_block", default_value="True"),
-            DeclareLaunchArgument("concrete_block_name", default_value="concrete_block_1"),
+            DeclareLaunchArgument(
+                "concrete_block_name", default_value="concrete_block_1"
+            ),
             DeclareLaunchArgument("concrete_block_x", default_value="6.0"),
             DeclareLaunchArgument("concrete_block_y", default_value="-2.5"),
             DeclareLaunchArgument("concrete_block_z", default_value="0.3"),
             DeclareLaunchArgument("concrete_block_yaw", default_value="0.0"),
             DeclareLaunchArgument("cbmp_execution_enabled", default_value="True"),
-            DeclareLaunchArgument("cbmp_execution_backend", default_value="action"),
+            DeclareLaunchArgument(
+                "cbmp_default_trajectory_method",
+                default_value="ACADOS_PATH_FOLLOWING",
+            ),
+            DeclareLaunchArgument("cbmp_execution_backend", default_value="topic"),
             DeclareLaunchArgument(
                 "cbmp_execution_topic",
                 default_value="/trajectory_controllers/joint_trajectory",
@@ -437,16 +501,26 @@ def generate_launch_description():
                 "cbmp_execution_action_name",
                 default_value="/trajectory_controller_a2b/follow_joint_trajectory",
             ),
-            DeclareLaunchArgument("cbmp_execution_switch_controller", default_value="True"),
+            DeclareLaunchArgument(
+                "cbmp_execution_switch_controller", default_value="False"
+            ),
             DeclareLaunchArgument(
                 "cbmp_execution_activate_controller",
-                default_value="trajectory_controller_a2b",
+                default_value="trajectory_controllers",
             ),
-            DeclareLaunchArgument("enable_rviz_move_empty_interface", default_value="True"),
-            DeclareLaunchArgument("rviz_move_empty_goal_topic", default_value="/goal_pose"),
+            DeclareLaunchArgument(
+                "enable_rviz_move_empty_interface", default_value="True"
+            ),
+            DeclareLaunchArgument(
+                "rviz_move_empty_goal_topic", default_value="/goal_pose"
+            ),
             DeclareLaunchArgument("rviz_move_empty_world_frame", default_value="world"),
-            DeclareLaunchArgument("rviz_move_empty_tool_frame", default_value="K8_tool_center_point"),
-            DeclareLaunchArgument("rviz_move_empty_enable_topic", default_value="/cb_move_empty/enable"),
+            DeclareLaunchArgument(
+                "rviz_move_empty_tool_frame", default_value="K8_tool_center_point"
+            ),
+            DeclareLaunchArgument(
+                "rviz_move_empty_enable_topic", default_value="/cb_move_empty/enable"
+            ),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
             DeclareLaunchArgument("use_perception", default_value="False"),
@@ -456,13 +530,21 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "bt_params_file",
                 default_value=PathJoinSubstitution(
-                    [FindPackageShare("concrete_block_behavior_tree"), "config", "default.yaml"]
+                    [
+                        FindPackageShare("concrete_block_behavior_tree"),
+                        "config",
+                        "default.yaml",
+                    ]
                 ),
             ),
             DeclareLaunchArgument(
                 "rviz_config",
                 default_value=PathJoinSubstitution(
-                    [FindPackageShare("concrete_block_behavior_tree"), "rviz", "concrete_bt.rviz"]
+                    [
+                        FindPackageShare("concrete_block_behavior_tree"),
+                        "rviz",
+                        "concrete_bt.rviz",
+                    ]
                 ),
             ),
             gazebo_master_uri,
@@ -470,9 +552,15 @@ def generate_launch_description():
             gazebo_after_cleanup,
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
-                    PathJoinSubstitution([FindPackageShare("gazebo_ros"), "launch", "gazebo.launch.py"])
+                    PathJoinSubstitution(
+                        [FindPackageShare("gazebo_ros"), "launch", "gazebo.launch.py"]
+                    )
                 ),
-                launch_arguments={"world": world_path, "pause": start_paused, "gui": gui}.items(),
+                launch_arguments={
+                    "world": world_path,
+                    "pause": start_paused,
+                    "gui": gui,
+                }.items(),
                 condition=UnlessCondition(cleanup_stale_gazebo),
             ),
             delayed_runtime_bringup,

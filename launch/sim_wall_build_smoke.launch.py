@@ -8,6 +8,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     return LaunchDescription(
         [
+            # Fast planner/simulation smoke profile only. This intentionally uses the
+            # dummy BT path instead of the perception-backed scan tree.
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution(
