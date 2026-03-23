@@ -21,6 +21,12 @@ def generate_launch_description():
                     "concrete_rviz": "True",
                     "cleanup_stale_gazebo": "True",
                     "tool": "pzs100_description",
+                    "enable_livox_sim": "simple",
+                    "spawn_concrete_block": "False",
+                    "cbmp_default_trajectory_method": "FIXED_TIME_INTERPOLATION",
+                    "start_legacy_motion_planning": "False",
+                    "start_remote_ctrl_tui": "False",
+                    "rviz_move_empty_require_enable": "False",
                 }.items(),
             )
         ]

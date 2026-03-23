@@ -1,3 +1,5 @@
+import os
+
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -28,6 +30,10 @@ def generate_launch_description():
     unpause_delay_s = LaunchConfiguration("unpause_delay_s")
     initial_pose = LaunchConfiguration("initial_pose")
     tool = LaunchConfiguration("tool")
+    logs_sim = LaunchConfiguration("logs_sim")
+    zed2i_sim = LaunchConfiguration("zed2i_sim")
+    ait_stereo_sim = LaunchConfiguration("ait_stereo_sim")
+    enable_livox_sim = LaunchConfiguration("enable_livox_sim")
     spawn_concrete_block = LaunchConfiguration("spawn_concrete_block")
     concrete_block_name = LaunchConfiguration("concrete_block_name")
     concrete_block_x = LaunchConfiguration("concrete_block_x")
@@ -50,6 +56,9 @@ def generate_launch_description():
     enable_rviz_move_empty_interface = LaunchConfiguration(
         "enable_rviz_move_empty_interface"
     )
+    rviz_move_empty_require_enable = LaunchConfiguration(
+        "rviz_move_empty_require_enable"
+    )
     rviz_move_empty_goal_topic = LaunchConfiguration("rviz_move_empty_goal_topic")
     rviz_move_empty_world_frame = LaunchConfiguration("rviz_move_empty_world_frame")
     rviz_move_empty_tool_frame = LaunchConfiguration("rviz_move_empty_tool_frame")
@@ -61,9 +70,20 @@ def generate_launch_description():
 
     start_bt_action_server = LaunchConfiguration("start_bt_action_server")
     bt_params_file = LaunchConfiguration("bt_params_file")
+    bt_params_file_no_perception = LaunchConfiguration("bt_params_file_no_perception")
     bt_start_delay_s = LaunchConfiguration("bt_start_delay_s")
     gazebo_master_port = LaunchConfiguration("gazebo_master_port")
     cleanup_stale_gazebo = LaunchConfiguration("cleanup_stale_gazebo")
+    start_legacy_motion_planning = LaunchConfiguration("start_legacy_motion_planning")
+    a2b_server_type = LaunchConfiguration("a2b_server_type")
+    start_remote_ctrl_tui = LaunchConfiguration("start_remote_ctrl_tui")
+
+    if os.path.exists("/usr/bin/xterm"):
+        spawn_terminal_prefix = "xterm -e "
+    elif os.path.exists("/usr/bin/gnome-terminal"):
+        spawn_terminal_prefix = "gnome-terminal -- "
+    else:
+        spawn_terminal_prefix = ""
 
     xacro_path = PathJoinSubstitution(
         [
@@ -100,11 +120,17 @@ def generate_launch_description():
             " ",
             "gazebo:=true",
             " ",
-            "enable_logs_sim:=false",
+            "enable_logs_sim:=",
+            logs_sim,
             " ",
-            "enable_zed2i_sim:=false",
+            "enable_zed2i_sim:=",
+            zed2i_sim,
             " ",
-            "enable_ait_stereo_sim:=false",
+            "enable_ait_stereo_sim:=",
+            ait_stereo_sim,
+            " ",
+            "enable_livox_sim:=",
+            enable_livox_sim,
             " ",
             "initial_pose:=",
             initial_pose,
@@ -178,6 +204,13 @@ def generate_launch_description():
             ),
             use_sim_time_param,
         ],
+        output="screen",
+    )
+
+    grasp_event_republisher = Node(
+        package="gazebo_grasp_plugin_ros",
+        executable="grasp_event_republisher",
+        parameters=[use_sim_time_param],
         output="screen",
     )
 
@@ -333,6 +366,28 @@ def generate_launch_description():
         }.items(),
     )
 
+    legacy_motion_planning_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("epsilon_crane_bringup_mp"), "launch", "mp.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "a2b_server_type": a2b_server_type,
+        }.items(),
+        condition=IfCondition(start_legacy_motion_planning),
+    )
+
+    remote_ctrl_tui = Node(
+        package="timber_crane_tui",
+        executable="remote_ctrl",
+        output="screen",
+        parameters=[{"sample_time_ms": 100}],
+        prefix=spawn_terminal_prefix,
+        condition=IfCondition(start_remote_ctrl_tui),
+    )
+
     rviz_move_empty_interface = Node(
         package="concrete_block_motion_planning",
         executable="rviz_move_empty_interface.py",
@@ -343,6 +398,7 @@ def generate_launch_description():
             {"world_frame": rviz_move_empty_world_frame},
             {"tool_frame": rviz_move_empty_tool_frame},
             {"enable_topic": rviz_move_empty_enable_topic},
+            {"require_enable": rviz_move_empty_require_enable},
             {"dry_run": False},
         ],
         condition=IfCondition(enable_rviz_move_empty_interface),
@@ -379,13 +435,7 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "start_bt_action_server": start_bt_action_server,
-            "bt_params_file": PathJoinSubstitution(
-                [
-                    FindPackageShare("concrete_block_behavior_tree"),
-                    "config",
-                    "dummy_start.yaml",
-                ]
-            ),
+            "bt_params_file": bt_params_file_no_perception,
         }.items(),
         condition=UnlessCondition(use_perception),
     )
@@ -459,9 +509,12 @@ def generate_launch_description():
             spawn_crane,
             spawn_block_after_crane,
             static_world_floor,
+            grasp_event_republisher,
             joint_state_broadcaster,
             trajectory_after_joint_state,
             motion_planning_launch,
+            legacy_motion_planning_launch,
+            remote_ctrl_tui,
             rviz_move_empty_interface,
             delayed_bt_launch_full,
             delayed_bt_launch_dummy,
@@ -479,6 +532,10 @@ def generate_launch_description():
             DeclareLaunchArgument("unpause_delay_s", default_value="0.5"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("tool", default_value="pzs100_description"),
+            DeclareLaunchArgument("logs_sim", default_value="False"),
+            DeclareLaunchArgument("zed2i_sim", default_value="False"),
+            DeclareLaunchArgument("ait_stereo_sim", default_value="False"),
+            DeclareLaunchArgument("enable_livox_sim", default_value="simple"),
             DeclareLaunchArgument("spawn_concrete_block", default_value="True"),
             DeclareLaunchArgument(
                 "concrete_block_name", default_value="concrete_block_1"
@@ -512,6 +569,9 @@ def generate_launch_description():
                 "enable_rviz_move_empty_interface", default_value="True"
             ),
             DeclareLaunchArgument(
+                "rviz_move_empty_require_enable", default_value="True"
+            ),
+            DeclareLaunchArgument(
                 "rviz_move_empty_goal_topic", default_value="/goal_pose"
             ),
             DeclareLaunchArgument("rviz_move_empty_world_frame", default_value="world"),
@@ -523,10 +583,17 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument("gazebo_master_port", default_value="11346"),
             DeclareLaunchArgument("cleanup_stale_gazebo", default_value="True"),
+            DeclareLaunchArgument(
+                "start_legacy_motion_planning", default_value="False"
+            ),
+            DeclareLaunchArgument(
+                "a2b_server_type", default_value="a2b_ilqr_jerk_server"
+            ),
             DeclareLaunchArgument("use_perception", default_value="False"),
             DeclareLaunchArgument("concrete_rviz", default_value="True"),
             DeclareLaunchArgument("start_bt_action_server", default_value="True"),
             DeclareLaunchArgument("bt_start_delay_s", default_value="8.0"),
+            DeclareLaunchArgument("start_remote_ctrl_tui", default_value="False"),
             DeclareLaunchArgument(
                 "bt_params_file",
                 default_value=PathJoinSubstitution(
@@ -534,6 +601,16 @@ def generate_launch_description():
                         FindPackageShare("concrete_block_behavior_tree"),
                         "config",
                         "default.yaml",
+                    ]
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bt_params_file_no_perception",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_behavior_tree"),
+                        "config",
+                        "dummy_start.yaml",
                     ]
                 ),
             ),

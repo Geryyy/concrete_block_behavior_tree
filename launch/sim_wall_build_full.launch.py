@@ -20,6 +20,9 @@ def generate_launch_description():
                     "cleanup_stale_gazebo": "True",
                     "tool": "pzs100_description",
                     "bt_start_delay_s": "10.0",
+                    "enable_livox_sim": "simple",
+                    "start_legacy_motion_planning": "False",
+                    "start_remote_ctrl_tui": "False",
                 }.items(),
             )
         ]
