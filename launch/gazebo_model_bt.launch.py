@@ -1,0 +1,382 @@
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
+
+def generate_launch_description():
+    use_sim_time = LaunchConfiguration("use_sim_time", default="True")
+    logs_sim = LaunchConfiguration("logs_sim")
+    zed2i_sim = LaunchConfiguration("zed2i_sim")
+    ait_stereo_sim = LaunchConfiguration("ait_stereo_sim")
+    enable_livox_sim = LaunchConfiguration("enable_livox_sim")
+    initial_pose = LaunchConfiguration("initial_pose")
+    log_on_truck = LaunchConfiguration("log_on_truck")
+    parallel_pile = LaunchConfiguration("parallel_pile")
+    parallel_logs = LaunchConfiguration("parallel_logs")
+    cross_pile = LaunchConfiguration("cross_pile")
+    chaos_pile = LaunchConfiguration("chaos_pile")
+    tool = LaunchConfiguration("tool")
+    gui = LaunchConfiguration("gui")
+
+    xacro_path = PathJoinSubstitution(
+        [
+            FindPackageShare("epsilon_crane_description"),
+            "urdf",
+            "timber_loader_AIT.urdf.xacro",
+        ]
+    )
+    motion_planning_config = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_motion_planning"),
+            "config",
+            "motion_planning.yaml",
+        ]
+    )
+    named_cfg_file = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_motion_planning"),
+            "config",
+            "named_configurations.yaml",
+        ]
+    )
+    wall_plan_file = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_motion_planning"),
+            "motion_planning",
+            "data",
+            "wall_plans.yaml",
+        ]
+    )
+    optimized_params_file = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_motion_planning"),
+            "motion_planning",
+            "data",
+            "optimized_params.yaml",
+        ]
+    )
+    bt_dummy_config = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "config",
+            "dummy_start.yaml",
+        ]
+    )
+    pzs100_controller_params = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "config",
+            "ros2_control",
+            "pzs100_trajectory_forward.ros2_control.yaml",
+        ]
+    )
+    rviz_config = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "rviz",
+            "concrete_bt.rviz",
+        ]
+    )
+
+    use_sim_time_param = {"use_sim_time": use_sim_time}
+    robot_description_gazebo = Command(
+        [
+            "xacro",
+            " ",
+            xacro_path,
+            " ",
+            "gazebo:=true",
+            " ",
+            "rigid:=true ",
+            "sim_hydraulics:=true",
+            " ",
+            "enable_logs_sim:=",
+            logs_sim,
+            " ",
+            "enable_zed2i_sim:=",
+            zed2i_sim,
+            " ",
+            "enable_ait_stereo_sim:=",
+            ait_stereo_sim,
+            " ",
+            "enable_livox_sim:=",
+            enable_livox_sim,
+            " ",
+            "initial_pose:=",
+            initial_pose,
+            " ",
+            "tool:=",
+            tool,
+            " ",
+            "post_setup:=134 ",
+        ]
+    )
+    robot_description_rviz = Command(
+        [
+            "xacro",
+            " ",
+            xacro_path,
+            " ",
+            "gazebo:=false",
+            " ",
+            "load_ros2_control:=false",
+            " ",
+            "rigid:=true ",
+            "sim_hydraulics:=false",
+            " ",
+            "initial_pose:=",
+            initial_pose,
+            " ",
+            "tool:=",
+            tool,
+            " ",
+            "post_setup:=134 ",
+        ]
+    )
+
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                name="logs_sim",
+                default_value="False",
+                description="publish log poses from gazebo simulation",
+            ),
+            DeclareLaunchArgument(
+                name="zed2i_sim",
+                default_value="False",
+                description="Simulate zed2i camera within gazebo simulation",
+            ),
+            DeclareLaunchArgument(
+                name="ait_stereo_sim",
+                default_value="False",
+                description="Simulate ait stereo camera within gazebo simulation",
+            ),
+            DeclareLaunchArgument(
+                name="enable_livox_sim",
+                default_value="simple",
+                description="Simulate livox lidar within gazebo simulation ('', 'simple' or 'livox')",
+            ),
+            DeclareLaunchArgument(
+                name="initial_pose",
+                default_value="1",
+                description="Define initial pose of crane, see readme for further details",
+            ),
+            DeclareLaunchArgument(
+                name="plot",
+                default_value="False",
+                description="Compatibility flag; currently unused in concrete minimal bringup",
+            ),
+            DeclareLaunchArgument(
+                name="tool",
+                default_value="pzs100_description",
+                description="Name of the package where the tool is defined",
+            ),
+            DeclareLaunchArgument(
+                name="log_on_truck",
+                default_value="True",
+                description="Flag to spawn a log on truck bed",
+            ),
+            DeclareLaunchArgument(
+                name="parallel_pile",
+                default_value="False",
+                description="Flag to spawn a pile of wood logs arranged in parallel",
+            ),
+            DeclareLaunchArgument(
+                name="parallel_logs",
+                default_value="False",
+                description="Flag to spawn a set of wood logs arranged in parallel",
+            ),
+            DeclareLaunchArgument(
+                name="cross_pile",
+                default_value="False",
+                description="Flag to spawn a pile of wood logs arranged orthogonally",
+            ),
+            DeclareLaunchArgument(
+                name="chaos_pile",
+                default_value="False",
+                description="Flag to spawn a pile of wood logs arranged chaotically",
+            ),
+            DeclareLaunchArgument(
+                name="gui",
+                default_value="True",
+                description="Flag to launch gazebo and RViz GUI",
+            ),
+            Node(
+                package="robot_state_publisher",
+                executable="robot_state_publisher",
+                name="robot_state_publisher",
+                parameters=[
+                    {"robot_description": robot_description_gazebo},
+                    use_sim_time_param,
+                    {"publish_frequency": 100.0},
+                ],
+                remappings=[
+                    ("robot_description", "robot_description_full"),
+                    ("tf", "tf_gazebo"),
+                    ("tf_static", "tf_static_gazebo"),
+                ],
+                arguments=["--ros-args", "--log-level", "WARN"],
+                output="screen",
+            ),
+            Node(
+                package="robot_state_publisher",
+                executable="robot_state_publisher",
+                name="robot_state_publisher_rviz",
+                parameters=[
+                    {"robot_description": robot_description_rviz},
+                    use_sim_time_param,
+                    {"publish_frequency": 100.0},
+                ],
+                arguments=["--ros-args", "--log-level", "WARN"],
+                output="screen",
+            ),
+            Node(
+                package="crane_tools_description",
+                executable="crane_tools_description_publisher",
+                name="crane_tools_description_publisher",
+                parameters=[
+                    PathJoinSubstitution(
+                        [FindPackageShare(tool), "config", "gripper_parameter.yaml"]
+                    ),
+                    use_sim_time_param,
+                ],
+                output="screen",
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("epsilon_crane_bringup_sim"),
+                            "launch",
+                            "gazebo_base.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "gui": gui,
+                    "log_on_truck": log_on_truck,
+                    "parallel_pile": parallel_pile,
+                    "parallel_logs": parallel_logs,
+                    "cross_pile": cross_pile,
+                    "chaos_pile": chaos_pile,
+                }.items(),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_behavior_tree"),
+                            "launch",
+                            "concrete_estimators.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={"use_sim_time": use_sim_time}.items(),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_behavior_tree"),
+                            "launch",
+                            "bt.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "start_bt_action_server": "True",
+                    "bt_params_file": bt_dummy_config,
+                    "keyboard_node": "True",
+                    "gui": gui,
+                }.items(),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("epsilon_crane_bringup_common"),
+                            "launch",
+                            "common_controllers.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "tool": tool,
+                }.items(),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("epsilon_crane_bringup_common"),
+                            "launch",
+                            "loadbed_frame.launch.py",
+                        ]
+                    )
+                ),
+            ),
+            Node(
+                package="controller_manager",
+                executable="spawner",
+                arguments=[
+                    "--controller-manager-timeout",
+                    "60",
+                    "-p",
+                    pzs100_controller_params,
+                    "trajectory_controllers",
+                ],
+                output="screen",
+            ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="motion_planning_node.py",
+                name="concrete_block_motion_planning_node",
+                output="screen",
+                parameters=[
+                    motion_planning_config,
+                    {"default_trajectory_method": "FIXED_TIME_INTERPOLATION"},
+                    {"named_configurations_file": named_cfg_file},
+                    {"wall_plan_file": wall_plan_file},
+                    {"geometric_optimized_params_file": optimized_params_file},
+                    {"execution.enabled": True},
+                    {"execution.backend": "topic"},
+                    {"execution.trajectory_topic": "/trajectory_controllers/joint_trajectory"},
+                    {"execution.action_name": "/trajectory_controller_a2b/follow_joint_trajectory"},
+                    {"execution.switch_controller": False},
+                    {"execution.activate_controller": "trajectory_controllers"},
+                    {"use_sim_time": use_sim_time},
+                ],
+            ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="rviz_move_empty_interface.py",
+                name="rviz_move_empty_interface",
+                output="screen",
+                parameters=[
+                    {"goal_topic": "/goal_pose"},
+                    {"world_frame": "world"},
+                    {"tool_frame": "K8_tool_center_point"},
+                    {"enable_topic": "/cb_move_empty/enable"},
+                    {"require_enable": True},
+                    {"use_world_model": False},
+                    {"validate_dynamics": False},
+                    {"dry_run": False},
+                ],
+            ),
+            Node(
+                package="rviz2",
+                executable="rviz2",
+                name="rviz2",
+                parameters=[use_sim_time_param],
+                arguments=["-d", rviz_config],
+                condition=IfCondition(gui),
+                output="screen",
+            ),
+        ]
+    )

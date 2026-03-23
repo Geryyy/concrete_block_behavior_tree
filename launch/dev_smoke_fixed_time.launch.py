@@ -14,17 +14,21 @@ def generate_launch_description():
                         [
                             FindPackageShare("concrete_block_behavior_tree"),
                             "launch",
-                            "gazebo_model_bt.launch.py",
+                            "sim_wall_build.launch.py",
                         ]
                     )
                 ),
                 launch_arguments={
+                    "use_perception": "False",
+                    "concrete_rviz": "True",
                     "cleanup_stale_gazebo": "True",
-                    "logs_sim": "False",
-                    "enable_livox_sim": "simple",
                     "tool": "pzs100_description",
-                    "rviz": "True",
-                    "gui": "True",
+                    "enable_livox_sim": "simple",
+                    "spawn_concrete_block": "False",
+                    "cbmp_default_trajectory_method": "FIXED_TIME_INTERPOLATION",
+                    "start_legacy_motion_planning": "False",
+                    "start_remote_ctrl_tui": "False",
+                    "rviz_move_empty_require_enable": "False",
                 }.items(),
             )
         ]
