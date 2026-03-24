@@ -499,6 +499,16 @@ def generate_launch_description():
                 value="concrete_block_behavior_tree",
             ),
             SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_BT_CATALOG",
+                value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_behavior_tree"),
+                        "config",
+                        "bt_panel_catalog.yaml",
+                    ]
+                ),
+            ),
+            SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_MOVE_EMPTY_BT",
                 value="/behavior_trees/move_empty_pzs100.xml",
             ),
