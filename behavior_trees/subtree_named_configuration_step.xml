@@ -1,0 +1,12 @@
+<root>
+  <BehaviorTree ID="SubTreeNamedConfigurationStep">
+    <MoveToNamedConfiguration
+      service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+      configuration_name="{configuration_name}"
+      timeout_s="{timeout_s}"
+      dry_run="{dry_run}"
+      trajectory_id="{trajectory_id}"
+      move_ok="{move_ok}"
+      move_message="{move_message}"/>
+  </BehaviorTree>
+</root>

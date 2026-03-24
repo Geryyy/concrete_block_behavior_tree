@@ -1,8 +1,10 @@
 <root>
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_named_configuration_step.xml"/>
   <BehaviorTree ID="SubTreeSceneScan">
     <Sequence name="scene_scan_fixed_viewpoints">
-      <MoveToNamedConfiguration
-        service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+      <SubTree
+        ID="SubTreeNamedConfigurationStep"
         configuration_name="scan_left"
         timeout_s="20.0"
         dry_run="false"
@@ -18,8 +20,8 @@
         perception_ok="{perception_ok}"
         perception_message="{perception_message}"/>
 
-      <MoveToNamedConfiguration
-        service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+      <SubTree
+        ID="SubTreeNamedConfigurationStep"
         configuration_name="scan_center"
         timeout_s="20.0"
         dry_run="false"
@@ -35,8 +37,8 @@
         perception_ok="{perception_ok}"
         perception_message="{perception_message}"/>
 
-      <MoveToNamedConfiguration
-        service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+      <SubTree
+        ID="SubTreeNamedConfigurationStep"
         configuration_name="scan_right"
         timeout_s="20.0"
         dry_run="false"
