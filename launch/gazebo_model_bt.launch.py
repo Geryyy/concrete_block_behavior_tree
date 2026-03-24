@@ -1,8 +1,18 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+    TimerAction,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -19,8 +29,15 @@ def generate_launch_description():
     parallel_logs = LaunchConfiguration("parallel_logs")
     cross_pile = LaunchConfiguration("cross_pile")
     chaos_pile = LaunchConfiguration("chaos_pile")
+    motion_backend = LaunchConfiguration("motion_backend")
     tool = LaunchConfiguration("tool")
     gui = LaunchConfiguration("gui")
+    use_timber_backend = IfCondition(
+        PythonExpression(["'", motion_backend, "' == 'timber'"])
+    )
+    use_concrete_backend = IfCondition(
+        PythonExpression(["'", motion_backend, "' == 'concrete'"])
+    )
 
     xacro_path = PathJoinSubstitution(
         [
@@ -64,6 +81,13 @@ def generate_launch_description():
             FindPackageShare("concrete_block_behavior_tree"),
             "config",
             "dummy_start.yaml",
+        ]
+    )
+    bt_timber_phase1_config = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "config",
+            "phase1_timber_backend.yaml",
         ]
     )
     pzs100_controller_params = PathJoinSubstitution(
@@ -162,7 +186,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 name="initial_pose",
-                default_value="1",
+                default_value="2",
                 description="Define initial pose of crane, see readme for further details",
             ),
             DeclareLaunchArgument(
@@ -205,6 +229,11 @@ def generate_launch_description():
                 default_value="True",
                 description="Flag to launch gazebo and RViz GUI",
             ),
+            DeclareLaunchArgument(
+                name="motion_backend",
+                default_value="timber",
+                description="Active motion backend: timber or concrete",
+            ),
             Node(
                 package="robot_state_publisher",
                 executable="robot_state_publisher",
@@ -245,6 +274,7 @@ def generate_launch_description():
                     use_sim_time_param,
                 ],
                 output="screen",
+                condition=use_concrete_backend,
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -276,6 +306,31 @@ def generate_launch_description():
                     )
                 ),
                 launch_arguments={"use_sim_time": use_sim_time}.items(),
+                condition=use_concrete_backend,
+            ),
+            TimerAction(
+                period=8.0,
+                actions=[
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(
+                            PathJoinSubstitution(
+                                [
+                                    FindPackageShare("concrete_block_behavior_tree"),
+                                    "launch",
+                                    "bt.launch.py",
+                                ]
+                            )
+                        ),
+                        launch_arguments={
+                            "use_sim_time": use_sim_time,
+                            "start_bt_action_server": "True",
+                            "bt_params_file": bt_timber_phase1_config,
+                            "keyboard_node": "True",
+                            "gui": gui,
+                        }.items(),
+                    )
+                ],
+                condition=use_timber_backend,
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -294,6 +349,7 @@ def generate_launch_description():
                     "keyboard_node": "True",
                     "gui": gui,
                 }.items(),
+                condition=use_concrete_backend,
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -309,6 +365,45 @@ def generate_launch_description():
                     "use_sim_time": use_sim_time,
                     "tool": tool,
                 }.items(),
+                condition=use_concrete_backend,
+            ),
+            Node(
+                package="controller_manager",
+                executable="spawner",
+                arguments=[
+                    "joint_state_broadcaster",
+                    "-p",
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("epsilon_crane_bringup_common"),
+                            "config",
+                            "ros2_control",
+                            "crane_controller_common.ros2_control.yaml",
+                        ]
+                    ),
+                ],
+                output="screen",
+                condition=use_timber_backend,
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_behavior_tree"),
+                            "launch",
+                            "timber_backend_compat.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "logs_sim": logs_sim,
+                    "zed2i_sim": zed2i_sim,
+                    "ait_stereo_sim": ait_stereo_sim,
+                    "enable_livox_sim": enable_livox_sim,
+                    "initial_pose": initial_pose,
+                }.items(),
+                condition=use_timber_backend,
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -321,17 +416,41 @@ def generate_launch_description():
                     )
                 ),
             ),
-            Node(
-                package="controller_manager",
-                executable="spawner",
-                arguments=[
-                    "--controller-manager-timeout",
-                    "60",
-                    "-p",
-                    pzs100_controller_params,
-                    "trajectory_controllers",
+            TimerAction(
+                period=2.0,
+                actions=[
+                    Node(
+                        package="controller_manager",
+                        executable="spawner",
+                        arguments=[
+                            "--controller-manager-timeout",
+                            "60",
+                            "-p",
+                            pzs100_controller_params,
+                            "trajectory_controllers",
+                        ],
+                        output="screen",
+                        condition=use_concrete_backend,
+                    )
                 ],
-                output="screen",
+            ),
+            TimerAction(
+                period=10.0,
+                actions=[
+                    Node(
+                        package="controller_manager",
+                        executable="spawner",
+                        arguments=[
+                            "--controller-manager-timeout",
+                            "60",
+                            "-p",
+                            pzs100_controller_params,
+                            "trajectory_controllers",
+                        ],
+                        output="screen",
+                        condition=use_timber_backend,
+                    )
+                ],
             ),
             Node(
                 package="concrete_block_motion_planning",
@@ -350,8 +469,30 @@ def generate_launch_description():
                     {"execution.action_name": "/trajectory_controller_a2b/follow_joint_trajectory"},
                     {"execution.switch_controller": False},
                     {"execution.activate_controller": "trajectory_controllers"},
+                    {"planner.backend": "concrete"},
                     {"use_sim_time": use_sim_time},
                 ],
+                condition=use_concrete_backend,
+            ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="motion_planning_node.py",
+                name="concrete_block_motion_planning_node",
+                output="screen",
+                parameters=[
+                    motion_planning_config,
+                    {"execution.enabled": True},
+                    {"execution.backend": "action"},
+                    {"execution.action_name": "/trajectory_controller_a2b/follow_joint_trajectory"},
+                    {"execution.switch_controller": False},
+                    {"execution.activate_controller": "trajectory_controllers"},
+                    {"planner.backend": "timber"},
+                    {"planner.timber_a2b_service": "a2b_movement"},
+                    {"planner.timber_goal_frame": "K0_mounting_base"},
+                    {"planner.timber_move_empty_target_z": 2.36},
+                    {"use_sim_time": use_sim_time},
+                ],
+                condition=use_timber_backend,
             ),
             Node(
                 package="concrete_block_motion_planning",
@@ -368,6 +509,32 @@ def generate_launch_description():
                     {"validate_dynamics": False},
                     {"dry_run": False},
                 ],
+                condition=use_concrete_backend,
+            ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="rviz_move_empty_interface.py",
+                name="rviz_move_empty_interface",
+                output="screen",
+                parameters=[
+                    {"goal_topic": "/goal_pose"},
+                    {"world_frame": "world"},
+                    {"tool_frame": "K8_tool_center_point"},
+                    {"enable_topic": "/cb_move_empty/enable"},
+                    {"require_enable": True},
+                    {"use_world_model": False},
+                    {"validate_dynamics": False},
+                    {"dry_run": False},
+                ],
+                condition=use_timber_backend,
+            ),
+            SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
+                value="concrete_block_behavior_tree",
+            ),
+            SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_MOVE_EMPTY_BT",
+                value="/behavior_trees/move_empty_pzs100.xml",
             ),
             Node(
                 package="rviz2",

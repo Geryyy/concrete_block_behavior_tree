@@ -1,0 +1,31 @@
+<root>
+  <BehaviorTree ID="SubTreeA2BMovement">
+    <Fallback name="Fallback to deactivate controllers">
+      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+        wait_rising_edge="False">
+        <Sequence>
+          <Action name="Activate controller" ID="SwitchController"
+            activate_controllers="trajectory_controllers"
+            deactivate_controllers=""
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+          <Action ID="FollowJointTrajectory"
+            server_name="/trajectory_controller_a2b/follow_joint_trajectory" server_timeout="500"
+            trajectory="{trajectory}"/>
+          <Action name="Deactivate controller" ID="SwitchController"
+            activate_controllers=""
+            deactivate_controllers="trajectory_controllers"
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+        </Sequence>
+      </Decorator>
+      <Decorator ID="ForceFailure">
+        <Action name="Deactivate controller" ID="SwitchController"
+          activate_controllers=""
+          deactivate_controllers="trajectory_controllers"
+          server_timeout="1000"
+          service_name="/controller_manager/switch_controller"/>
+      </Decorator>
+    </Fallback>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="Move Empty">
+  <BehaviorTree ID="Move Empty">
+    <Sequence>
+      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <Decorator ID="RetryUntilSuccessful" num_attempts="-1">
+        <Decorator ID="WaitGoalPose" goal="{yN}" phi="{phi}" topic="goal_pose" z_offset="3.5">
+          <Sequence>
+            <Action ID="OptimizeTargetAngle" phi="{phi}"/>
+            <Action ID="CalcA2BMovement" carriesLog="false"
+              name="Calc approach target" phiToolN="{phi}"
+              server_timeout="60000" service_name="a2b_movement" slowDown="{slow_down}" tEnd="0.0"
+              trajectory="{trajectory}" yN="{yN}"/>
+            <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+          </Sequence>
+        </Decorator>
+      </Decorator>
+      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+        wait_rising_edge="False">
+        <Sequence>
+          <Action ID="FollowJointTrajectory"
+            server_name="/trajectory_controller_a2b/follow_joint_trajectory" server_timeout="500"
+            trajectory="{trajectory}"/>
+        </Sequence>
+      </Decorator>
+    </Sequence>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="CalcA2BMovement">
+      <input_port name="carriesLog">Do we carry a log?</input_port>
+      <input_port name="logShape">LogShape</input_port>
+      <input_port name="phiToolN">Orientation of gripper</input_port>
+      <input_port name="s_log_grippoint">Grippoint position</input_port>
+      <input_port name="server_timeout">Timeout in ms</input_port>
+      <input_port name="service_name">Name of the service</input_port>
+      <input_port name="slowDown">Speed reduction factor</input_port>
+      <input_port name="tEnd">Fixed end time of trajectory for slowDown=1.0</input_port>
+      <output_port name="trajectory">The trajectory result</output_port>
+      <input_port name="yN">Target position of H05</input_port>
+    </Action>
+    <Action ID="FollowJointTrajectory">
+      <input_port name="server_name">The name of the action server</input_port>
+      <input_port name="server_timeout">Timeout in ms</input_port>
+      <input_port name="trajectory">The trajectory to follow</input_port>
+    </Action>
+    <Decorator ID="GetUserApproval">
+      <input_port name="topic">Topic to listen on</input_port>
+    </Decorator>
+    <Decorator ID="WaitGoalPose">
+      <output_port name="goal">Pose of goal</output_port>
+      <output_port name="phi">Desired log phi</output_port>
+      <input_port name="topic">Topic to listen on</input_port>
+      <input_port name="z_offset">Offset to add to z_0 direction</input_port>
+    </Decorator>
+  </TreeNodesModel>
+</root>
