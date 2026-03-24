@@ -76,9 +76,9 @@ def generate_launch_description():
     )
     rviz_config = PathJoinSubstitution(
         [
-            FindPackageShare("concrete_block_behavior_tree"),
+            FindPackageShare("epsilon_crane_bringup_hmi"),
             "rviz",
-            "concrete_bt.rviz",
+            "crane_data.rviz",
         ]
     )
 
