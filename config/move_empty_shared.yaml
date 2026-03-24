@@ -5,6 +5,10 @@
     wait_for_service_timeout: 10000
     always_reload_bt_xml: true
     plugin_lib_names:
+      - BT_wait_goal_pose_decorator
+      - BT_get_user_approval_decorator
+      - BT_check_user_approval_condition
+      - BT_optimize_target_angle_bt_node
       - BT_cb_prepare_move_empty_request_action
       - BT_cb_plan_and_compute_trajectory_action
       - BT_cb_execute_trajectory_action
@@ -15,10 +19,6 @@
       - BT_cb_get_next_assembly_task_action
       - BT_cb_set_block_task_status_action
       - BT_cb_gripper_action
-      - BT_get_user_approval_decorator
-      - BT_check_user_approval_condition
-      - BT_wait_goal_pose_decorator
-      - BT_optimize_target_angle_bt_node
     behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty_pzs100.xml"
     logging:
       enable_groot_monitoring: true

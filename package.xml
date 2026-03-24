@@ -19,6 +19,9 @@
   <depend>concrete_block_motion_planning</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>trajectory_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>
   <exec_depend>epsilon_7040_description</exec_depend>
@@ -26,7 +29,6 @@
   <exec_depend>collision_body_handler</exec_depend>
   <exec_depend>gazebo_grasp_plugin_ros</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>timber_crane_mapping</exec_depend>
   <exec_depend>timber_crane_motion_planning_cpp</exec_depend>
   <exec_depend>timber_crane_tui</exec_depend>

@@ -76,18 +76,18 @@ def generate_launch_description():
             "optimized_params.yaml",
         ]
     )
-    bt_dummy_config = PathJoinSubstitution(
-        [
-            FindPackageShare("concrete_block_behavior_tree"),
-            "config",
-            "dummy_start.yaml",
-        ]
-    )
     bt_timber_phase1_config = PathJoinSubstitution(
         [
             FindPackageShare("concrete_block_behavior_tree"),
             "config",
             "phase1_timber_backend.yaml",
+        ]
+    )
+    bt_move_empty_shared_config = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_behavior_tree"),
+            "config",
+            "move_empty_shared.yaml",
         ]
     )
     pzs100_controller_params = PathJoinSubstitution(
@@ -345,7 +345,7 @@ def generate_launch_description():
                 launch_arguments={
                     "use_sim_time": use_sim_time,
                     "start_bt_action_server": "True",
-                    "bt_params_file": bt_dummy_config,
+                    "bt_params_file": bt_move_empty_shared_config,
                     "keyboard_node": "True",
                     "gui": gui,
                 }.items(),
@@ -491,40 +491,6 @@ def generate_launch_description():
                     {"planner.timber_goal_frame": "K0_mounting_base"},
                     {"planner.timber_move_empty_target_z": 2.36},
                     {"use_sim_time": use_sim_time},
-                ],
-                condition=use_timber_backend,
-            ),
-            Node(
-                package="concrete_block_motion_planning",
-                executable="rviz_move_empty_interface.py",
-                name="rviz_move_empty_interface",
-                output="screen",
-                parameters=[
-                    {"goal_topic": "/goal_pose"},
-                    {"world_frame": "world"},
-                    {"tool_frame": "K8_tool_center_point"},
-                    {"enable_topic": "/cb_move_empty/enable"},
-                    {"require_enable": True},
-                    {"use_world_model": False},
-                    {"validate_dynamics": False},
-                    {"dry_run": False},
-                ],
-                condition=use_concrete_backend,
-            ),
-            Node(
-                package="concrete_block_motion_planning",
-                executable="rviz_move_empty_interface.py",
-                name="rviz_move_empty_interface",
-                output="screen",
-                parameters=[
-                    {"goal_topic": "/goal_pose"},
-                    {"world_frame": "world"},
-                    {"tool_frame": "K8_tool_center_point"},
-                    {"enable_topic": "/cb_move_empty/enable"},
-                    {"require_enable": True},
-                    {"use_world_model": False},
-                    {"validate_dynamics": False},
-                    {"dry_run": False},
                 ],
                 condition=use_timber_backend,
             ),
