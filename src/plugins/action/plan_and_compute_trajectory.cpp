@@ -1,6 +1,7 @@
 #include "concrete_block_behavior_tree/plugins/action/plan_and_compute_trajectory.hpp"
 
 #include "behaviortree_cpp_v3/bt_factory.h"
+#include "rclcpp/rclcpp.hpp"
 
 namespace concrete_block_behavior_tree
 {
@@ -33,6 +34,19 @@ BT::NodeStatus PlanAndComputeTrajectoryService::on_completion(std::shared_ptr<Re
   setOutput("joint_trajectory", response->trajectory);
   setOutput("trajectory_ok", response->success);
   setOutput("trajectory_message", response->message);
+  if (!response->success) {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "PlanAndComputeTrajectory failed: %s",
+      response->message.c_str());
+  } else {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "PlanAndComputeTrajectory succeeded | geometric_plan_id=%s trajectory_id=%s message=%s",
+      response->geometric_plan_id.c_str(),
+      response->trajectory_id.c_str(),
+      response->message.c_str());
+  }
   return response->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 

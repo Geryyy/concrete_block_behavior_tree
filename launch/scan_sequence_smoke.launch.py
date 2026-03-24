@@ -8,6 +8,9 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     bt_params_file = LaunchConfiguration("bt_params_file")
+    bt_common_params_file = LaunchConfiguration("bt_common_params_file")
+    bt_mode_params_file = LaunchConfiguration("bt_mode_params_file")
+    bt_profile_params_file = LaunchConfiguration("bt_profile_params_file")
     motion_planning_params_file = LaunchConfiguration("motion_planning_params_file")
     named_configurations_file = LaunchConfiguration("named_configurations_file")
     wall_plan_file = LaunchConfiguration("wall_plan_file")
@@ -75,6 +78,9 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "bt_params_file": bt_params_file,
+            "bt_common_params_file": bt_common_params_file,
+            "bt_mode_params_file": bt_mode_params_file,
+            "bt_profile_params_file": bt_profile_params_file,
         }.items(),
     )
 
@@ -93,8 +99,30 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "bt_params_file",
+                default_value="",
+                description="Deprecated legacy one-file BT config override.",
+            ),
+            DeclareLaunchArgument(
+                "bt_common_params_file",
                 default_value=PathJoinSubstitution(
-                    [FindPackageShare("concrete_block_behavior_tree"), "config", "scan_smoke.yaml"]
+                    [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_common.yaml"]
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bt_mode_params_file",
+                default_value=PathJoinSubstitution(
+                    [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_operator.yaml"]
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bt_profile_params_file",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_behavior_tree"),
+                        "config",
+                        "profiles",
+                        "single_block_plan.yaml",
+                    ]
                 ),
             ),
             DeclareLaunchArgument(

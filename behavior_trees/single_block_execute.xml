@@ -1,0 +1,48 @@
+<root main_tree_to_execute="SingleBlockExecute">
+  <BehaviorTree ID="SingleBlockExecute">
+    <Sequence>
+      <GetNextAssemblyTask
+        service_name="/concrete_block_motion_planning_node/get_next_assembly_task"
+        wall_plan_name="basic_interlocking_3_2"
+        reset_plan="true"
+        task_id="{task_id}"
+        target_block_id="{target_block_id}"
+        reference_block_id="{reference_block_id}"
+        target_block_pose_coarse="{target_block_pose_coarse}"
+        target_block_pose_precise="{target_block_pose_precise}"
+        reference_block_pose_precise="{reference_block_pose_precise}"
+        plan_has_task="{plan_has_task}"
+        plan_message="{plan_message}"/>
+      <PlanAndComputeTrajectory
+        service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
+        start_pose="{target_block_pose_coarse}"
+        goal_pose="{target_block_pose_precise}"
+        target_block_id="{target_block_id}"
+        reference_block_id="{reference_block_id}"
+        use_world_model="true"
+        geometric_method="POWELL"
+        geometric_timeout_s="5.0"
+        trajectory_method="ACADOS_PATH_FOLLOWING"
+        trajectory_timeout_s="20.0"
+        validate_dynamics="false"
+        geometric_plan_id="{geometric_plan_id}"
+        cartesian_path="{cartesian_path}"
+        trajectory_id="{trajectory_id}"
+        joint_trajectory="{joint_trajectory}"
+        trajectory_ok="{trajectory_ok}"
+        trajectory_message="{trajectory_message}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+        wait_rising_edge="False">
+        <Sequence>
+          <ExecuteTrajectory
+            service_name="/concrete_block_motion_planning_node/execute_trajectory"
+            trajectory_id="{trajectory_id}"
+            dry_run="false"
+            execution_ok="{execution_ok}"
+            execution_message="{execution_message}"/>
+        </Sequence>
+      </Decorator>
+    </Sequence>
+  </BehaviorTree>
+</root>

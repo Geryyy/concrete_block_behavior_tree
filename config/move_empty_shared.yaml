@@ -1,5 +1,7 @@
 /**:
   ros__parameters:
+    # Deprecated legacy one-file config. Prefer bt_common.yaml + bt_operator.yaml +
+    # profiles/move_empty.yaml.
     bt_loop_duration: 100
     default_server_timeout: 120000
     wait_for_service_timeout: 10000
@@ -19,7 +21,7 @@
       - BT_cb_get_next_assembly_task_action
       - BT_cb_set_block_task_status_action
       - BT_cb_gripper_action
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty_pzs100.xml"
+    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true

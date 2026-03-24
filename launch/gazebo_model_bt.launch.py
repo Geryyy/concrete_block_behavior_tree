@@ -33,6 +33,7 @@ def generate_launch_description():
     tool = LaunchConfiguration("tool")
     gui = LaunchConfiguration("gui")
     use_perception = LaunchConfiguration("use_perception")
+    seed_world_model = LaunchConfiguration("seed_world_model")
     use_timber_backend = IfCondition(
         PythonExpression(["'", motion_backend, "' == 'timber'"])
     )
@@ -77,18 +78,18 @@ def generate_launch_description():
             "optimized_params.yaml",
         ]
     )
-    bt_timber_phase1_config = PathJoinSubstitution(
-        [
-            FindPackageShare("concrete_block_behavior_tree"),
-            "config",
-            "phase1_timber_backend.yaml",
-        ]
+    bt_common_config = PathJoinSubstitution(
+        [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_common.yaml"]
     )
-    bt_move_empty_shared_config = PathJoinSubstitution(
+    bt_operator_config = PathJoinSubstitution(
+        [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_operator.yaml"]
+    )
+    bt_move_empty_profile = PathJoinSubstitution(
         [
             FindPackageShare("concrete_block_behavior_tree"),
             "config",
-            "move_empty_shared.yaml",
+            "profiles",
+            "move_empty.yaml",
         ]
     )
     pzs100_controller_params = PathJoinSubstitution(
@@ -104,6 +105,20 @@ def generate_launch_description():
             FindPackageShare("epsilon_crane_bringup_hmi"),
             "rviz",
             "crane_data.rviz",
+        ]
+    )
+    world_model_seed_none = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_perception"),
+            "config",
+            "world_model_seed_none.yaml",
+        ]
+    )
+    world_model_seed_b0 = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_perception"),
+            "config",
+            "world_model_seed_b0.yaml",
         ]
     )
 
@@ -237,8 +252,13 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 name="use_perception",
-                default_value="True",
+                default_value="true",
                 description="Start concrete perception/world-model services for scan BTs",
+            ),
+            DeclareLaunchArgument(
+                name="seed_world_model",
+                default_value="true",
+                description="Prime world model with a static B0 anchor block and skip perception processing stack",
             ),
             Node(
                 package="robot_state_publisher",
@@ -327,8 +347,48 @@ def generate_launch_description():
                 launch_arguments={
                     "use_sim_time": use_sim_time,
                     "start_world_model": "true",
+                    "pipeline_mode": "idle",
+                    "start_processing_stack": "false",
+                    "world_model_overlay_params_file": world_model_seed_b0,
                 }.items(),
-                condition=IfCondition(use_perception),
+                condition=IfCondition(
+                    PythonExpression(
+                        [
+                            "'",
+                            use_perception,
+                            "'.lower() == 'true' and '",
+                            seed_world_model,
+                            "'.lower() == 'true'",
+                        ]
+                    )
+                ),
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_perception"),
+                            "launch",
+                            "perception.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "start_world_model": "true",
+                    "world_model_overlay_params_file": world_model_seed_none,
+                }.items(),
+                condition=IfCondition(
+                    PythonExpression(
+                        [
+                            "'",
+                            use_perception,
+                            "'.lower() == 'true' and '",
+                            seed_world_model,
+                            "'.lower() != 'true'",
+                        ]
+                    )
+                ),
             ),
             TimerAction(
                 period=8.0,
@@ -337,16 +397,18 @@ def generate_launch_description():
                         PythonLaunchDescriptionSource(
                             PathJoinSubstitution(
                                 [
-                                    FindPackageShare("concrete_block_behavior_tree"),
-                                    "launch",
-                                    "bt.launch.py",
-                                ]
-                            )
-                        ),
-                        launch_arguments={
+                            FindPackageShare("concrete_block_behavior_tree"),
+                            "launch",
+                            "bt.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
                             "use_sim_time": use_sim_time,
                             "start_bt_action_server": "True",
-                            "bt_params_file": bt_timber_phase1_config,
+                            "bt_common_params_file": bt_common_config,
+                            "bt_mode_params_file": bt_operator_config,
+                            "bt_profile_params_file": bt_move_empty_profile,
                             "keyboard_node": "True",
                             "gui": gui,
                         }.items(),
@@ -367,7 +429,9 @@ def generate_launch_description():
                 launch_arguments={
                     "use_sim_time": use_sim_time,
                     "start_bt_action_server": "True",
-                    "bt_params_file": bt_move_empty_shared_config,
+                    "bt_common_params_file": bt_common_config,
+                    "bt_mode_params_file": bt_operator_config,
+                    "bt_profile_params_file": bt_move_empty_profile,
                     "keyboard_node": "True",
                     "gui": gui,
                 }.items(),
@@ -545,7 +609,7 @@ def generate_launch_description():
             ),
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_MOVE_EMPTY_BT",
-                value="/behavior_trees/move_empty_pzs100.xml",
+                value="/behavior_trees/move_empty.xml",
             ),
             Node(
                 package="rviz2",
