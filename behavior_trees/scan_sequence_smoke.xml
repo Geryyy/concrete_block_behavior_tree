@@ -1,16 +1,22 @@
 <root main_tree_to_execute="ScanSequenceSmoke">
-  <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_named_configuration_step.xml"/>
   <BehaviorTree ID="ScanSequenceSmoke">
     <Sequence>
-      <SubTree
-        ID="SubTreeNamedConfigurationStep"
-        configuration_name="scan_left"
-        timeout_s="20.0"
-        dry_run="false"
-        trajectory_id="{scan_left_traj_id}"
-        move_ok="{scan_left_ok}"
-        move_message="{scan_left_msg}"/>
+      <Sequence>
+        <MoveToNamedConfiguration
+          service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+          configuration_name="scan_left"
+          timeout_s="20.0"
+          dry_run="true"
+          trajectory_id="{scan_left_traj_id}"
+          move_ok="{scan_left_resolve_ok}"
+          move_message="{scan_left_resolve_msg}"/>
+        <ExecuteTrajectory
+          service_name="/concrete_block_motion_planning_node/execute_trajectory"
+          trajectory_id="{scan_left_traj_id}"
+          dry_run="false"
+          execution_ok="{scan_left_ok}"
+          execution_message="{scan_left_msg}"/>
+      </Sequence>
       <RunPoseEstimation
         service_name="/world_model_node/run_pose_estimation"
         mode="SCENE_DISCOVERY"
@@ -20,14 +26,22 @@
         perception_ok="{perception_ok}"
         perception_message="{perception_message}"/>
 
-      <SubTree
-        ID="SubTreeNamedConfigurationStep"
-        configuration_name="scan_center"
-        timeout_s="20.0"
-        dry_run="false"
-        trajectory_id="{scan_center_traj_id}"
-        move_ok="{scan_center_ok}"
-        move_message="{scan_center_msg}"/>
+      <Sequence>
+        <MoveToNamedConfiguration
+          service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+          configuration_name="scan_center"
+          timeout_s="20.0"
+          dry_run="true"
+          trajectory_id="{scan_center_traj_id}"
+          move_ok="{scan_center_resolve_ok}"
+          move_message="{scan_center_resolve_msg}"/>
+        <ExecuteTrajectory
+          service_name="/concrete_block_motion_planning_node/execute_trajectory"
+          trajectory_id="{scan_center_traj_id}"
+          dry_run="false"
+          execution_ok="{scan_center_ok}"
+          execution_message="{scan_center_msg}"/>
+      </Sequence>
       <RunPoseEstimation
         service_name="/world_model_node/run_pose_estimation"
         mode="SCENE_DISCOVERY"
@@ -37,14 +51,22 @@
         perception_ok="{perception_ok}"
         perception_message="{perception_message}"/>
 
-      <SubTree
-        ID="SubTreeNamedConfigurationStep"
-        configuration_name="scan_right"
-        timeout_s="20.0"
-        dry_run="false"
-        trajectory_id="{scan_right_traj_id}"
-        move_ok="{scan_right_ok}"
-        move_message="{scan_right_msg}"/>
+      <Sequence>
+        <MoveToNamedConfiguration
+          service_name="/concrete_block_motion_planning_node/execute_named_configuration"
+          configuration_name="scan_right"
+          timeout_s="20.0"
+          dry_run="true"
+          trajectory_id="{scan_right_traj_id}"
+          move_ok="{scan_right_resolve_ok}"
+          move_message="{scan_right_resolve_msg}"/>
+        <ExecuteTrajectory
+          service_name="/concrete_block_motion_planning_node/execute_trajectory"
+          trajectory_id="{scan_right_traj_id}"
+          dry_run="false"
+          execution_ok="{scan_right_ok}"
+          execution_message="{scan_right_msg}"/>
+      </Sequence>
       <RunPoseEstimation
         service_name="/world_model_node/run_pose_estimation"
         mode="SCENE_DISCOVERY"

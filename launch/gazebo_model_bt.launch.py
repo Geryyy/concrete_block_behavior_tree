@@ -32,6 +32,7 @@ def generate_launch_description():
     motion_backend = LaunchConfiguration("motion_backend")
     tool = LaunchConfiguration("tool")
     gui = LaunchConfiguration("gui")
+    use_perception = LaunchConfiguration("use_perception")
     use_timber_backend = IfCondition(
         PythonExpression(["'", motion_backend, "' == 'timber'"])
     )
@@ -234,6 +235,11 @@ def generate_launch_description():
                 default_value="timber",
                 description="Active motion backend: timber or concrete",
             ),
+            DeclareLaunchArgument(
+                name="use_perception",
+                default_value="True",
+                description="Start concrete perception/world-model services for scan BTs",
+            ),
             Node(
                 package="robot_state_publisher",
                 executable="robot_state_publisher",
@@ -307,6 +313,22 @@ def generate_launch_description():
                 ),
                 launch_arguments={"use_sim_time": use_sim_time}.items(),
                 condition=use_concrete_backend,
+            ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_perception"),
+                            "launch",
+                            "perception.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "start_world_model": "true",
+                }.items(),
+                condition=IfCondition(use_perception),
             ),
             TimerAction(
                 period=8.0,
@@ -452,46 +474,59 @@ def generate_launch_description():
                     )
                 ],
             ),
-            Node(
-                package="concrete_block_motion_planning",
-                executable="motion_planning_node.py",
-                name="concrete_block_motion_planning_node",
-                output="screen",
-                parameters=[
-                    motion_planning_config,
-                    {"default_trajectory_method": "FIXED_TIME_INTERPOLATION"},
-                    {"named_configurations_file": named_cfg_file},
-                    {"wall_plan_file": wall_plan_file},
-                    {"geometric_optimized_params_file": optimized_params_file},
-                    {"execution.enabled": True},
-                    {"execution.backend": "topic"},
-                    {"execution.trajectory_topic": "/trajectory_controllers/joint_trajectory"},
-                    {"execution.action_name": "/trajectory_controller_a2b/follow_joint_trajectory"},
-                    {"execution.switch_controller": False},
-                    {"execution.activate_controller": "trajectory_controllers"},
-                    {"planner.backend": "concrete"},
-                    {"use_sim_time": use_sim_time},
-                ],
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_motion_planning"),
+                            "launch",
+                            "motion_planning.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "motion_planning_params_file": motion_planning_config,
+                    "default_trajectory_method": "FIXED_TIME_INTERPOLATION",
+                    "named_configurations_file": named_cfg_file,
+                    "wall_plan_file": wall_plan_file,
+                    "geometric_optimized_params_file": optimized_params_file,
+                    "execution_enabled": "true",
+                    "execution_backend": "topic",
+                    "execution_trajectory_topic": "/trajectory_controllers/joint_trajectory",
+                    "execution_action_name": "/trajectory_controller_a2b/follow_joint_trajectory",
+                    "execution_switch_controller": "false",
+                    "execution_activate_controller": "trajectory_controllers",
+                    "planner_backend": "concrete",
+                }.items(),
                 condition=use_concrete_backend,
             ),
-            Node(
-                package="concrete_block_motion_planning",
-                executable="motion_planning_node.py",
-                name="concrete_block_motion_planning_node",
-                output="screen",
-                parameters=[
-                    motion_planning_config,
-                    {"execution.enabled": True},
-                    {"execution.backend": "action"},
-                    {"execution.action_name": "/trajectory_controller_a2b/follow_joint_trajectory"},
-                    {"execution.switch_controller": False},
-                    {"execution.activate_controller": "trajectory_controllers"},
-                    {"planner.backend": "timber"},
-                    {"planner.timber_a2b_service": "a2b_movement"},
-                    {"planner.timber_goal_frame": "K0_mounting_base"},
-                    {"planner.timber_move_empty_target_z": 2.36},
-                    {"use_sim_time": use_sim_time},
-                ],
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("concrete_block_motion_planning"),
+                            "launch",
+                            "motion_planning.launch.py",
+                        ]
+                    )
+                ),
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "motion_planning_params_file": motion_planning_config,
+                    "named_configurations_file": named_cfg_file,
+                    "wall_plan_file": wall_plan_file,
+                    "geometric_optimized_params_file": optimized_params_file,
+                    "execution_enabled": "true",
+                    "execution_backend": "action",
+                    "execution_action_name": "/trajectory_controller_a2b/follow_joint_trajectory",
+                    "execution_switch_controller": "false",
+                    "execution_activate_controller": "trajectory_controllers",
+                    "planner_backend": "timber",
+                    "planner_timber_a2b_service": "a2b_movement",
+                    "planner_timber_goal_frame": "K0_mounting_base",
+                    "planner_timber_move_empty_target_z": "2.36",
+                }.items(),
                 condition=use_timber_backend,
             ),
             SetEnvironmentVariable(
