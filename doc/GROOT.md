@@ -1,101 +1,70 @@
-# Groot Guide (Behavior Tree GUI)
+# Groot Guide
 
-This repo can use **Groot** as GUI for:
-- Editing BT XML files visually
-- Monitoring a running tree (when monitoring is enabled)
+## What to open in Groot
 
-For your current stack (`behaviortree_cpp_v3`), use **Groot v1** style workflow.
+For current commissioning work, focus on the canonical intent-based trees:
 
-## 1) What you already have in this repo
+- `behavior_trees/move_empty.xml`
+- `behavior_trees/single_block_plan.xml`
+- `behavior_trees/single_block_execute.xml`
 
-- BT server launch: `launch/bt.launch.py`
-- Default BT config: `config/default.yaml`
-- Monitoring flag: `logging.enable_groot_monitoring`
+Only open `concrete_block_assembly.xml` when you are working on the longer-term automatic assembly workflow.
 
-`config/default.yaml` and `config/scan_smoke.yaml` already set:
-- `enable_groot_monitoring: true`
+## Current recommended launch shape
 
-`config/dummy_start.yaml` sets it to `false` because it is a smoke-only dummy profile.
+The BT stack now uses composable parameter layers rather than one monolithic BT YAML.
 
-## 2) Install Groot
+Relevant launch parameters:
 
-Use one of these options (depending on your environment):
+- `bt_common_params_file`
+- `bt_mode_params_file`
+- `bt_profile_params_file`
 
-1. Prebuilt package/binary (fastest)
-- Install Groot from your ROS/OS package source if available.
+That means when a tree seems different from what Groot shows, the first thing to verify is which profile file is actually active.
 
-2. Build from source (reliable when package is unavailable)
-- Clone Groot repository and build with its documented dependencies.
-- Prefer matching major version to BehaviorTree.CPP v3.
+## Canonical commissioning tasks
 
-Note: exact install command differs by distro and image. If you want, we can pin one method for your devcontainer and add it to setup docs.
+### `Move empty`
 
-## 3) Edit BT XML with Groot
+- operator movement tool
+- approval-gated execution
 
-1. Open Groot GUI.
-2. Load tree XML from:
-- `behavior_trees/concrete_block_assembly.xml`
-- or `behavior_trees/scan_sequence_smoke.xml`
-- or `behavior_trees/dummy_start.xml` for smoke-only bringup checks
-3. Edit/control flow and node attributes.
-4. Save XML back into `behavior_trees/`.
-5. If you changed node types, make sure corresponding plugin libraries are present in your YAML `plugin_lib_names`.
+### `Single block plan`
 
-## 4) Run and monitor from Groot
+- world-model and planner commissioning
+- plans from the current tool pose to the target task pose
+- no live execution
 
-1. Launch BT stack with monitoring enabled config:
-```bash
-ros2 launch concrete_block_behavior_tree bt.launch.py \
-  bt_params_file:=install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/config/default.yaml
-```
+### `Single block execute`
 
-2. Open Groot monitor/live view and connect to the running BT publisher.
+- planning plus approval-gated execution
+- concrete execution should now correspond to the displayed planned path
 
-3. Trigger the BT action flow you want to observe (depends on your orchestrating launch/test setup).
+This is the current operator vocabulary and should stay aligned with the BT panel catalog.
 
-## 5) Quick profiles in this repo
+## Monitoring advice
 
-1. Full/default behavior tree
-```bash
-ros2 launch concrete_block_behavior_tree bt.launch.py \
-  bt_params_file:=install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/config/default.yaml
-```
+Use Groot/live BT monitoring to answer:
 
-2. Smoke tree
-```bash
-ros2 launch concrete_block_behavior_tree scan_sequence_smoke.launch.py
-```
+- which canonical tree is currently running
+- which service node succeeded or failed
+- whether the tree is in planning-only or execution phase
 
-3. Dummy startup stack (Gazebo + RViz + smoke-only dummy BT)
-```bash
-ros2 launch concrete_block_behavior_tree simple_sim_bt_dummy.launch.py
-```
+That is especially important now that backend choice is deliberately hidden below the BT layer.
 
-If you want Groot monitoring for dummy mode too, set in `config/dummy_start.yaml`:
-- `logging.enable_groot_monitoring: true`
+## Common pitfalls
 
-## 6) Troubleshooting
+1. Editing a legacy alias instead of the canonical tree.
+2. Assuming a backend issue requires a BT fork.
+3. Forgetting that `Single block plan` intentionally does not execute.
+4. Forgetting that `Single block execute` includes explicit approval gating.
 
-1. Groot connects but no updates
-- Verify `enable_groot_monitoring: true` in the active `bt_params_file`.
-- Ensure you launched the config you think you launched.
+## Rule of thumb
 
-2. Tree fails to load
-- Check XML node tag names match registered plugin node types.
-- Check all required plugin libs are listed in `plugin_lib_names`.
+If the operator workflow is unchanged, prefer changing:
 
-3. Node exists but always fails
-- Usually service mismatch/timeouts.
-- Verify each XML `service_name` points to an available ROS service.
+- motion-planning config
+- backend adapters
+- world-model interfaces
 
-4. Edited XML but behavior unchanged
-- Confirm `behaviortree` path in the active config points to your edited file.
-- Restart BT server after edits if needed.
-
-## 7) Recommended prototyping workflow
-
-1. Duplicate an XML to a new experiment file in `behavior_trees/`.
-2. Duplicate config YAML in `config/` and point `behaviortree` to that XML.
-3. Enable Groot monitoring in that YAML.
-4. Launch with explicit `bt_params_file:=...`.
-5. Iterate quickly without touching `default.yaml` until stable.
+instead of creating another BT variant.

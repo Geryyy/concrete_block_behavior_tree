@@ -6,6 +6,7 @@
       - BT_check_user_approval_condition
       - BT_optimize_target_angle_bt_node
       - BT_cb_prepare_move_empty_request_action
+      - BT_cb_prepare_single_block_request_action
       - BT_cb_plan_and_compute_trajectory_action
       - BT_cb_execute_trajectory_action
       - BT_cb_get_next_assembly_task_action

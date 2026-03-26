@@ -13,16 +13,23 @@
         reference_block_pose_precise="{reference_block_pose_precise}"
         plan_has_task="{plan_has_task}"
         plan_message="{plan_message}"/>
+      <PrepareSingleBlockRequest
+        target_pose="{target_block_pose_precise}"
+        source_frame="K8_tool_center_point"
+        target_frame="world"
+        approach_offset_m="2.0"
+        start_pose="{start_pose}"
+        goal_pose="{goal_pose}"/>
       <PlanAndComputeTrajectory
         service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
-        start_pose="{target_block_pose_coarse}"
-        goal_pose="{target_block_pose_precise}"
+        start_pose="{start_pose}"
+        goal_pose="{goal_pose}"
         target_block_id="{target_block_id}"
         reference_block_id="{reference_block_id}"
         use_world_model="true"
         geometric_method="POWELL"
         geometric_timeout_s="5.0"
-        trajectory_method="ACADOS_PATH_FOLLOWING"
+        trajectory_method="TOPPRA_PATH_FOLLOWING"
         trajectory_timeout_s="20.0"
         validate_dynamics="false"
         geometric_plan_id="{geometric_plan_id}"

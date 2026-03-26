@@ -42,6 +42,7 @@ add_bt_plugin(BT_cb_plan_and_compute_trajectory_action src/plugins/action/plan_a
 add_bt_plugin(BT_cb_compute_trajectory_action src/plugins/action/compute_trajectory.cpp)
 add_bt_plugin(BT_cb_execute_trajectory_action src/plugins/action/execute_trajectory.cpp)
 add_bt_plugin(BT_cb_prepare_move_empty_request_action src/plugins/action/prepare_move_empty_request.cpp)
+add_bt_plugin(BT_cb_prepare_single_block_request_action src/plugins/action/prepare_single_block_request.cpp)
 add_bt_plugin(BT_cb_move_to_named_configuration_action src/plugins/action/move_to_named_configuration.cpp)
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)

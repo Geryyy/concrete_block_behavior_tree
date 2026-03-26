@@ -491,6 +491,13 @@ def generate_launch_description():
                 }.items(),
                 condition=use_timber_backend,
             ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="timber_follow_joint_trajectory_proxy.py",
+                name="timber_follow_joint_trajectory_proxy_concrete",
+                output="screen",
+                condition=use_concrete_backend,
+            ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution(
@@ -556,8 +563,7 @@ def generate_launch_description():
                     "wall_plan_file": wall_plan_file,
                     "geometric_optimized_params_file": optimized_params_file,
                     "execution_enabled": "true",
-                    "execution_backend": "topic",
-                    "execution_trajectory_topic": "/trajectory_controllers/joint_trajectory",
+                    "execution_backend": "action",
                     "execution_action_name": "/trajectory_controller_a2b/follow_joint_trajectory",
                     "execution_switch_controller": "false",
                     "execution_activate_controller": "trajectory_controllers",
