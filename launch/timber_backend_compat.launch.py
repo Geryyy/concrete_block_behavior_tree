@@ -24,7 +24,15 @@ def generate_launch_description():
         [FindPackageShare("epsilon_crane_bringup_mp"), "config", "motion_planning", "a2b_parameter.yaml"]
     )
     mp_param_path = PathJoinSubstitution(
-        [FindPackageShare("epsilon_crane_bringup_mp"), "config", "motion_planning", "mp_parameter.yaml"]
+        [FindPackageShare("epsilon_crane_bringup_mp"), "config", "motion_planning", "mp_parameter_pzs100.yaml"]
+    )
+    grip_traj_param_path = PathJoinSubstitution(
+        [
+            FindPackageShare("epsilon_crane_bringup_mp"),
+            "config",
+            "motion_planning",
+            "grip_traj_parameter_pzs100.yaml",
+        ]
     )
     collision_objects_path = PathJoinSubstitution(
         [
@@ -61,7 +69,7 @@ def generate_launch_description():
             "initial_pose:=",
             initial_pose,
             " ",
-            "tool:=epsilon_7040_description",
+            "tool:=pzs100_description",
             " ",
             "post_setup:=134 ",
         ]
@@ -99,7 +107,7 @@ def generate_launch_description():
                 parameters=[
                     PathJoinSubstitution(
                         [
-                            FindPackageShare("epsilon_7040_description"),
+                            FindPackageShare("pzs100_description"),
                             "config",
                             "gripper_parameter.yaml",
                         ]
@@ -151,6 +159,21 @@ def generate_launch_description():
                     "K12_inner_jaw",
                 ],
                 output="log",
+            ),
+            Node(
+                package="timber_crane_motion_planning",
+                executable="grip_traj_server",
+                parameters=[
+                    mp_param_path,
+                    grip_traj_param_path,
+                    {
+                        "use_sim_time": use_sim_time,
+                        "robot_description_topic": "robot_description_full_timber_compat",
+                    },
+                ],
+                remappings=[("joint_states", "/joint_states_timber_compat")],
+                arguments=["--ros-args", "--log-level", "INFO"],
+                output="screen",
             ),
             Node(
                 package="timber_crane_motion_planning",

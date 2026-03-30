@@ -26,6 +26,7 @@
   <depend>trajectory_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>
   <exec_depend>epsilon_7040_description</exec_depend>
+  <exec_depend>pzs100_description</exec_depend>
   <exec_depend>epsilon_crane_bringup_mp</exec_depend>
   <exec_depend>collision_body_handler</exec_depend>
   <exec_depend>gazebo_grasp_plugin_ros</exec_depend>
