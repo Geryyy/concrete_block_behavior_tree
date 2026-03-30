@@ -577,7 +577,7 @@ def generate_launch_description():
                         [
                             FindPackageShare("concrete_block_motion_planning"),
                             "launch",
-                            "motion_planning.launch.py",
+                            "motion_planning_timber_commissioning.launch.py",
                         ]
                     )
                 ),
@@ -586,13 +586,7 @@ def generate_launch_description():
                     "motion_planning_params_file": motion_planning_config,
                     "named_configurations_file": named_cfg_file,
                     "wall_plan_file": wall_plan_file,
-                    "geometric_optimized_params_file": optimized_params_file,
-                    "execution_enabled": "true",
-                    "execution_backend": "action",
                     "execution_action_name": "/trajectory_controller_a2b/follow_joint_trajectory",
-                    "execution_switch_controller": "false",
-                    "execution_activate_controller": "trajectory_controllers",
-                    "planner_backend": "timber",
                     "planner_timber_a2b_service": "a2b_movement",
                     "planner_timber_goal_frame": "K0_mounting_base",
                     "planner_timber_move_empty_target_z": "2.36",
