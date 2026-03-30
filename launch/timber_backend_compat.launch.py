@@ -110,9 +110,9 @@ def generate_launch_description():
             ),
             Node(
                 package="concrete_block_motion_planning",
-                executable="dummy_gripper_state_publisher.py",
-                name="dummy_gripper_state_publisher",
-                parameters=[{"topic": "/gripper_state"}, {"publish_rate_hz": 5.0}],
+                executable="gripper_state_bridge.py",
+                name="gripper_state_bridge",
+                parameters=[{"state_topic": "/gripper_state"}, {"publish_rate_hz": 5.0}],
                 output="log",
             ),
             Node(

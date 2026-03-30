@@ -22,7 +22,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("task_id", response->task_id);
   setOutput("target_block_id", response->target_block_id);
   setOutput("reference_block_id", response->reference_block_id);
-  setOutput("target_block_pose_coarse", response->target_pose);
+  setOutput("target_block_pose_coarse", response->pickup_pose);
   setOutput("target_block_pose_precise", response->target_pose);
   setOutput("reference_block_pose_precise", response->reference_pose);
   setOutput("plan_has_task", response->has_task);
@@ -30,12 +30,18 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s message=%s",
+    "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s pickup=(%.2f,%.2f,%.2f) place=(%.2f,%.2f,%.2f) message=%s",
     response->success ? "true" : "false",
     response->has_task ? "true" : "false",
     response->task_id.c_str(),
     response->target_block_id.c_str(),
     response->reference_block_id.c_str(),
+    response->pickup_pose.pose.position.x,
+    response->pickup_pose.pose.position.y,
+    response->pickup_pose.pose.position.z,
+    response->target_pose.pose.position.x,
+    response->target_pose.pose.position.y,
+    response->target_pose.pose.position.z,
     response->message.c_str());
 
   if (!response->success || !response->has_task) {

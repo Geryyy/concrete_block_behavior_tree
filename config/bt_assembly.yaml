@@ -2,8 +2,8 @@
   ros__parameters:
     plugin_lib_names:
       - BT_cb_run_pose_estimation_action
-      - BT_cb_plan_geometric_path_action
-      - BT_cb_compute_trajectory_action
+      - BT_cb_prepare_single_block_request_action
+      - BT_cb_plan_and_compute_trajectory_action
       - BT_cb_execute_trajectory_action
       - BT_cb_move_to_named_configuration_action
       - BT_cb_get_next_assembly_task_action

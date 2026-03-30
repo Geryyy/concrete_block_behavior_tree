@@ -15,6 +15,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   nav_msgs
   pluginlib
   rclcpp
+  std_msgs
   tf2
   tf2_geometry_msgs
   tf2_ros

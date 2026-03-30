@@ -1,4 +1,6 @@
 <root main_tree_to_execute="SingleBlockExecute">
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_transport_block.xml"/>
   <BehaviorTree ID="SingleBlockExecute">
     <Sequence>
       <GetNextAssemblyTask
@@ -13,41 +15,11 @@
         reference_block_pose_precise="{reference_block_pose_precise}"
         plan_has_task="{plan_has_task}"
         plan_message="{plan_message}"/>
-      <PrepareSingleBlockRequest
-        target_pose="{target_block_pose_precise}"
-        source_frame="K8_tool_center_point"
-        target_frame="world"
-        approach_offset_m="2.0"
-        start_pose="{start_pose}"
-        goal_pose="{goal_pose}"/>
-      <PlanAndComputeTrajectory
-        service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
-        start_pose="{start_pose}"
-        goal_pose="{goal_pose}"
-        target_block_id="{target_block_id}"
-        reference_block_id="{reference_block_id}"
-        use_world_model="true"
-        geometric_method="POWELL"
-        geometric_timeout_s="5.0"
-        trajectory_method="TOPPRA_PATH_FOLLOWING"
-        trajectory_timeout_s="20.0"
-        validate_dynamics="false"
-        geometric_plan_id="{geometric_plan_id}"
-        cartesian_path="{cartesian_path}"
-        trajectory_id="{trajectory_id}"
-        joint_trajectory="{joint_trajectory}"
-        trajectory_ok="{trajectory_ok}"
-        trajectory_message="{trajectory_message}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
         wait_rising_edge="False">
         <Sequence>
-          <ExecuteTrajectory
-            service_name="/concrete_block_motion_planning_node/execute_trajectory"
-            trajectory_id="{trajectory_id}"
-            dry_run="false"
-            execution_ok="{execution_ok}"
-            execution_message="{execution_message}"/>
+          <SubTree ID="SubTreeTransportBlock" __shared_blackboard="true"/>
         </Sequence>
       </Decorator>
     </Sequence>
