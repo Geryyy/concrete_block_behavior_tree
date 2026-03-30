@@ -35,43 +35,9 @@
         execution_ok="{pickup_approach_execution_ok}"
         execution_message="{pickup_approach_execution_message}"/>
 
-      <PrepareSingleBlockRequest
-        target_pose="{target_block_pose_coarse}"
-        source_frame="K8_tool_center_point"
-        target_frame="world"
-        approach_offset_m="0.0"
-        start_pose="{pickup_start_pose}"
-        goal_pose="{pickup_goal_pose}"/>
-
       <PlanAndComputeTrajectory
         service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
-        start_pose="{pickup_start_pose}"
-        goal_pose="{pickup_goal_pose}"
-        target_block_id="{target_block_id}"
-        reference_block_id="{reference_block_id}"
-        use_world_model="true"
-        geometric_method="POWELL"
-        geometric_timeout_s="5.0"
-        trajectory_method="TIMBER_MOVE_EMPTY"
-        trajectory_timeout_s="20.0"
-        validate_dynamics="false"
-        geometric_plan_id="{pickup_plan_id}"
-        cartesian_path="{pickup_path}"
-        trajectory_id="{pickup_trajectory_id}"
-        joint_trajectory="{pickup_joint_trajectory}"
-        trajectory_ok="{pickup_ok}"
-        trajectory_message="{pickup_message}"/>
-
-      <ExecuteTrajectory
-        service_name="/concrete_block_motion_planning_node/execute_trajectory"
-        trajectory_id="{pickup_trajectory_id}"
-        dry_run="false"
-        execution_ok="{pickup_execution_ok}"
-        execution_message="{pickup_execution_message}"/>
-
-      <PlanAndComputeTrajectory
-        service_name="/concrete_block_motion_planning_node/plan_and_compute_trajectory"
-        start_pose="{pickup_goal_pose}"
+        start_pose="{pickup_approach_goal_pose}"
         goal_pose="{pickup_goal_pose}"
         target_block_id="{target_block_id}"
         reference_block_id="{reference_block_id}"
@@ -208,22 +174,22 @@
         use_world_model="true"
         geometric_method="POWELL"
         geometric_timeout_s="5.0"
-        trajectory_method="TIMBER_RELEASE"
+        trajectory_method="TIMBER_LAYDOWN"
         trajectory_timeout_s="40.0"
         validate_dynamics="false"
-        geometric_plan_id="{release_plan_id}"
-        cartesian_path="{release_path}"
-        trajectory_id="{release_trajectory_id}"
-        joint_trajectory="{release_joint_trajectory}"
-        trajectory_ok="{release_ok}"
-        trajectory_message="{release_message}"/>
+        geometric_plan_id="{laydown_plan_id}"
+        cartesian_path="{laydown_path}"
+        trajectory_id="{laydown_trajectory_id}"
+        joint_trajectory="{laydown_joint_trajectory}"
+        trajectory_ok="{laydown_ok}"
+        trajectory_message="{laydown_message}"/>
 
       <ExecuteTrajectory
         service_name="/concrete_block_motion_planning_node/execute_trajectory"
-        trajectory_id="{release_trajectory_id}"
+        trajectory_id="{laydown_trajectory_id}"
         dry_run="false"
-        execution_ok="{release_execution_ok}"
-        execution_message="{release_execution_message}"/>
+        execution_ok="{laydown_execution_ok}"
+        execution_message="{laydown_execution_message}"/>
 
       <GripperAction command="OPEN"/>
     </Sequence>
