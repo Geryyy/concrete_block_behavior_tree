@@ -114,7 +114,15 @@ def generate_launch_description():
                     ),
                     {"use_sim_time": use_sim_time},
                 ],
+                remappings=[("crane_tools_description", "/crane_tools_description_timber_compat")],
                 output="log",
+            ),
+            Node(
+                package="concrete_block_motion_planning",
+                executable="dummy_joint_state_publisher.py",
+                name="dummy_joint_state_publisher",
+                output="log",
+                parameters=[{"topic": "/joint_states"}, {"publish_rate_hz": 10.0}],
             ),
             Node(
                 package="concrete_block_motion_planning",
@@ -172,7 +180,13 @@ def generate_launch_description():
                     },
                 ],
                 remappings=[("joint_states", "/joint_states_timber_compat")],
-                arguments=["--ros-args", "--log-level", "INFO"],
+                arguments=[
+                    "--ros-args",
+                    "--log-level",
+                    "INFO",
+                    "-r",
+                    "crane_tools_description:=/crane_tools_description_timber_compat",
+                ],
                 output="screen",
             ),
             Node(
@@ -196,7 +210,13 @@ def generate_launch_description():
                     },
                 ],
                 remappings=[("joint_states", "/joint_states_timber_compat")],
-                arguments=["--ros-args", "--log-level", "INFO"],
+                arguments=[
+                    "--ros-args",
+                    "--log-level",
+                    "INFO",
+                    "-r",
+                    "crane_tools_description:=/crane_tools_description_timber_compat",
+                ],
                 output="screen",
             ),
             Node(
