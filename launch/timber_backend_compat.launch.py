@@ -122,13 +122,21 @@ def generate_launch_description():
                 executable="dummy_joint_state_publisher.py",
                 name="dummy_joint_state_publisher",
                 output="log",
-                parameters=[{"topic": "/joint_states"}, {"publish_rate_hz": 10.0}],
+                parameters=[
+                    {"topic": "/joint_states"},
+                    {"publish_rate_hz": 10.0},
+                    {"use_sim_time": use_sim_time},
+                ],
             ),
             Node(
                 package="concrete_block_motion_planning",
                 executable="gripper_state_bridge.py",
                 name="gripper_state_bridge",
-                parameters=[{"state_topic": "/gripper_state"}, {"publish_rate_hz": 5.0}],
+                parameters=[
+                    {"state_topic": "/gripper_state"},
+                    {"publish_rate_hz": 5.0},
+                    {"use_sim_time": use_sim_time},
+                ],
                 output="log",
             ),
             Node(
@@ -136,12 +144,17 @@ def generate_launch_description():
                 executable="joint_state_timber_compat.py",
                 name="joint_state_timber_compat",
                 output="log",
-                parameters=[{"source_topic": "/joint_states"}, {"target_topic": "/joint_states_timber_compat"}],
+                parameters=[
+                    {"source_topic": "/joint_states"},
+                    {"target_topic": "/joint_states_timber_compat"},
+                    {"use_sim_time": use_sim_time},
+                ],
             ),
             Node(
                 package="concrete_block_motion_planning",
                 executable="timber_follow_joint_trajectory_proxy.py",
                 name="timber_follow_joint_trajectory_proxy",
+                parameters=[{"use_sim_time": use_sim_time}],
                 output="screen",
             ),
             Node(

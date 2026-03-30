@@ -4,7 +4,7 @@
     always_reload_bt_xml: true
     # Smoke-only tree; keep the plugin set empty so this profile stays minimal.
     plugin_lib_names: []
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/dummy_start.xml"
+    behaviortree: "dummy_start.xml"
     logging:
       enable_groot_monitoring: false
       enable_file_logging: false

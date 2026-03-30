@@ -359,7 +359,15 @@ def generate_actions(declare_arguments=True):
     )
 
     should_unpause = IfCondition(
-        PythonExpression([start_paused, " and ", auto_unpause])
+        PythonExpression(
+            [
+                "'",
+                start_paused,
+                "'.lower() in ('true', '1', 'yes') and '",
+                auto_unpause,
+                "'.lower() in ('true', '1', 'yes')",
+            ]
+        )
     )
     unpause_physics = ExecuteProcess(
         cmd=["ros2", "service", "call", "/unpause_physics", "std_srvs/srv/Empty", "{}"],

@@ -35,12 +35,16 @@ def _bt_runtime_nodes(context):
     shared_parameters = params_files + [
         {"use_sim_time": LaunchConfiguration("use_sim_time")}
     ]
+    bt_behavior_tree_dir = PathJoinSubstitution(
+        [FindPackageShare("concrete_block_behavior_tree"), "behavior_trees"]
+    )
 
     return [
         Node(
             package="lsrl_behavior_tree",
             executable="bt_action_server",
             output="both",
+            cwd=bt_behavior_tree_dir,
             parameters=shared_parameters,
             condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
         ),
@@ -74,9 +78,7 @@ def generate_launch_description():
     elif os.path.exists("/usr/bin/gnome-terminal"):
         spawn_terminal_prefix = "gnome-terminal -- "
     else:
-        raise RuntimeError(
-            "could not find any terminal gui, tested for gnome-terminal and xterm"
-        )
+        spawn_terminal_prefix = ""
 
     return LaunchDescription(
         [
@@ -111,9 +113,11 @@ def generate_launch_description():
                 condition=IfCondition(
                     PythonExpression(
                         [
+                            "'",
                             LaunchConfiguration("keyboard_node"),
-                            " and ",
+                            "'.lower() in ('true', '1', 'yes') and '",
                             LaunchConfiguration("gui"),
+                            "'.lower() in ('true', '1', 'yes')",
                         ]
                     )
                 ),

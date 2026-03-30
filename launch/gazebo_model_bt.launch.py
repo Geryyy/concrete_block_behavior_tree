@@ -84,6 +84,8 @@ def generate_launch_description():
     bt_operator_config = PathJoinSubstitution(
         [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_operator.yaml"]
     )
+    bt_mode_params_file = LaunchConfiguration("bt_mode_params_file")
+    bt_profile_params_file = LaunchConfiguration("bt_profile_params_file")
     bt_move_empty_profile = PathJoinSubstitution(
         [
             FindPackageShare("concrete_block_behavior_tree"),
@@ -260,6 +262,16 @@ def generate_launch_description():
                 default_value="true",
                 description="Prime world model with a static B0 anchor block and skip perception processing stack",
             ),
+            DeclareLaunchArgument(
+                name="bt_mode_params_file",
+                default_value=bt_operator_config,
+                description="BT mode config used by the behavior-tree runtime",
+            ),
+            DeclareLaunchArgument(
+                name="bt_profile_params_file",
+                default_value=bt_move_empty_profile,
+                description="BT profile config used by the behavior-tree runtime",
+            ),
             Node(
                 package="robot_state_publisher",
                 executable="robot_state_publisher",
@@ -407,8 +419,8 @@ def generate_launch_description():
                             "use_sim_time": use_sim_time,
                             "start_bt_action_server": "True",
                             "bt_common_params_file": bt_common_config,
-                            "bt_mode_params_file": bt_operator_config,
-                            "bt_profile_params_file": bt_move_empty_profile,
+                            "bt_mode_params_file": bt_mode_params_file,
+                            "bt_profile_params_file": bt_profile_params_file,
                             "keyboard_node": "True",
                             "gui": gui,
                         }.items(),
@@ -430,8 +442,8 @@ def generate_launch_description():
                     "use_sim_time": use_sim_time,
                     "start_bt_action_server": "True",
                     "bt_common_params_file": bt_common_config,
-                    "bt_mode_params_file": bt_operator_config,
-                    "bt_profile_params_file": bt_move_empty_profile,
+                    "bt_mode_params_file": bt_mode_params_file,
+                    "bt_profile_params_file": bt_profile_params_file,
                     "keyboard_node": "True",
                     "gui": gui,
                 }.items(),

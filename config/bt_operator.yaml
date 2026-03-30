@@ -10,4 +10,5 @@
       - BT_cb_plan_and_compute_trajectory_action
       - BT_cb_execute_trajectory_action
       - BT_cb_get_next_assembly_task_action
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty.xml"
+      - BT_cb_gripper_action
+    behaviortree: "move_empty.xml"

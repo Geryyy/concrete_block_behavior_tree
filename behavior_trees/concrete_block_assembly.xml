@@ -1,10 +1,7 @@
 <root main_tree_to_execute="ConcreteBlockAssembly">
-  <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_scene_scan.xml"/>
-  <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_transport_block.xml"/>
-  <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_recovery_scan.xml"/>
+  <include path="subtree_scene_scan.xml"/>
+  <include path="subtree_transport_block.xml"/>
+  <include path="subtree_recovery_scan.xml"/>
   <BehaviorTree ID="ConcreteBlockAssembly">
     <!--
       KeepRunningUntilFailure loops the inner sequence until it returns FAILURE.

@@ -9,7 +9,7 @@
     plugin_lib_names:
       - BT_cb_get_next_assembly_task_action
       - BT_cb_plan_and_compute_trajectory_action
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/single_block_plan.xml"
+    behaviortree: "single_block_plan.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true

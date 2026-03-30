@@ -19,7 +19,7 @@
       - BT_cb_get_next_assembly_task_action
       - BT_cb_set_block_task_status_action
       - BT_cb_gripper_action
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty.xml"
+    behaviortree: "move_empty.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true

@@ -1,6 +1,5 @@
 <root main_tree_to_execute="SingleBlockExecute">
-  <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_transport_block.xml"/>
+  <include path="subtree_transport_block.xml"/>
   <BehaviorTree ID="SingleBlockExecute">
     <Sequence>
       <GetNextAssemblyTask
@@ -15,13 +14,7 @@
         reference_block_pose_precise="{reference_block_pose_precise}"
         plan_has_task="{plan_has_task}"
         plan_message="{plan_message}"/>
-      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
-        wait_rising_edge="False">
-        <Sequence>
-          <SubTree ID="SubTreeTransportBlock" __shared_blackboard="true"/>
-        </Sequence>
-      </Decorator>
+      <SubTree ID="SubTreeTransportBlock" __shared_blackboard="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

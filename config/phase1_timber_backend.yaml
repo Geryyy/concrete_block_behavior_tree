@@ -21,7 +21,7 @@
       - BT_check_user_approval_condition
       - BT_wait_goal_pose_decorator
       - BT_optimize_target_angle_bt_node
-    behaviortree: "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/move_empty.xml"
+    behaviortree: "move_empty.xml"
     logging:
       enable_groot_monitoring: true
       enable_file_logging: true
