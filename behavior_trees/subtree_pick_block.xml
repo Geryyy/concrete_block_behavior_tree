@@ -15,7 +15,7 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <!-- 2. Grip: descend to block, open jaw, close -->
+      <!-- 2. Grip: open gripper, descend, close gripper, lift up -->
       <Action ID="SetGoalPose" name="Set pickup target"
         yN.x="{pickup_x}" yN.y="{pickup_y}" yN.z="{pickup_z}"
         phiN="{pickup_yaw}"
@@ -24,16 +24,6 @@
         carriesLog="false" logShape="{logShape}" phase="1"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
-        trajectory="{trajectory}" yN="{COG}"/>
-      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
-
-      <!-- 3. Lift block -->
-      <Action ID="CalcGripMovement" name="Plan lift"
-        carriesLog="true" logShape="{logShape}" phase="2"
-        phiToolN="{phi}" service_name="grip_traj_movement"
-        server_timeout="40000" slowDown="1.0"
         s_log_grippoint="{s_log_grippoint}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
