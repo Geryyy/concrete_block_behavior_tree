@@ -85,6 +85,19 @@ def generate_launch_description():
                 }.items(),
             ),
             # World model is launched by gazebo_model_bt_pzs100.launch.py.
+            # ── Virtual TCP frame (midpoint between PZS100 gripper rails) ─
+            Node(
+                package="tf2_ros",
+                executable="static_transform_publisher",
+                name="virtual_tcp_publisher",
+                arguments=[
+                    "--x", "0", "--y", "0", "--z", "-0.7",
+                    "--roll", "0", "--pitch", "0", "--yaw", "0",
+                    "--frame-id", "K8_tool_center_point",
+                    "--child-frame-id", "virtual_tcp",
+                ],
+                parameters=[{"use_sim_time": True}],
+            ),
             # ── Simple grip trajectory server ────────────────────────────
             Node(
                 package="concrete_block_motion_planning",
