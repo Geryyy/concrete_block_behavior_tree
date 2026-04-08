@@ -80,10 +80,24 @@ def generate_launch_description():
                 / "gazebo_model_bt_pzs100.launch.py",
                 launch_arguments={
                     "start_bt_action_server": "False",
+                    "start_grip_traj_server": "False",
                     "initial_pose": LaunchConfiguration("initial_pose"),
                 }.items(),
             ),
             # World model is launched by gazebo_model_bt_pzs100.launch.py.
+            # ── Simple grip trajectory server ────────────────────────────
+            Node(
+                package="concrete_block_motion_planning",
+                executable="grip_traj_server_simple.py",
+                name="grip_traj_server",
+                output="screen",
+                parameters=[
+                    PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
+                    / "config"
+                    / "grip_traj_simple.yaml",
+                    {"use_sim_time": True},
+                ],
+            ),
             # ── Wall plan server (lightweight) ───────────────────────────
             Node(
                 package="concrete_block_motion_planning",
