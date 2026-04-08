@@ -1,0 +1,30 @@
+/**:
+  ros__parameters:
+    plugin_lib_names:
+      # epsilon_crane_behavior_tree
+      - BT_wait_log_msg_decorator
+      - BT_wait_grip_msg_decorator
+      - BT_consume_log_array_decorator
+      - BT_consume_pose_array_decorator
+      - BT_follow_joint_trajectory_action
+      - BT_calc_grip_movement_bt_node
+      - BT_calc_a2b_movement_bt_node
+      - BT_calculate_target_bt_node
+      - BT_get_laydown_pose_bt_node
+      - BT_calc_grip_state_bt_node
+      - BT_get_user_approval_decorator
+      - BT_check_user_approval_condition
+      - BT_wait_goal_pose_decorator
+      - BT_wait_goal_pose_array_decorator
+      - BT_set_goal_pose_bt_node
+      - BT_optimize_target_angle_bt_node
+      - BT_switch_controller_action
+      - BT_extract_goal_pose_bt_node
+      - BT_iterate_log_array_bt_node
+      - BT_pop_pose_array_bt_node
+      - BT_change_lifecycle_state_action
+      - BT_call_service_empty_action
+      - BT_remove_log_from_aggregator_node
+      # concrete_block_behavior_tree
+      - BT_cb_get_next_assembly_task_action
+      - BT_cb_set_block_task_status_action
