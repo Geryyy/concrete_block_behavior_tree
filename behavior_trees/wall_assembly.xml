@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="WallAssembly">
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_block.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
+  <!-- ////////// -->
+  <BehaviorTree ID="WallAssembly">
+    <Sequence>
+
+      <!-- ============================================================
+           CONFIGURATION
+           ============================================================ -->
+      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
+      <SetBlackboard output_key="approach_z" value="3.5"/>
+      <!-- Block approximated as cylinder for timber planner compatibility -->
+      <SetBlackboard output_key="logShape"
+        value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+
+      <!-- ============================================================
+           ASSEMBLY LOOP
+           Terminates when GetNextAssemblyTask returns FAILURE (plan complete)
+           ============================================================ -->
+      <KeepRunningUntilFailure name="assembly_loop">
+        <Sequence name="pick_and_place_one_block">
+
+          <GetNextAssemblyTask
+            service_name="/concrete_block_motion_planning_node/get_next_assembly_task"
+            wall_plan_name="pzs100_pick_place"
+            reset_plan="false"
+            task_id="{task_id}"
+            target_block_id="{target_block_id}"
+            reference_block_id="{reference_block_id}"
+            target_block_pose_coarse="{target_block_pose_coarse}"
+            target_block_pose_precise="{target_block_pose_precise}"
+            reference_block_pose_precise="{reference_block_pose_precise}"
+            plan_has_task="{plan_has_task}"
+            plan_message="{plan_message}"
+            pickup_x="{pickup_x}"
+            pickup_y="{pickup_y}"
+            pickup_z="{pickup_z}"
+            pickup_yaw="{pickup_yaw}"
+            place_x="{place_x}"
+            place_y="{place_y}"
+            place_z="{place_z}"
+            place_yaw="{place_yaw}"/>
+
+          <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
+          <SubTree ID="SubTreePlaceBlock" __shared_blackboard="true"/>
+
+          <SetBlockTaskStatus
+            service_name="/concrete_block_motion_planning_node/set_block_task_status"
+            block_id="{target_block_id}"
+            task_status="3"
+            status_ok="{status_ok}"
+            status_message="{status_message}"/>
+
+        </Sequence>
+      </KeepRunningUntilFailure>
+
+    </Sequence>
+  </BehaviorTree>
+  <!-- ////////// -->
+  <TreeNodesModel>
+    <Action ID="SetGoalPose">
+      <input_port name="yN.x">Target x in K0_mounting_base</input_port>
+      <input_port name="yN.y">Target y in K0_mounting_base</input_port>
+      <input_port name="yN.z">Target z in K0_mounting_base</input_port>
+      <input_port name="phiN">Target yaw (rad)</input_port>
+      <output_port name="goal">geometry_msgs::Point</output_port>
+      <output_port name="phi">Yaw (rad)</output_port>
+    </Action>
+    <Action ID="CalcA2BMovement">
+      <input_port name="carriesLog">Carrying payload?</input_port>
+      <input_port name="phiToolN">Gripper yaw</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="slowDown">Speed factor</input_port>
+      <input_port name="tEnd">Fixed end time (0=auto)</input_port>
+      <output_port name="trajectory">Computed trajectory</output_port>
+      <input_port name="yN">Target position</input_port>
+    </Action>
+    <Action ID="CalcGripMovement">
+      <input_port name="carriesLog">Carrying payload?</input_port>
+      <input_port name="logShape">Payload shape</input_port>
+      <input_port name="phase">0=laydown, 1=grip, 2=lift</input_port>
+      <input_port name="phiToolN">Gripper yaw</input_port>
+      <input_port name="s_log_grippoint">Grip point offset</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="slowDown">Speed factor</input_port>
+      <output_port name="trajectory">Computed trajectory</output_port>
+      <input_port name="yN">Target position (CoG)</input_port>
+    </Action>
+    <Action ID="GetNextAssemblyTask">
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="wall_plan_name">Wall plan name</input_port>
+      <input_port name="reset_plan">Reset plan progress</input_port>
+      <output_port name="task_id">Current task ID</output_port>
+      <output_port name="target_block_id">Block ID</output_port>
+      <output_port name="reference_block_id">Reference block ID</output_port>
+      <output_port name="pickup_x">Pickup X</output_port>
+      <output_port name="pickup_y">Pickup Y</output_port>
+      <output_port name="pickup_z">Pickup Z</output_port>
+      <output_port name="pickup_yaw">Pickup yaw (rad)</output_port>
+      <output_port name="place_x">Place X</output_port>
+      <output_port name="place_y">Place Y</output_port>
+      <output_port name="place_z">Place Z</output_port>
+      <output_port name="place_yaw">Place yaw (rad)</output_port>
+    </Action>
+    <Action ID="SetBlockTaskStatus">
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="block_id">Block to update</input_port>
+      <input_port name="task_status">Status code (3=placed)</input_port>
+      <output_port name="status_ok">Success flag</output_port>
+      <output_port name="status_message">Status message</output_port>
+    </Action>
+    <Action ID="FollowJointTrajectory">
+      <input_port name="server_name">Action server</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="trajectory">Trajectory to follow</input_port>
+    </Action>
+    <Decorator ID="GetUserApproval">
+      <input_port name="topic">Topic</input_port>
+    </Decorator>
+    <Condition ID="CheckUserApproval">
+      <input_port name="topic">Topic</input_port>
+    </Condition>
+  </TreeNodesModel>
+  <!-- ////////// -->
+</root>

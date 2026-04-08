@@ -1,0 +1,34 @@
+<root>
+  <BehaviorTree ID="SubTreePlaceBlock">
+    <Sequence name="place_block_sequence">
+
+      <!-- 1. Move above place position at safe approach altitude -->
+      <Action ID="SetGoalPose" name="Set place above"
+        yN.x="{place_x}" yN.y="{place_y}" yN.z="{approach_z}"
+        phiN="{place_yaw}"
+        goal="{yN}" phi="{phi}"/>
+      <Action ID="CalcA2BMovement" name="Plan approach place"
+        carriesLog="true" phiToolN="{phi}"
+        service_name="a2b_movement" server_timeout="10000"
+        slowDown="{slow_down}" tEnd="0.0"
+        trajectory="{trajectory}" yN="{yN}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 2. Lay down block and release gripper -->
+      <Action ID="SetGoalPose" name="Set place target"
+        yN.x="{place_x}" yN.y="{place_y}" yN.z="{place_z}"
+        phiN="{place_yaw}"
+        goal="{COG}" phi="{phi}"/>
+      <Action ID="CalcGripMovement" name="Plan laydown"
+        carriesLog="true" logShape="{logShape}" phase="0"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

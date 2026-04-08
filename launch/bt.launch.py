@@ -63,14 +63,14 @@ def generate_launch_description():
         [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_common.yaml"]
     )
     assembly_cfg = PathJoinSubstitution(
-        [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_assembly.yaml"]
+        [FindPackageShare("concrete_block_behavior_tree"), "config", "bt_wall_assembly.yaml"]
     )
     assembly_profile_cfg = PathJoinSubstitution(
         [
             FindPackageShare("concrete_block_behavior_tree"),
             "config",
             "profiles",
-            "assembly.yaml",
+            "wall_assembly.yaml",
         ]
     )
     if os.path.exists("/usr/bin/xterm"):

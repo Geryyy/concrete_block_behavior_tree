@@ -12,18 +12,11 @@
   <depend>behaviortree_cpp_v3</depend>
   <depend>nav2_behavior_tree</depend>
   <depend>rclcpp</depend>
-  <depend>pluginlib</depend>
 
   <depend>lsrl_behavior_tree</depend>
   <depend>concrete_block_perception</depend>
   <depend>concrete_block_motion_planning</depend>
   <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>trajectory_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>
   <exec_depend>epsilon_7040_description</exec_depend>
   <exec_depend>pzs100_description</exec_depend>

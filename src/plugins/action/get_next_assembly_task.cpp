@@ -28,6 +28,20 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("plan_has_task", response->has_task);
   setOutput("plan_message", response->message);
 
+  // Decomposed scalar ports for epsilon_crane BT nodes
+  setOutput("pickup_x", response->pickup_pose.pose.position.x);
+  setOutput("pickup_y", response->pickup_pose.pose.position.y);
+  setOutput("pickup_z", response->pickup_pose.pose.position.z);
+  const auto & pq = response->pickup_pose.pose.orientation;
+  setOutput("pickup_yaw", std::atan2(2.0 * (pq.w * pq.z + pq.x * pq.y),
+    1.0 - 2.0 * (pq.y * pq.y + pq.z * pq.z)));
+  setOutput("place_x", response->target_pose.pose.position.x);
+  setOutput("place_y", response->target_pose.pose.position.y);
+  setOutput("place_z", response->target_pose.pose.position.z);
+  const auto & tq = response->target_pose.pose.orientation;
+  setOutput("place_yaw", std::atan2(2.0 * (tq.w * tq.z + tq.x * tq.y),
+    1.0 - 2.0 * (tq.y * tq.y + tq.z * tq.z)));
+
   RCLCPP_INFO(
     node_->get_logger(),
     "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s pickup=(%.2f,%.2f,%.2f) place=(%.2f,%.2f,%.2f) message=%s",

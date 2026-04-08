@@ -1,7 +1,5 @@
 behavior_trees:
+  - name: "Wall assembly"
+    path: "/behavior_trees/wall_assembly.xml"
   - name: "Move empty"
     path: "/behavior_trees/move_empty.xml"
-  - name: "Single block plan"
-    path: "/behavior_trees/single_block_plan.xml"
-  - name: "Single block execute"
-    path: "/behavior_trees/single_block_execute.xml"

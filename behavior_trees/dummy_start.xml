@@ -1,8 +1,0 @@
-<root main_tree_to_execute="DummyStart">
-  <BehaviorTree ID="DummyStart">
-    <!-- Smoke-only scaffold: used to validate BT server bringup without real actions. -->
-    <Sequence>
-      <AlwaysSuccess/>
-    </Sequence>
-  </BehaviorTree>
-</root>

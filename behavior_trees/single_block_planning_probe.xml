@@ -1,7 +1,0 @@
-<root main_tree_to_execute="SingleBlockPlanningProbe">
-  <!-- Deprecated alias: use behavior_trees/single_block_plan.xml -->
-  <include path="single_block_plan.xml"/>
-  <BehaviorTree ID="SingleBlockPlanningProbe">
-    <SubTree ID="SingleBlockPlan" __shared_blackboard="true"/>
-  </BehaviorTree>
-</root>

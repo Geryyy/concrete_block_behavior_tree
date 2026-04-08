@@ -1,0 +1,44 @@
+<root>
+  <BehaviorTree ID="SubTreePickBlock">
+    <Sequence name="pick_block_sequence">
+
+      <!-- 1. Move above pickup position at safe approach altitude -->
+      <Action ID="SetGoalPose" name="Set pickup above"
+        yN.x="{pickup_x}" yN.y="{pickup_y}" yN.z="{approach_z}"
+        phiN="{pickup_yaw}"
+        goal="{yN}" phi="{phi}"/>
+      <Action ID="CalcA2BMovement" name="Plan approach pickup"
+        carriesLog="false" phiToolN="{phi}"
+        service_name="a2b_movement" server_timeout="10000"
+        slowDown="{slow_down}" tEnd="0.0"
+        trajectory="{trajectory}" yN="{yN}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 2. Grip: descend to block, open jaw, close -->
+      <Action ID="SetGoalPose" name="Set pickup target"
+        yN.x="{pickup_x}" yN.y="{pickup_y}" yN.z="{pickup_z}"
+        phiN="{pickup_yaw}"
+        goal="{COG}" phi="{phi}"/>
+      <Action ID="CalcGripMovement" name="Plan grip"
+        carriesLog="false" logShape="{logShape}" phase="1"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 3. Lift block -->
+      <Action ID="CalcGripMovement" name="Plan lift"
+        carriesLog="true" logShape="{logShape}" phase="2"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="1.0"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

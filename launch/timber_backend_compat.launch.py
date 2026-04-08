@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -12,6 +13,7 @@ def generate_launch_description():
     ait_stereo_sim = LaunchConfiguration("ait_stereo_sim")
     enable_livox_sim = LaunchConfiguration("enable_livox_sim")
     initial_pose = LaunchConfiguration("initial_pose")
+    publish_dummy_joint_states = LaunchConfiguration("publish_dummy_joint_states")
 
     xacro_path = PathJoinSubstitution(
         [
@@ -83,6 +85,7 @@ def generate_launch_description():
             DeclareLaunchArgument("ait_stereo_sim", default_value="False"),
             DeclareLaunchArgument("enable_livox_sim", default_value=""),
             DeclareLaunchArgument("initial_pose", default_value="1"),
+            DeclareLaunchArgument("publish_dummy_joint_states", default_value="false"),
             Node(
                 package="robot_state_publisher",
                 executable="robot_state_publisher",
@@ -127,6 +130,7 @@ def generate_launch_description():
                     {"publish_rate_hz": 10.0},
                     {"use_sim_time": use_sim_time},
                 ],
+                condition=IfCondition(publish_dummy_joint_states),
             ),
             Node(
                 package="concrete_block_motion_planning",

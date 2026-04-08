@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <memory>
 #include <string>
 
@@ -36,7 +37,17 @@ public:
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("target_block_pose_precise"),
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("reference_block_pose_precise"),
         BT::OutputPort<bool>("plan_has_task"),
-        BT::OutputPort<std::string>("plan_message")
+        BT::OutputPort<std::string>("plan_message"),
+        // Decomposed pickup pose (for SetGoalPose / CalcA2BMovement compatibility)
+        BT::OutputPort<double>("pickup_x"),
+        BT::OutputPort<double>("pickup_y"),
+        BT::OutputPort<double>("pickup_z"),
+        BT::OutputPort<double>("pickup_yaw"),
+        // Decomposed target/place pose
+        BT::OutputPort<double>("place_x"),
+        BT::OutputPort<double>("place_y"),
+        BT::OutputPort<double>("place_z"),
+        BT::OutputPort<double>("place_yaw")
       });
   }
 };

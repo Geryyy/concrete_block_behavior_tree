@@ -12,14 +12,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   geometry_msgs
   lsrl_behavior_tree
   nav2_behavior_tree
-  nav_msgs
-  pluginlib
   rclcpp
-  std_msgs
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-  trajectory_msgs
 )
 
 find_package(ament_cmake REQUIRED)
@@ -37,17 +30,8 @@ function(add_bt_plugin plugin_name source_file)
   set(plugin_libs "${plugin_libs}" PARENT_SCOPE)
 endfunction()
 
-add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp)
-add_bt_plugin(BT_cb_plan_geometric_path_action src/plugins/action/plan_geometric_path.cpp)
-add_bt_plugin(BT_cb_plan_and_compute_trajectory_action src/plugins/action/plan_and_compute_trajectory.cpp)
-add_bt_plugin(BT_cb_compute_trajectory_action src/plugins/action/compute_trajectory.cpp)
-add_bt_plugin(BT_cb_execute_trajectory_action src/plugins/action/execute_trajectory.cpp)
-add_bt_plugin(BT_cb_prepare_move_empty_request_action src/plugins/action/prepare_move_empty_request.cpp)
-add_bt_plugin(BT_cb_prepare_single_block_request_action src/plugins/action/prepare_single_block_request.cpp)
-add_bt_plugin(BT_cb_move_to_named_configuration_action src/plugins/action/move_to_named_configuration.cpp)
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
-add_bt_plugin(BT_cb_gripper_action src/plugins/action/gripper_action.cpp)
 
 install(DIRECTORY
   behavior_trees
