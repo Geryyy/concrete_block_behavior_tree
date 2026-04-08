@@ -53,6 +53,11 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("gui", default_value="True"),
+            DeclareLaunchArgument(
+                "initial_pose",
+                default_value="1",
+                description="Initial crane pose (see epsilon_crane_description)",
+            ),
             # Point the RViz BT panel to concrete_block_behavior_tree
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
@@ -75,39 +80,20 @@ def generate_launch_description():
                 / "gazebo_model_bt_pzs100.launch.py",
                 launch_arguments={
                     "start_bt_action_server": "False",
+                    "initial_pose": LaunchConfiguration("initial_pose"),
                 }.items(),
             ),
-            # ── World model ──────────────────────────────────────────────
-            Node(
-                package="concrete_block_perception",
-                executable="world_model_node",
-                name="world_model_node",
-                parameters=[
-                    PathSubstitution(FindPackageShare("concrete_block_perception"))
-                    / "config"
-                    / "world_model.yaml",
-                    PathSubstitution(FindPackageShare("concrete_block_perception"))
-                    / "config"
-                    / "world_model_seed_pick_place.yaml",
-                    {
-                        "use_sim_time": True,
-                        "pipeline_mode": "idle",
-                        "perception_mode": "IDLE",
-                    },
-                ],
-                remappings=[
-                    ("block_world_model", "/cbp/block_world_model"),
-                    ("block_world_model_markers", "/cbp/block_world_model_markers"),
-                ],
-                output="screen",
-            ),
+            # World model is launched by gazebo_model_bt_pzs100.launch.py.
             # ── Wall plan server (lightweight) ───────────────────────────
             Node(
                 package="concrete_block_motion_planning",
                 executable="wall_plan_server.py",
                 name="concrete_block_motion_planning_node",
                 output="screen",
-                parameters=[{"use_sim_time": True}],
+                parameters=[{
+                    "use_sim_time": True,
+                    "grip_z_offset": 0.5,  # block center → crane tip target
+                }],
             ),
             # ── BT action server ─────────────────────────────────────────
             # Loads base config from epsilon_crane, then overrides plugins

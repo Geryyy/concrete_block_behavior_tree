@@ -12,7 +12,7 @@
            ============================================================ -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
-      <SetBlackboard output_key="approach_z" value="3.5"/>
+      <SetBlackboard output_key="approach_z" value="2.0"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
