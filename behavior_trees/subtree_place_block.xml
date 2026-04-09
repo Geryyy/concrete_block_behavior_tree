@@ -2,9 +2,9 @@
   <BehaviorTree ID="SubTreePlaceBlock">
     <Sequence name="place_block_sequence">
 
-      <!-- 1. Move above place position at safe approach altitude -->
+      <!-- 1. Move above place approach position (laterally offset for angled descent) -->
       <Action ID="SetGoalPose" name="Set place above"
-        yN.x="{place_x}" yN.y="{place_y}" yN.z="{approach_z}"
+        yN.x="{place_approach_x}" yN.y="{place_approach_y}" yN.z="{approach_z}"
         phiN="{place_yaw}"
         goal="{yN}" phi="{phi}"/>
       <Action ID="CalcA2BMovement" name="Plan approach place"
@@ -15,13 +15,33 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <!-- 2. Lay down block and release gripper -->
+      <!-- 2. Descend to place position (angled approach if not directly above) -->
       <Action ID="SetGoalPose" name="Set place target"
         yN.x="{place_x}" yN.y="{place_y}" yN.z="{place_z}"
         phiN="{place_yaw}"
         goal="{COG}" phi="{phi}"/>
-      <Action ID="CalcGripMovement" name="Plan laydown"
-        carriesLog="true" logShape="{logShape}" phase="0"
+      <Action ID="CalcGripMovement" name="Plan descend"
+        carriesLog="true" logShape="{logShape}" phase="1"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 3. Open gripper (release block) -->
+      <Action ID="CalcGripMovement" name="Plan open gripper"
+        carriesLog="true" logShape="{logShape}" phase="3"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 4. Lift up (without block) -->
+      <Action ID="CalcGripMovement" name="Plan lift"
+        carriesLog="false" logShape="{logShape}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_grippoint="{s_log_grippoint}"

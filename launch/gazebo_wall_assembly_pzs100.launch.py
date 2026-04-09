@@ -85,19 +85,7 @@ def generate_launch_description():
                 }.items(),
             ),
             # World model is launched by gazebo_model_bt_pzs100.launch.py.
-            # ── Virtual TCP frame (midpoint between PZS100 gripper rails) ─
-            Node(
-                package="tf2_ros",
-                executable="static_transform_publisher",
-                name="virtual_tcp_publisher",
-                arguments=[
-                    "--x", "0", "--y", "0", "--z", "-0.7",
-                    "--roll", "0", "--pitch", "0", "--yaw", "0",
-                    "--frame-id", "K8_tool_center_point",
-                    "--child-frame-id", "virtual_tcp",
-                ],
-                parameters=[{"use_sim_time": True}],
-            ),
+            # Virtual TCP TF is published by grip_traj_server from tcp_z_offset param.
             # ── Simple grip trajectory server ────────────────────────────
             Node(
                 package="concrete_block_motion_planning",
@@ -117,10 +105,15 @@ def generate_launch_description():
                 executable="wall_plan_server.py",
                 name="concrete_block_motion_planning_node",
                 output="screen",
-                parameters=[{
-                    "use_sim_time": True,
-                    "grip_z_offset": 0.5,  # block center → crane tip target
-                }],
+                parameters=[
+                    PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
+                    / "config"
+                    / "wall_plan_server.yaml",
+                    {"use_sim_time": True,
+                     "wall_plans_file": PathSubstitution(
+                         FindPackageShare("concrete_block_behavior_tree"))
+                     / "config" / "wall_plans.yaml"},
+                ],
             ),
             # ── BT action server ─────────────────────────────────────────
             # Loads base config from epsilon_crane, then overrides plugins

@@ -41,6 +41,9 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   const auto & tq = response->target_pose.pose.orientation;
   setOutput("place_yaw", std::atan2(2.0 * (tq.w * tq.z + tq.x * tq.y),
     1.0 - 2.0 * (tq.y * tq.y + tq.z * tq.z)));
+  // Place approach position (laterally offset for angled descent)
+  setOutput("place_approach_x", response->reference_pose.pose.position.x);
+  setOutput("place_approach_y", response->reference_pose.pose.position.y);
 
   RCLCPP_INFO(
     node_->get_logger(),

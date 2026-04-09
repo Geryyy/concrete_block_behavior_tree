@@ -15,13 +15,43 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <!-- 2. Grip: open gripper, descend, close gripper, lift up -->
+      <!-- 2. Open gripper -->
+      <Action ID="CalcGripMovement" name="Plan open gripper"
+        carriesLog="false" logShape="{logShape}" phase="3"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 3. Descend to pickup position -->
       <Action ID="SetGoalPose" name="Set pickup target"
         yN.x="{pickup_x}" yN.y="{pickup_y}" yN.z="{pickup_z}"
         phiN="{pickup_yaw}"
         goal="{COG}" phi="{phi}"/>
-      <Action ID="CalcGripMovement" name="Plan grip"
+      <Action ID="CalcGripMovement" name="Plan descend"
         carriesLog="false" logShape="{logShape}" phase="1"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 4. Close gripper (grab block) -->
+      <Action ID="CalcGripMovement" name="Plan close gripper"
+        carriesLog="false" logShape="{logShape}" phase="2"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_grippoint="{s_log_grippoint}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+
+      <!-- 5. Lift block up -->
+      <Action ID="CalcGripMovement" name="Plan lift"
+        carriesLog="false" logShape="{logShape}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_grippoint="{s_log_grippoint}"

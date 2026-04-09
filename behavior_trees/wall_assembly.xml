@@ -43,7 +43,9 @@
             place_x="{place_x}"
             place_y="{place_y}"
             place_z="{place_z}"
-            place_yaw="{place_yaw}"/>
+            place_yaw="{place_yaw}"
+            place_approach_x="{place_approach_x}"
+            place_approach_y="{place_approach_y}"/>
 
           <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
           <SubTree ID="SubTreePlaceBlock" __shared_blackboard="true"/>
@@ -83,7 +85,7 @@
     <Action ID="CalcGripMovement">
       <input_port name="carriesLog">Carrying payload?</input_port>
       <input_port name="logShape">Payload shape</input_port>
-      <input_port name="phase">0=laydown, 1=grip, 2=lift</input_port>
+      <input_port name="phase">1=descend, 2=close gripper, 3=open gripper, 4=lift</input_port>
       <input_port name="phiToolN">Gripper yaw</input_port>
       <input_port name="s_log_grippoint">Grip point offset</input_port>
       <input_port name="server_timeout">Timeout (ms)</input_port>
@@ -107,6 +109,8 @@
       <output_port name="place_y">Place Y</output_port>
       <output_port name="place_z">Place Z</output_port>
       <output_port name="place_yaw">Place yaw (rad)</output_port>
+      <output_port name="place_approach_x">Approach X (laterally offset)</output_port>
+      <output_port name="place_approach_y">Approach Y (laterally offset)</output_port>
     </Action>
     <Action ID="SetBlockTaskStatus">
       <input_port name="service_name">Service name</input_port>
