@@ -24,6 +24,7 @@
   <exec_depend>collision_body_handler</exec_depend>
   <exec_depend>gazebo_grasp_plugin_ros</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>timber_crane_mapping</exec_depend>
   <exec_depend>timber_crane_motion_planning_cpp</exec_depend>
   <exec_depend>timber_crane_tui</exec_depend>
