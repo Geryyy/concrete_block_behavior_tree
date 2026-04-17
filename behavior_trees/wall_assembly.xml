@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <root main_tree_to_execute="WallAssembly">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
-  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_block.xml"/>
-  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
   <!-- ////////// -->
   <BehaviorTree ID="WallAssembly">
     <Sequence>
@@ -13,6 +12,7 @@
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
+      <SetBlackboard output_key="place_approach_offset" value="0.3"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -43,12 +43,9 @@
             place_x="{place_x}"
             place_y="{place_y}"
             place_z="{place_z}"
-            place_yaw="{place_yaw}"
-            place_approach_x="{place_approach_x}"
-            place_approach_y="{place_approach_y}"/>
+            place_yaw="{place_yaw}"/>
 
-          <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
-          <SubTree ID="SubTreePlaceBlock" __shared_blackboard="true"/>
+          <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
 
           <SetBlockTaskStatus
             service_name="/concrete_block_motion_planning_node/set_block_task_status"
@@ -69,6 +66,15 @@
       <input_port name="yN.y">Target y in K0_mounting_base</input_port>
       <input_port name="yN.z">Target z in K0_mounting_base</input_port>
       <input_port name="phiN">Target yaw (rad)</input_port>
+      <output_port name="goal">geometry_msgs::Point</output_port>
+      <output_port name="phi">Yaw (rad)</output_port>
+    </Action>
+    <Action ID="SetPlaceApproachPose">
+      <input_port name="place_x">Place X</input_port>
+      <input_port name="place_y">Place Y</input_port>
+      <input_port name="place_yaw">Place yaw (rad)</input_port>
+      <input_port name="approach_z">Approach height</input_port>
+      <input_port name="place_approach_offset">Approach offset</input_port>
       <output_port name="goal">geometry_msgs::Point</output_port>
       <output_port name="phi">Yaw (rad)</output_port>
     </Action>
@@ -109,8 +115,6 @@
       <output_port name="place_y">Place Y</output_port>
       <output_port name="place_z">Place Z</output_port>
       <output_port name="place_yaw">Place yaw (rad)</output_port>
-      <output_port name="place_approach_x">Approach X (laterally offset)</output_port>
-      <output_port name="place_approach_y">Approach Y (laterally offset)</output_port>
     </Action>
     <Action ID="SetBlockTaskStatus">
       <input_port name="service_name">Service name</input_port>

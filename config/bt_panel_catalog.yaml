@@ -1,4 +1,6 @@
 behavior_trees:
+  - name: "Basic pick and place"
+    path: "/behavior_trees/basic_pick_and_place.xml"
   - name: "Wall assembly"
     path: "/behavior_trees/wall_assembly.xml"
   - name: "Move empty"

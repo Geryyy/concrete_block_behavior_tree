@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="BasicPickAndPlace">
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
+  <!-- ////////// -->
+  <BehaviorTree ID="BasicPickAndPlace">
+    <Sequence>
+      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
+      <SetBlackboard output_key="approach_z" value="2.0"/>
+      <SetBlackboard output_key="place_approach_offset" value="0.3"/>
+      <SetBlackboard output_key="pickup_x" value="5.0"/>
+      <SetBlackboard output_key="pickup_y" value="2.0"/>
+      <SetBlackboard output_key="pickup_z" value="-0.84"/>
+      <SetBlackboard output_key="pickup_yaw" value="0.0"/>
+      <SetBlackboard output_key="place_x" value="5.0"/>
+      <SetBlackboard output_key="place_y" value="-2.0"/>
+      <SetBlackboard output_key="place_z" value="-0.84"/>
+      <SetBlackboard output_key="place_yaw" value="0.0"/>
+      <SetBlackboard output_key="logShape"
+        value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+
+      <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+  <!-- ////////// -->
+  <TreeNodesModel>
+    <Action ID="SetGoalPose">
+      <input_port name="yN.x">Target x in K0_mounting_base</input_port>
+      <input_port name="yN.y">Target y in K0_mounting_base</input_port>
+      <input_port name="yN.z">Target z in K0_mounting_base</input_port>
+      <input_port name="phiN">Target yaw (rad)</input_port>
+      <output_port name="goal">geometry_msgs::Point</output_port>
+      <output_port name="phi">Yaw (rad)</output_port>
+    </Action>
+    <Action ID="SetPlaceApproachPose">
+      <input_port name="place_x">Place x in K0_mounting_base</input_port>
+      <input_port name="place_y">Place y in K0_mounting_base</input_port>
+      <input_port name="place_yaw">Place yaw (rad)</input_port>
+      <input_port name="approach_z">Approach height</input_port>
+      <input_port name="place_approach_offset">Lateral offset along block yaw</input_port>
+      <output_port name="goal">Approach point</output_port>
+      <output_port name="phi">Yaw (rad)</output_port>
+    </Action>
+    <Action ID="CalcA2BMovement">
+      <input_port name="carriesLog">Carrying payload?</input_port>
+      <input_port name="phiToolN">Gripper yaw</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="slowDown">Speed factor</input_port>
+      <input_port name="tEnd">Fixed end time (0=auto)</input_port>
+      <output_port name="trajectory">Computed trajectory</output_port>
+      <input_port name="yN">Target position</input_port>
+    </Action>
+    <Action ID="CalcGripMovement">
+      <input_port name="carriesLog">Carrying payload?</input_port>
+      <input_port name="logShape">Payload shape</input_port>
+      <input_port name="phase">1=descend, 2=close gripper, 3=open gripper, 4=lift</input_port>
+      <input_port name="phiToolN">Gripper yaw</input_port>
+      <input_port name="s_log_grippoint">Grip point offset</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="slowDown">Speed factor</input_port>
+      <output_port name="trajectory">Computed trajectory</output_port>
+      <input_port name="yN">Target position (CoG)</input_port>
+    </Action>
+    <Action ID="FollowJointTrajectory">
+      <input_port name="server_name">Action server</input_port>
+      <input_port name="server_timeout">Timeout (ms)</input_port>
+      <input_port name="trajectory">Trajectory to follow</input_port>
+    </Action>
+    <Decorator ID="GetUserApproval">
+      <input_port name="topic">Topic</input_port>
+    </Decorator>
+    <Condition ID="CheckUserApproval">
+      <input_port name="topic">Topic</input_port>
+    </Condition>
+  </TreeNodesModel>
+  <!-- ////////// -->
+</root>

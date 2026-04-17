@@ -32,6 +32,7 @@ endfunction()
 
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
+add_bt_plugin(BT_cb_set_place_approach_pose_action src/plugins/action/set_place_approach_pose.cpp)
 
 install(DIRECTORY
   behavior_trees
@@ -46,6 +47,14 @@ install(TARGETS
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(
+    test_basic_pick_and_place_launch
+    test/test_basic_pick_and_place_launch.py
+  )
+endif()
 
 ament_export_include_directories(include)
 ament_export_libraries(${plugin_libs})
