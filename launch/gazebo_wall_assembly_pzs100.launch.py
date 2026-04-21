@@ -58,6 +58,11 @@ def generate_launch_description():
                 default_value="1",
                 description="Initial crane pose (see epsilon_crane_description)",
             ),
+            DeclareLaunchArgument(
+                "controller",
+                default_value="pid",
+                description="Low-level A2B controller: 'pid' or 'mpc'",
+            ),
             # Point the RViz BT panel to concrete_block_behavior_tree
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
@@ -81,6 +86,7 @@ def generate_launch_description():
                 launch_arguments={
                     "start_bt_action_server": "False",
                     "start_grip_traj_server": "False",
+                    "controller": LaunchConfiguration("controller"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
                 }.items(),
             ),
