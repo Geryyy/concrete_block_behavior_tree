@@ -3,18 +3,18 @@
 #include <memory>
 #include <string>
 
-#include "concrete_block_perception/srv/set_block_task_status.hpp"
+#include "concrete_block_world_model_interfaces/srv/set_block_task_status.hpp"
 #include "nav2_behavior_tree/bt_service_node.hpp"
 
 namespace concrete_block_behavior_tree
 {
 
 class SetBlockTaskStatusService
-  : public nav2_behavior_tree::BtServiceNode<concrete_block_perception::srv::SetBlockTaskStatus>
+  : public nav2_behavior_tree::BtServiceNode<concrete_block_world_model_interfaces::srv::SetBlockTaskStatus>
 {
 public:
-  using ServiceT = concrete_block_perception::srv::SetBlockTaskStatus;
-  using ResponseT = concrete_block_perception::srv::SetBlockTaskStatus_Response;
+  using ServiceT = concrete_block_world_model_interfaces::srv::SetBlockTaskStatus;
+  using ResponseT = concrete_block_world_model_interfaces::srv::SetBlockTaskStatus_Response;
 
   SetBlockTaskStatusService(const std::string & service_name, const BT::NodeConfiguration & conf)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(service_name, conf) {}

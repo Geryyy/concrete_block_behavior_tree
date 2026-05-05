@@ -14,7 +14,7 @@
   <depend>rclcpp</depend>
 
   <depend>lsrl_behavior_tree</depend>
-  <depend>concrete_block_perception</depend>
+  <depend>concrete_block_world_model_interfaces</depend>
   <depend>concrete_block_motion_planning</depend>
   <depend>geometry_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>

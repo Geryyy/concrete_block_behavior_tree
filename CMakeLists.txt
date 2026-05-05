@@ -8,7 +8,7 @@ endif()
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp_v3
   concrete_block_motion_planning
-  concrete_block_perception
+  concrete_block_world_model_interfaces
   geometry_msgs
   lsrl_behavior_tree
   nav2_behavior_tree
