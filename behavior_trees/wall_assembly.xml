@@ -12,7 +12,6 @@
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
-      <SetBlackboard output_key="place_approach_offset" value="0.3"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -45,6 +44,10 @@
             place_z="{place_z}"
             place_yaw="{place_yaw}"/>
 
+          <!-- Approach = place position; adjust per-task in wall plan for angled descent -->
+          <SetBlackboard output_key="place_approach_x" value="{place_x}"/>
+          <SetBlackboard output_key="place_approach_y" value="{place_y}"/>
+
           <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
 
           <SetBlockTaskStatus
@@ -66,15 +69,6 @@
       <input_port name="yN.y">Target y in K0_mounting_base</input_port>
       <input_port name="yN.z">Target z in K0_mounting_base</input_port>
       <input_port name="phiN">Target yaw (rad)</input_port>
-      <output_port name="goal">geometry_msgs::Point</output_port>
-      <output_port name="phi">Yaw (rad)</output_port>
-    </Action>
-    <Action ID="SetPlaceApproachPose">
-      <input_port name="place_x">Place X</input_port>
-      <input_port name="place_y">Place Y</input_port>
-      <input_port name="place_yaw">Place yaw (rad)</input_port>
-      <input_port name="approach_z">Approach height</input_port>
-      <input_port name="place_approach_offset">Approach offset</input_port>
       <output_port name="goal">geometry_msgs::Point</output_port>
       <output_port name="phi">Yaw (rad)</output_port>
     </Action>

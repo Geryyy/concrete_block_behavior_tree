@@ -32,7 +32,6 @@ endfunction()
 
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
-add_bt_plugin(BT_cb_set_place_approach_pose_action src/plugins/action/set_place_approach_pose.cpp)
 
 install(DIRECTORY
   behavior_trees

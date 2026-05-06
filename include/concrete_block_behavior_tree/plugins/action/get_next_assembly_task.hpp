@@ -47,10 +47,7 @@ public:
         BT::OutputPort<double>("place_x"),
         BT::OutputPort<double>("place_y"),
         BT::OutputPort<double>("place_z"),
-        BT::OutputPort<double>("place_yaw"),
-        // Place approach position (laterally offset for angled descent)
-        BT::OutputPort<double>("place_approach_x"),
-        BT::OutputPort<double>("place_approach_y")
+        BT::OutputPort<double>("place_yaw")
       });
   }
 };
