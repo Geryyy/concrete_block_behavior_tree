@@ -3,7 +3,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PathSubstitution, PythonExpression
 from launch_ros.actions import Node
@@ -121,6 +121,36 @@ def generate_launch_description():
                 executable="lifecycle_manager",
                 output="screen",
                 parameters=[base_bt_config, {"use_sim_time": True}],
+            ),
+            TimerAction(
+                period=8.0,
+                actions=[
+                    Node(
+                        package="concrete_block_behavior_tree",
+                        executable="gazebo_block_spawner.py",
+                        name="gazebo_block_spawner",
+                        output="screen",
+                        parameters=[
+                            {
+                                "use_sim_time": True,
+                                "seed_config_file": PathJoinSubstitution([
+                                    FindPackageShare("concrete_block_perception"),
+                                    "config",
+                                    "world_model_seed_pick_place.yaml",
+                                ]),
+                                "gazebo_world_frame": "world",
+                                "use_precomputed_gazebo_pose": False,
+                                "seed_frame_id": "K0_mounting_base",
+                                # gazebo_base.launch.py spawns the crane entity at
+                                # y=-6, yaw=pi.  Combined with the URDF fixed
+                                # joints, K0_mounting_base lands here in Gazebo.
+                                "gazebo_seed_frame_xyz": [6.93852, -6.35, 1.1407],
+                                "gazebo_seed_frame_rpy_deg": [0.0, 0.0, 0.0],
+                                "spawn_height_offset": 0.3,
+                            },
+                        ],
+                    ),
+                ],
             ),
             Node(
                 package="timber_crane_tui",

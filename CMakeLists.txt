@@ -37,7 +37,13 @@ install(DIRECTORY
   behavior_trees
   config
   launch
+  models
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/gazebo_block_spawner.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS
@@ -54,6 +60,8 @@ if(BUILD_TESTING)
     test/test_basic_pick_and_place_launch.py
   )
 endif()
+
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")
 
 ament_export_include_directories(include)
 ament_export_libraries(${plugin_libs})
