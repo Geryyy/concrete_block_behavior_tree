@@ -12,6 +12,7 @@
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
+      <SetBlackboard output_key="carry_approach_z" value="2.0"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -25,6 +26,7 @@
 
           <GetNextAssemblyTask
             service_name="/concrete_block_motion_planning_node/get_next_assembly_task"
+            server_timeout="10000"
             wall_plan_name="pzs100_pick_place"
             reset_plan="false"
             task_id="{task_id}"
@@ -47,11 +49,12 @@
           <!-- Approach = place position; adjust per-task in wall plan for angled descent -->
           <SetBlackboard output_key="place_approach_x" value="{place_x}"/>
           <SetBlackboard output_key="place_approach_y" value="{place_y}"/>
+          <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
           <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
 
           <SetBlockTaskStatus
-            service_name="/block_world_model_node/set_block_task_status"
+            service_name="/world_model_node/set_block_task_status"
             block_id="{target_block_id}"
             task_status="3"
             status_ok="{status_ok}"

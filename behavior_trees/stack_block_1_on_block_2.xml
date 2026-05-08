@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="StackBlock1OnBlock2">
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
+
+  <BehaviorTree ID="StackBlock1OnBlock2">
+    <Sequence name="stack_block_1_on_block_2">
+
+      <!-- Shared skill parameters -->
+      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
+      <SetBlackboard output_key="approach_z" value="2.0"/>
+      <SetBlackboard output_key="carry_approach_z" value="2.6"/>
+      <SetBlackboard output_key="grasp_object_contains" value="block_1"/>
+      <!-- Block approximated as cylinder for timber planner compatibility -->
+      <SetBlackboard output_key="logShape"
+        value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+
+      <!-- Pick block_1 from the seeded world-model pose.
+           The world-model block frame is at the bottom. The grip trajectory
+           server expects the block center / virtual TCP target, 0.30 m above it. -->
+      <SetBlackboard output_key="pickup_x" value="4.5"/>
+      <SetBlackboard output_key="pickup_y" value="0.25"/>
+      <SetBlackboard output_key="pickup_z" value="-0.660"/>
+      <SetBlackboard output_key="pickup_yaw" value="1.5708"/>
+
+      <!-- Place block_1 on top of block_2.
+           block_2 bottom z=-0.945, block height=0.6 -> block_1 bottom z=-0.345.
+           The virtual TCP target is 0.30 m above that, at z=-0.045. -->
+      <SetBlackboard output_key="place_x" value="6.0"/>
+      <SetBlackboard output_key="place_y" value="0.25"/>
+      <SetBlackboard output_key="place_z" value="-0.045"/>
+      <SetBlackboard output_key="place_yaw" value="1.5708"/>
+      <SetBlackboard output_key="place_approach_x" value="6.0"/>
+      <SetBlackboard output_key="place_approach_y" value="0.25"/>
+
+      <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -8,6 +8,8 @@
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
+      <SetBlackboard output_key="carry_approach_z" value="2.0"/>
+      <SetBlackboard output_key="grasp_object_contains" value="block_1"/>
       <SetBlackboard output_key="pickup_x" value="5.0"/>
       <SetBlackboard output_key="pickup_y" value="2.0"/>
       <SetBlackboard output_key="pickup_z" value="-0.84"/>

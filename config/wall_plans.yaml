@@ -2,6 +2,14 @@ defaults:
   block_size: [0.6, 0.9, 0.6]
 
 wall_plans:
+  stack_block_1_on_block_2:
+    sequence:
+      - id: "block_1"
+        relative_to_world_model: "block_2"
+        offset: [0.0, 0.0, 0.6]
+        fallback_absolute_position: [6.0, 0.25, -0.345]
+        yaw_deg: 0.0
+
   pzs100_pick_place:
     sequence:
       - id: "block_1"

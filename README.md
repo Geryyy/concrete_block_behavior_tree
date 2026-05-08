@@ -75,6 +75,7 @@ controller:=pid|mpc
 Main trees:
 
 ```text
+behavior_trees/stack_block_1_on_block_2.xml
 behavior_trees/basic_pick_and_place.xml
 behavior_trees/wall_assembly.xml
 ```
@@ -92,6 +93,7 @@ the concrete-block-specific plugins:
 ```text
 BT_cb_get_next_assembly_task_action
 BT_cb_set_block_task_status_action
+BT_cb_wait_for_gazebo_grasp_condition
 ```
 
 These are service-backed BehaviorTree.CPP nodes:
@@ -99,6 +101,8 @@ These are service-backed BehaviorTree.CPP nodes:
 - `GetNextAssemblyTask` calls the wall-plan server and writes pickup/place poses
   to the blackboard.
 - `SetBlockTaskStatus` updates a block in the world model after placement.
+- `WaitForGazeboGrasp` waits for a Gazebo grasp attach event before the crane
+  starts lifting the block.
 
 ## Block Configuration
 
@@ -170,6 +174,26 @@ before spawning so it can settle onto the terrain.
 This keeps the Gazebo blocks and RViz markers aligned relative to
 `K0_mounting_base`.
 
+## Gazebo Grasp Fix
+
+The PZS100 gripper already loads `gazebo_grasp_fix` in:
+
+```text
+crane_tools_description/pzs100/gazebo/gripper.gazebo.xacro
+```
+
+The Gazebo plugin publishes attach/detach events through Gazebo transport.
+`gazebo_grasp_plugin_ros` republishes them to ROS 2 on:
+
+```text
+/grasp_events
+```
+
+`subtree_pick_and_place_block.xml` waits for `WaitForGazeboGrasp` immediately
+after the close-gripper trajectory. The top-level tree sets
+`grasp_object_contains` to the expected block id, for example `block_1`, so the
+BT only lifts after Gazebo reports that the requested block is attached.
+
 ## Wall Plans
 
 Wall assembly targets are configured in:
@@ -182,6 +206,14 @@ Example:
 
 ```yaml
 wall_plans:
+  stack_block_1_on_block_2:
+    sequence:
+      - id: "block_1"
+        relative_to_world_model: "block_2"
+        offset: [0.0, 0.0, 0.6]
+        fallback_absolute_position: [6.0, 0.25, -0.345]
+        yaw_deg: 0.0
+
   pzs100_pick_place:
     sequence:
       - id: "block_1"
@@ -193,13 +225,24 @@ The wall-plan server reads this file and serves the next task to the
 `GetNextAssemblyTask` BT node. Block IDs in a wall plan should match block IDs
 in the world-model seed file.
 
+`relative_to_world_model` places a target relative to the current pose of a
+block in the world model. In `stack_block_1_on_block_2`, the target for
+`block_1` is computed from `block_2` plus a 0.6 m z-offset, so block 1 is placed
+on top of block 2. `fallback_absolute_position` is used only if the reference
+block cannot be read from the world model.
+
+`behavior_trees/stack_block_1_on_block_2.xml` is intentionally simpler than the
+wall assembly loop: it sets the known seeded poses directly on the blackboard
+and then calls `SubTreePickAndPlaceBlock`. This keeps the one-shot stack demo
+independent of the wall-plan service.
+
 ## Useful Topics And Services
 
 ```text
 /cbp/block_world_model
 /cbp/block_world_model_markers
-/block_world_model_node/get_coarse_blocks
-/block_world_model_node/set_block_task_status
+/world_model_node/get_coarse_blocks
+/world_model_node/set_block_task_status
 /concrete_block_motion_planning_node/get_next_assembly_task
 /spawn_entity
 ```

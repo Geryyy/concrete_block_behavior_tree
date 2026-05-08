@@ -49,6 +49,13 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
+      <Action ID="WaitForGazeboGrasp" name="Wait for Gazebo attach"
+        topic="/grasp_events"
+        arm="gripper"
+        object_contains="{grasp_object_contains}"
+        attached="true"
+        timeout_ms="5000"/>
+
       <!-- 5. Lift -->
       <Action ID="CalcGripMovement" name="Plan pickup lift"
         carriesLog="false" logShape="{logShape}" phase="4"
@@ -61,7 +68,7 @@
 
       <!-- 6. Move above place approach position -->
       <Action ID="SetGoalPose" name="Set place approach"
-        yN.x="{place_approach_x}" yN.y="{place_approach_y}" yN.z="{approach_z}"
+        yN.x="{place_approach_x}" yN.y="{place_approach_y}" yN.z="{carry_approach_z}"
         phiN="{place_yaw}"
         goal="{yN}" phi="{phi}"/>
       <Action ID="CalcA2BMovement" name="Plan place approach"
