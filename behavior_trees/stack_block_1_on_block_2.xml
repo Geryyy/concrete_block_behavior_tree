@@ -6,6 +6,16 @@
   <BehaviorTree ID="StackBlock1OnBlock2">
     <Sequence name="stack_block_1_on_block_2">
 
+      <SyncGazeboBlocksToWorldModel name="Discover blocks from Gazebo"
+        block_ids="block_1,block_2"
+        gazebo_state_service="/gazebo/get_entity_state"
+        upsert_service="/world_model_node/upsert_block"
+        gazebo_reference_frame="world"
+        world_frame_id="K0_mounting_base"
+        gazebo_seed_frame_xyz="6.93852,-6.35,1.1407"
+        gazebo_seed_frame_rpy_deg="0.0,0.0,0.0"
+        service_timeout_ms="5000"/>
+
       <!-- Shared skill parameters -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_grippoint" value="0.0"/>

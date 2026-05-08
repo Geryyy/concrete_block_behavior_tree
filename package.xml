@@ -16,6 +16,7 @@
   <depend>lsrl_behavior_tree</depend>
   <depend>concrete_block_world_model_interfaces</depend>
   <depend>concrete_block_motion_planning</depend>
+  <depend>gazebo_msgs</depend>
   <depend>gazebo_grasp_plugin_ros</depend>
   <depend>geometry_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>
@@ -25,7 +26,6 @@
   <exec_depend>epsilon_crane_bringup_mp</exec_depend>
   <exec_depend>collision_body_handler</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
-  <exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>timber_crane_mapping</exec_depend>

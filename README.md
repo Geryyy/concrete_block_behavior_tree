@@ -106,14 +106,23 @@ These are service-backed BehaviorTree.CPP nodes:
 
 ## Block Configuration
 
-Initial block poses are configured in the world-model seed file owned by the
+Initial block poses are configured in the spawn seed file owned by the
 perception package:
 
 ```text
 concrete_block_perception/config/world_model_seed_pick_place.yaml
 ```
 
-That file is loaded into `world_model_node` and contains:
+For PZS100 Gazebo BT launches, this file is used as the spawn recipe. The
+`world_model_node` itself starts with:
+
+```text
+concrete_block_perception/config/world_model_seed_none.yaml
+```
+
+and is populated after Gazebo reports the settled block poses.
+
+The spawn seed contains:
 
 ```yaml
 world_model_node:
@@ -130,9 +139,10 @@ world_model_node:
           confidence: 1.0
 ```
 
-Edit `world_model.initial_blocks` in that YAML to add, remove, or move blocks.
-The `position` and `yaw_deg` fields are the planning/RViz source of truth and
-are expressed in `K0_mounting_base`.
+Edit `world_model.initial_blocks` in the pick/place seed YAML to add, remove,
+or move spawned blocks. The `position` and `yaw_deg` fields are expressed in
+`K0_mounting_base` and are only the initial spawn guess; the world model used by
+planning/RViz is updated by the behavior tree from settled Gazebo poses.
 
 The RViz markers are published by `world_model_node` on:
 
@@ -165,14 +175,19 @@ seed_frame_id: K0_mounting_base
 gazebo_seed_frame_xyz: [6.93852, -6.35, 1.1407]
 gazebo_seed_frame_rpy_deg: [0.0, 0.0, 0.0]
 spawn_height_offset: 0.3
+sync_world_model_from_gazebo: False
 ```
 
 `gazebo_seed_frame_xyz` is the pose of `K0_mounting_base` in Gazebo coordinates
 for the current crane spawn setup. `spawn_height_offset` raises each block
 before spawning so it can settle onto the terrain.
 
-This keeps the Gazebo blocks and RViz markers aligned relative to
-`K0_mounting_base`.
+The YAML seed is therefore only the initial Gazebo spawn guess. The stack BT
+then runs `SyncGazeboBlocksToWorldModel`, which queries
+`/gazebo/get_entity_state`, transforms each block pose back into
+`K0_mounting_base`, and calls `/world_model_node/upsert_block`. This mirrors the
+real workflow where scene discovery/perception updates the world model before
+planning.
 
 ## Gazebo Grasp Fix
 
