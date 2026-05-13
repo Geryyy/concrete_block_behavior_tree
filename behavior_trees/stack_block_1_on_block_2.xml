@@ -26,23 +26,31 @@
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
 
-      <!-- Pick block_1 from the seeded world-model pose.
-           The world-model block frame is at the bottom. The grip trajectory
-           server expects the block center / virtual TCP target, 0.30 m above it. -->
-      <SetBlackboard output_key="pickup_x" value="4.5"/>
-      <SetBlackboard output_key="pickup_y" value="0.25"/>
-      <SetBlackboard output_key="pickup_z" value="-0.660"/>
-      <SetBlackboard output_key="pickup_yaw" value="1.5708"/>
+      <GetNextAssemblyTask
+        service_name="/concrete_block_wall_plan_server/get_next_assembly_task"
+        server_timeout="10000"
+        wall_plan_name="stack_block_1_on_block_2"
+        reset_plan="true"
+        task_id="{task_id}"
+        target_block_id="{target_block_id}"
+        reference_block_id="{reference_block_id}"
+        target_block_pose_coarse="{target_block_pose_coarse}"
+        target_block_pose_precise="{target_block_pose_precise}"
+        reference_block_pose_precise="{reference_block_pose_precise}"
+        plan_has_task="{plan_has_task}"
+        plan_message="{plan_message}"
+        pickup_x="{pickup_x}"
+        pickup_y="{pickup_y}"
+        pickup_z="{pickup_z}"
+        pickup_yaw="{pickup_yaw}"
+        place_x="{place_x}"
+        place_y="{place_y}"
+        place_z="{place_z}"
+        place_yaw="{place_yaw}"/>
 
-      <!-- Place block_1 on top of block_2.
-           block_2 bottom z=-0.945, block height=0.6 -> block_1 bottom z=-0.345.
-           The virtual TCP target is 0.30 m above that, at z=-0.045. -->
-      <SetBlackboard output_key="place_x" value="6.0"/>
-      <SetBlackboard output_key="place_y" value="0.25"/>
-      <SetBlackboard output_key="place_z" value="-0.045"/>
-      <SetBlackboard output_key="place_yaw" value="1.5708"/>
-      <SetBlackboard output_key="place_approach_x" value="6.0"/>
-      <SetBlackboard output_key="place_approach_y" value="0.25"/>
+      <SetBlackboard output_key="place_approach_x" value="{place_x}"/>
+      <SetBlackboard output_key="place_approach_y" value="{place_y}"/>
+      <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
       <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
 

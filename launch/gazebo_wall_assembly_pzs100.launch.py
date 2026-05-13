@@ -110,16 +110,20 @@ def generate_launch_description():
             Node(
                 package="concrete_block_motion_planning",
                 executable="wall_plan_server.py",
-                name="concrete_block_motion_planning_node",
+                name="concrete_block_wall_plan_server",
                 output="screen",
                 parameters=[
                     PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
                     / "config"
                     / "wall_plan_server.yaml",
-                    {"use_sim_time": True,
-                     "wall_plans_file": PathSubstitution(
-                         FindPackageShare("concrete_block_behavior_tree"))
-                     / "config" / "wall_plans.yaml"},
+                    {
+                        "use_sim_time": True,
+                        "world_model_service": "/world_model_node/get_coarse_blocks",
+                        "world_model_timeout_s": 2.0,
+                        "wall_plans_file": PathSubstitution(
+                            FindPackageShare("concrete_block_behavior_tree"))
+                        / "config" / "wall_plans.yaml",
+                    },
                 ],
             ),
             # ── BT action server ─────────────────────────────────────────
