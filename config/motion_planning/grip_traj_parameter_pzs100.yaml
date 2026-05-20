@@ -1,0 +1,50 @@
+grip_traj_server:
+  ros__parameters:
+    time_parameterization_algorithm: 3
+    verbose: false
+    moveitOptions:
+      use_ruckig: false
+      srdf_model: "src/epsilon_crane_moveit/config/crane_model.srdf"
+
+/**:
+  ros__parameters:
+    gripOptions:
+      max_q0NA_error: 0.87266
+      max_qDot0NA: 0.174533
+      min_zMotion: 0.800000
+      xyInitErrMax: 0.800000
+      minDist2ground: 0.050000
+      distance_diff_saveOpen: 0.2
+      theta10_unload: 0.400000
+      theta10_diff_saveGrip: 0.050000
+      upliftGrab: 0.500000
+      upliftUnload: 1.500000
+      N_approach: 15
+      N_grip: 15
+      N_uplift: 10
+      T_init: 25.0
+      compensateElasticity: true
+      limit_slopes: true
+    parMp:
+      qDotMinCtrl:
+        [
+          -0.764000,
+          -0.162981,
+          -0.171774,
+          -0.315095,
+          -100.000000,
+          -100.000000,
+          -2.121947,
+          -0.220000,
+        ]
+      qDotMaxCtrl:
+        [
+          0.802000,
+          0.119534,
+          0.162867,
+          0.200000,
+          100.000000,
+          100.000000,
+          2.121947,
+          0.220000,
+        ]
