@@ -22,7 +22,7 @@ grip_traj_server:
       N_approach: 15
       N_grip: 15
       N_uplift: 10
-      T_init: 25.0
+      T_init: 10.0
       compensateElasticity: true
       limit_slopes: true
     parMp:
