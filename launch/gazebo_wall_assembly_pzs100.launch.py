@@ -147,12 +147,16 @@ def generate_launch_description():
                 ],
             ),
             # ── Lifecycle manager ────────────────────────────────────────
+            # Reads lifecycle_manager params (node_names, autostart, …) from
+            # bt_server_override.yaml (CBS-owned, since upstream removed them
+            # from epsilon_crane_behavior_tree/default.yaml).
             Node(
                 package="nav2_lifecycle_manager",
                 executable="lifecycle_manager",
                 output="screen",
                 parameters=[
                     base_bt_config,
+                    override_bt_config,
                     {"use_sim_time": True},
                 ],
             ),

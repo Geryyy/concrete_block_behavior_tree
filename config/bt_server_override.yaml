@@ -1,3 +1,15 @@
+# Activate bt_action_server via nav2_lifecycle_manager. Upstream
+# epsilon_crane_behavior_tree/default.yaml used to carry the
+# lifecycle_manager block; master dropped it, so CBS owns the
+# definition here.
+lifecycle_manager:
+  ros__parameters:
+    autostart: true
+    node_names: ["bt_action_server"]
+    bond_timeout: 4.0
+    attempt_respawn_reconnection: true
+    bond_respawn_max_duration: 10.0
+
 /**:
   ros__parameters:
     plugin_lib_names:
