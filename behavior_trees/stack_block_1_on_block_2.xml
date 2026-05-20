@@ -25,6 +25,9 @@
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+      <!-- CBS has no log-scene perception; CalcA2BMovement requires the
+           port to be connected so we seed it with an empty value. -->
+      <SetBlackboard output_key="logsScene" value=""/>
 
       <GetNextAssemblyTask
         service_name="/concrete_block_wall_plan_server/get_next_assembly_task"

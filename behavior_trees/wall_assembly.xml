@@ -16,6 +16,8 @@
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+      <!-- CBS has no log-scene perception; seed empty for CalcA2BMovement. -->
+      <SetBlackboard output_key="logsScene" value=""/>
 
       <!-- ============================================================
            ASSEMBLY LOOP
@@ -77,7 +79,10 @@
     </Action>
     <Action ID="CalcA2BMovement">
       <input_port name="carriesLog">Carrying payload?</input_port>
+      <input_port name="logCarrying">Payload shape (LogShape)</input_port>
+      <input_port name="logsScene">Other logs in the scene (vector&lt;Log&gt;)</input_port>
       <input_port name="phiToolN">Gripper yaw</input_port>
+      <input_port name="s_log_8_x">Grip point offset</input_port>
       <input_port name="server_timeout">Timeout (ms)</input_port>
       <input_port name="service_name">Service name</input_port>
       <input_port name="slowDown">Speed factor</input_port>

@@ -8,7 +8,8 @@
         phiN="{pickup_yaw}"
         goal="{yN}" phi="{phi}"/>
       <Action ID="CalcA2BMovement" name="Plan pickup approach"
-        carriesLog="false" phiToolN="{phi}"
+        carriesLog="false" logCarrying="{logShape}" logsScene="{logsScene}"
+        phiToolN="{phi}" s_log_8_x="{s_log_8_x}"
         service_name="a2b_movement" server_timeout="10000"
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>
@@ -72,7 +73,8 @@
         phiN="{place_yaw}"
         goal="{yN}" phi="{phi}"/>
       <Action ID="CalcA2BMovement" name="Plan place approach"
-        carriesLog="true" phiToolN="{phi}"
+        carriesLog="true" logCarrying="{logShape}" logsScene="{logsScene}"
+        phiToolN="{phi}" s_log_8_x="{s_log_8_x}"
         service_name="a2b_movement" server_timeout="10000"
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>
