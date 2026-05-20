@@ -19,6 +19,7 @@
   <depend>gazebo_msgs</depend>
   <depend>gazebo_grasp_plugin_ros</depend>
   <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
   <exec_depend>epsilon_crane_behavior_tree</exec_depend>
   <exec_depend>epsilon_crane_bringup_sim</exec_depend>
   <exec_depend>epsilon_7040_description</exec_depend>

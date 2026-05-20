@@ -15,6 +15,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   lsrl_behavior_tree
   nav2_behavior_tree
   rclcpp
+  sensor_msgs
 )
 
 find_package(ament_cmake REQUIRED)
@@ -36,6 +37,8 @@ add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_as
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
 add_bt_plugin(BT_cb_sync_gazebo_blocks_to_world_model_action src/plugins/action/sync_gazebo_blocks_to_world_model.cpp)
 add_bt_plugin(BT_cb_wait_for_gazebo_grasp_condition src/plugins/condition/wait_for_gazebo_grasp.cpp)
+add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp)
+add_bt_plugin(BT_cb_publish_grasp_command_action src/plugins/action/publish_grasp_command.cpp)
 
 install(DIRECTORY
   behavior_trees

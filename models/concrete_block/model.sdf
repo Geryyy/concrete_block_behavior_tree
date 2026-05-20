@@ -47,15 +47,16 @@
         <surface>
           <friction>
             <ode>
-              <mu>1.5</mu>
-              <mu2>1.5</mu2>
+              <mu>100</mu>
+              <mu2>100</mu2>
               <slip1>0</slip1>
               <slip2>0</slip2>
             </ode>
           </friction>
           <contact>
             <ode>
-              <max_vel>0.0</max_vel>
+              <max_vel>0.1</max_vel>
+              <min_depth>0.001</min_depth>
             </ode>
             <collide_without_contact>0</collide_without_contact>
             <collide_without_contact_bitmask>1</collide_without_contact_bitmask>

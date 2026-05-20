@@ -49,12 +49,12 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <Action ID="WaitForGazeboGrasp" name="Wait for Gazebo attach"
-        topic="/grasp_events"
+      <Action ID="CheckGripperEffort" name="Check grip via effort"
+        joint="q9_left_rail_joint"
+        min_effort="1000"
+        timeout_ms="5000"
         arm="gripper"
-        object_contains="{grasp_object_contains}"
-        attached="true"
-        timeout_ms="5000"/>
+        object="{grasp_object_contains}"/>
 
       <!-- 5. Lift -->
       <Action ID="CalcGripMovement" name="Plan pickup lift"
@@ -93,7 +93,9 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <!-- 8. Open gripper -->
+      <!-- 8. Detach (release the fixed joint) then open gripper -->
+      <Action ID="PublishGraspCommand" name="Release block"
+        arm="gripper" object="{grasp_object_contains}" attached="false"/>
       <Action ID="CalcGripMovement" name="Plan release gripper"
         carriesLog="true" logShape="{logShape}" phase="3"
         phiToolN="{phi}" service_name="grip_traj_movement"

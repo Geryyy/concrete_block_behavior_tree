@@ -181,7 +181,7 @@ def generate_launch_description():
                                 # joints, K0_mounting_base lands here in Gazebo.
                                 "gazebo_seed_frame_xyz": [6.93852, -6.35, 1.1407],
                                 "gazebo_seed_frame_rpy_deg": [0.0, 0.0, 0.0],
-                                "spawn_height_offset": 0.3,
+                                "spawn_height_offset": 0.15,
                                 "sync_world_model_from_gazebo": False,
                                 "settle_time_sec": 3.0,
                                 "service_wait_timeout_sec": 60.0,
