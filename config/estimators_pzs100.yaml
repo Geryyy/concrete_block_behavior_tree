@@ -1,0 +1,24 @@
+/**: # for all nodes in all namespaces
+  ros__parameters:
+    joints:
+      - theta1_slewing_joint
+      - theta2_boom_joint
+      - theta3_arm_joint
+      - q4_big_telescope
+      - theta6_tip_joint
+      - theta7_tilt_joint
+      - theta8_rotator_joint
+      - q9_left_rail_joint
+
+gripper_tip_publisher:
+  ros__parameters:
+    gripper_joint: q9_left_rail_joint
+    mimic_joint: q11_right_rail_joint
+    outer_frame: K10_left_rail
+    inner_frame: K12_right_rail
+
+grip_estimator:
+  ros__parameters:
+    aux_joints:
+      - truck_roll
+      - truck_pitch

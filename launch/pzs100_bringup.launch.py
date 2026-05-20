@@ -73,8 +73,13 @@ def generate_launch_description():
                     )
                     / "config/motion_planning/grip_traj_parameter_pzs100.yaml",
                     "estimators_param_file": "estimators_pzs100.yaml",
+                    "estimators_param_path": PathSubstitution(
+                        FindPackageShare("concrete_block_behavior_tree")
+                    )
+                    / "config/estimators_pzs100.yaml",
                     "enable_gripper_tip_publisher": "False",
                     "enable_pump_flow_estimator": "False",
+                    "enable_log_state_estimator": "False",
                     "rviz_config": PathSubstitution(
                         FindPackageShare("concrete_block_behavior_tree")
                     )
