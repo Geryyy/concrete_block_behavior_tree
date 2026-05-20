@@ -10,7 +10,7 @@
            CONFIGURATION
            ============================================================ -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
-      <SetBlackboard output_key="s_log_grippoint" value="0.0"/>
+      <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
       <SetBlackboard output_key="carry_approach_z" value="2.0"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
@@ -90,7 +90,7 @@
       <input_port name="logShape">Payload shape</input_port>
       <input_port name="phase">1=descend, 2=close gripper, 3=open gripper, 4=lift</input_port>
       <input_port name="phiToolN">Gripper yaw</input_port>
-      <input_port name="s_log_grippoint">Grip point offset</input_port>
+      <input_port name="s_log_8_x">Grip point offset</input_port>
       <input_port name="server_timeout">Timeout (ms)</input_port>
       <input_port name="service_name">Service name</input_port>
       <input_port name="slowDown">Speed factor</input_port>

@@ -20,7 +20,7 @@
         carriesLog="false" logShape="{logShape}" phase="3"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -34,7 +34,7 @@
         carriesLog="false" logShape="{logShape}" phase="1"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -44,7 +44,7 @@
         carriesLog="false" logShape="{logShape}" phase="2"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -61,7 +61,7 @@
         carriesLog="false" logShape="{logShape}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -88,7 +88,7 @@
         carriesLog="true" logShape="{logShape}" phase="1"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -100,7 +100,7 @@
         carriesLog="true" logShape="{logShape}" phase="3"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
@@ -110,7 +110,7 @@
         carriesLog="false" logShape="{logShape}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_grippoint="{s_log_grippoint}"
+        s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
