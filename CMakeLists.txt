@@ -45,6 +45,7 @@ install(DIRECTORY
   config
   launch
   models
+  rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
