@@ -54,32 +54,16 @@ def generate_launch_description():
                     ]
                 ),
             ),
+            # PZS100 crane bringup -- common PZS arguments are encoded in
+            # pzs100_bringup.launch.py (this same package). Only override the
+            # things that differ from its defaults.
             IncludeLaunchDescription(
-                PathSubstitution(FindPackageShare("epsilon_crane_bringup_sim"))
+                PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
                 / "launch"
-                / "gazebo_model_bt.launch.py",
+                / "pzs100_bringup.launch.py",
                 launch_arguments={
-                    "tool": "pzs100_description",
-                    "controller_common_config": "crane_controller_hydraulic_common_pzs100.ros2_control.yaml",
-                    "controller_a2b_config_package": PythonExpression(
-                        [
-                            "'epsilon_crane_bringup_sim' if '",
-                            LaunchConfiguration("controller"),
-                            "' == 'pid' else 'timber_crane_unconstrained_mpc_controller_cpp'",
-                        ]
-                    ),
-                    "controller_a2b_config": PythonExpression(
-                        [
-                            "'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml' if '",
-                            LaunchConfiguration("controller"),
-                            "' == 'pid' else 'crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml'",
-                        ]
-                    ),
-                    "mp_launch_file": "mp.launch.py",
-                    "mp_param_file": "mp_parameter_pzs100.yaml",
-                    "grip_traj_param_file": "grip_traj_parameter_pzs100.yaml",
-                    "estimators_param_file": "estimators_pzs100.yaml",
-                    "enable_gripper_tip_publisher": "False",
+                    "planner": "ilqr",
+                    "controller": LaunchConfiguration("controller"),
                     "start_bt_action_server": "False",
                     "start_grip_traj_server": "False",
                     "initial_pose": LaunchConfiguration("initial_pose"),

@@ -1,0 +1,37 @@
+trajectory_controller_a2b:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    gains:
+      theta1_slewing_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta2_boom_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta3_arm_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      q4_big_telescope:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta8_rotator_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      q9_left_rail_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+    constraints:
+      stopped_velocity_tolerance: 0.0
+      goal_time: 5.0
+      theta1_slewing_joint:
+        goal: 0.05
+      theta2_boom_joint:
+        goal: 0.05
+      theta3_arm_joint:
+        goal: 0.05
+      q4_big_telescope:
+        goal: 0.05
+      theta8_rotator_joint:
+        goal: 0.05
+      q9_left_rail_joint:
+        goal: 0.00

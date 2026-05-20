@@ -81,9 +81,9 @@ def generate_launch_description():
             ),
             # ── PZS100 crane simulation (without epsilon_crane BT) ───────
             IncludeLaunchDescription(
-                PathSubstitution(FindPackageShare("epsilon_crane_bringup_sim"))
+                PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
                 / "launch"
-                / "gazebo_model_bt_pzs100.launch.py",
+                / "pzs100_bringup.launch.py",
                 launch_arguments={
                     "start_bt_action_server": "False",
                     "start_grip_traj_server": "False",

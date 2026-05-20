@@ -1,0 +1,82 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+    enforce_command_limits: false
+
+    trajectory_controller_grasping:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+/**:
+  ros__parameters:
+    update_rate: 100
+    command_joints:
+      - theta1_slewing_joint
+      - theta2_boom_joint
+      - theta3_arm_joint
+      - q4_big_telescope
+      - theta8_rotator_joint
+      - q9_left_rail_joint
+
+    joints:
+      - theta1_slewing_joint
+      - theta2_boom_joint
+      - theta3_arm_joint
+      - q4_big_telescope
+      - theta6_tip_joint
+      - theta7_tilt_joint
+      - theta8_rotator_joint
+      - q9_left_rail_joint
+
+    command_interfaces:
+      - velocity
+
+    state_interfaces:
+      - position
+      - velocity
+      - acceleration
+
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
+    allow_nonzero_velocity_at_trajectory_end: false
+
+trajectory_controller_grasping:
+  ros__parameters:
+    gains:
+      theta1_slewing_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta2_boom_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta3_arm_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      q4_big_telescope:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      theta8_rotator_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+      q9_left_rail_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+    constraints:
+      stopped_velocity_tolerance: 0.0
+      goal_time: 1.0
+      theta1_slewing_joint:
+        goal: 0.01
+      theta2_boom_joint:
+        goal: 0.01
+      theta3_arm_joint:
+        goal: 0.01
+      q4_big_telescope:
+        goal: 0.05
+      theta8_rotator_joint:
+        goal: 0.05
+      q9_left_rail_joint:
+        goal: 0.00
