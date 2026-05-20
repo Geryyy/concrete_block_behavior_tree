@@ -223,6 +223,8 @@ mp_node:
           2.000000,
         ]
       q_pump_max: 1.33e-3
+      elasticityModel:
+        p: [0.00750624, 0.0102337, 1.05088e-06]
       PsplineElasticity:
         Pspline:
           knots:
