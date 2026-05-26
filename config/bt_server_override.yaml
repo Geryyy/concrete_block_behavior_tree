@@ -44,3 +44,5 @@ lifecycle_manager:
       - BT_cb_wait_for_gazebo_grasp_condition
       - BT_cb_check_gripper_effort_condition
       - BT_cb_publish_grasp_command_action
+      - BT_cb_capture_block_grasp_offset_action
+      - BT_cb_write_block_pose_from_gripper_action

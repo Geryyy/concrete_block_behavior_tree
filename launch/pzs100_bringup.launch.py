@@ -13,20 +13,13 @@ def generate_launch_description():
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
     )
-    # PZS100 PID controller config now lives in CBS; the MPC config still
-    # lives in timber_crane_unconstrained_mpc_controller_cpp.
-    ctrl_package = PythonExpression(
-        [
-            "'concrete_block_behavior_tree' if '",
-            controller,
-            "' == 'pid' else 'timber_crane_unconstrained_mpc_controller_cpp'",
-        ]
-    )
+    # PZS100 PID and MPC controller configs both live in CBS.
+    ctrl_package = "concrete_block_behavior_tree"
     ctrl_config = PythonExpression(
         [
             "'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml' if '",
             controller,
-            "' == 'pid' else 'crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml'",
+            "' == 'pid' else 'ros2_control/crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml'",
         ]
     )
 

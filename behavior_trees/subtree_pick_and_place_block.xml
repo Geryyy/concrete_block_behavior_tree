@@ -57,6 +57,18 @@
         arm="gripper"
         object="{grasp_object_contains}"/>
 
+      <!-- Capture gripper_tcp <- block offset, mark block as MOVING -->
+      <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset"
+        service_name="/world_model_node/get_coarse_blocks"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        grasp_offset="{grasp_offset}"/>
+      <Action ID="SetBlockTaskStatus" name="Mark block TASK_MOVE"
+        service_name="/world_model_node/set_block_task_status"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        task_status="2"/>
+
       <!-- 5. Lift -->
       <Action ID="CalcGripMovement" name="Plan pickup lift"
         carriesLog="false" logShape="{logShape}" phase="4"
@@ -95,7 +107,14 @@
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
 
-      <!-- 8. Detach (release the fixed joint) then open gripper -->
+      <!-- 8. Write final block pose to world_model, then detach + open -->
+      <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
+        service_name="/world_model_node/upsert_block"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        grasp_offset="{grasp_offset}"
+        task_status="3"
+        pose_status="1"/>
       <Action ID="PublishGraspCommand" name="Release block"
         arm="gripper" object="{grasp_object_contains}" attached="false"/>
       <Action ID="CalcGripMovement" name="Plan release gripper"

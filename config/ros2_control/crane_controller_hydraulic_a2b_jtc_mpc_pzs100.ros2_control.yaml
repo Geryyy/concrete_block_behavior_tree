@@ -1,0 +1,86 @@
+/trajectory_controller_a2b:
+  ros__parameters:
+    ### JTC Parameters ###
+    type: joint_trajectory_controller/JointTrajectoryController
+
+    update_rate: 20
+    is_async: true
+    velocity_feedback_joints: [0]
+    #pt1_joints: [1]
+    pt2_joints: [0]
+    direct_joints: [1, 2, 3, 4]
+    actuator_gains_pos: [1.0, 1.0, 1.0, 1.0, 1.0]
+    actuator_gains_neg: [1.0, 1.0, 1.0, 1.0, 1.0]
+    actuator_damping: [0.6, 0.6, 0.6, 0.6, 0.6]
+    actuator_frequency: [1.43, 2.0, 2.0, 2.0, 2.0]
+    # actuator_damping: [0.27, 0.6, 0.6, 0.6, 0.6]
+    # actuator_frequency: [1.34, 2.0, 2.0, 2.0, 2.0]
+
+    controller_plugin: timber_crane_unconstrained_mpc_controller_cpp::JtcMpcPlugin
+
+    gains:
+      q9_left_rail_joint:
+        ff_velocity_scale: 1.0
+        p: 1.0
+
+    ### MPC parameters ###
+    delay: 0
+    use_acceleration_feedback: false
+    reference_type: 1 # 0 ... Task Space Linear, 1 ... Joint Space Linear
+    weights:
+      weight_qA: 1.0 #0.1
+      weight_qU: 0.0
+      weight_qADot: 0.01
+      weight_qUDot: 0.1
+      weight_qADDot: [0.25, 0.5, 0.5, 0.5, 0.5]
+      weight_sDot: 0.2
+      weight_lag: 10.0
+      sDot_ref: 1.0
+    solver:
+      num_integration_steps: 5
+      Ts: 0.05
+      horizon_length: 60
+      solver_time_margin: 5
+      constraint_discount_factor: 1.0
+    constraints:
+      stopped_velocity_tolerance: 0.15 # raised from 0.05 to absorb EPSCOPE state_factor=2.0 doubling on q9 at squeeze-settled goal
+      goal_time: 10.0 # s, 0=deactivate goal_time check
+      theta1_slewing_joint:
+        goal: 0.025
+      theta2_boom_joint:
+        goal: 0.025
+      theta3_arm_joint:
+        goal: 0.025
+      q4_big_telescope:
+        goal: 0.025
+      theta8_rotator_joint:
+        goal: 0.025
+      theta10_outer_jaw_joint:
+        goal: 0.25
+      acceleration:
+        use: true
+        weight: 10.0
+        safety_thresh: 0.1
+        limit_scale: 1.0
+      joint_limit:
+        use: true
+        weight: 20.0
+        safety_thresh: 0.05
+      joint_velocity:
+        use: false
+        weight: 10.0
+        safety_thresh: 0.1
+      pump_flow:
+        use: false
+        weight: 10000.0
+        safety_thresh: 0.0001
+      esdf:
+        use: false
+        weight: 5.0
+        safety_thresh: 0.2
+    tracking_loss:
+      method: 0 # 1...Huber, 2...Cauchy, otherwise simple
+      weight: 0.1
+
+    pid_joints:
+      - q9_left_rail_joint

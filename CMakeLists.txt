@@ -16,6 +16,9 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   nav2_behavior_tree
   rclcpp
   sensor_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 find_package(ament_cmake REQUIRED)
@@ -39,6 +42,8 @@ add_bt_plugin(BT_cb_sync_gazebo_blocks_to_world_model_action src/plugins/action/
 add_bt_plugin(BT_cb_wait_for_gazebo_grasp_condition src/plugins/condition/wait_for_gazebo_grasp.cpp)
 add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp)
 add_bt_plugin(BT_cb_publish_grasp_command_action src/plugins/action/publish_grasp_command.cpp)
+add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp)
+add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp)
 
 install(DIRECTORY
   behavior_trees
