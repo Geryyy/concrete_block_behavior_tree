@@ -8,7 +8,7 @@ This package glues together:
 - PZS100 Gazebo bringup from `epsilon_crane_bringup_sim`
 - behavior-tree execution through `lsrl_behavior_tree`
 - motion-planning helper nodes from `concrete_block_motion_planning`
-- block state from `concrete_block_perception/world_model_node`
+- block state from `concrete_block_world_model/world_model_node`
 - Gazebo block spawning from the same world-model seed data
 
 ## Contents
@@ -110,14 +110,14 @@ Initial block poses are configured in the spawn seed file owned by the
 perception package:
 
 ```text
-concrete_block_perception/config/world_model_seed_pick_place.yaml
+concrete_block_world_model/config/world_model_seed_pick_place.yaml
 ```
 
 For PZS100 Gazebo BT launches, this file is used as the spawn recipe. The
 `world_model_node` itself starts with:
 
 ```text
-concrete_block_perception/config/world_model_seed_none.yaml
+concrete_block_world_model/config/world_model_seed_none.yaml
 ```
 
 and is populated after Gazebo reports the settled block poses.
@@ -160,7 +160,7 @@ scripts/gazebo_block_spawner.py
 
 after Gazebo has started. The spawner:
 
-1. reads the same `concrete_block_perception/config/world_model_seed_pick_place.yaml`
+1. reads the same `concrete_block_world_model/config/world_model_seed_pick_place.yaml`
 2. parses `world_model.initial_blocks`
 3. loads the Gazebo model from `models/concrete_block/model.sdf`
 4. calls Gazebo `/spawn_entity` once per block

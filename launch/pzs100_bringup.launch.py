@@ -87,18 +87,18 @@ def generate_launch_description():
     # World model starts empty for Gazebo BT runs.
     # Blocks are spawned from the seed YAML, then upserted here from settled Gazebo poses.
     world_model_seed = (
-        PathSubstitution(FindPackageShare("concrete_block_perception"))
+        PathSubstitution(FindPackageShare("concrete_block_world_model"))
         / "config"
         / "world_model_seed_none.yaml"
     )
 
     ld.add_action(
         Node(
-            package="concrete_block_perception",
+            package="concrete_block_world_model",
             executable="world_model_node",
             name="world_model_node",
             parameters=[
-                PathSubstitution(FindPackageShare("concrete_block_perception"))
+                PathSubstitution(FindPackageShare("concrete_block_world_model"))
                 / "config"
                 / "world_model.yaml",
                 world_model_seed,

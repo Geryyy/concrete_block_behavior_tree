@@ -173,7 +173,7 @@ def generate_launch_description():
                             {
                                 "use_sim_time": True,
                                 "seed_config_file": PathJoinSubstitution([
-                                    FindPackageShare("concrete_block_perception"),
+                                    FindPackageShare("concrete_block_world_model"),
                                     "config",
                                     "world_model_seed_pick_place.yaml",
                                 ]),
