@@ -106,22 +106,23 @@ def generate_launch_description():
                     {"use_sim_time": True},
                 ],
             ),
-            # ── Wall plan server (lightweight) ───────────────────────────
+            # ── Wall plan server (assembly planning layer) ───────────────
             Node(
-                package="concrete_block_motion_planning",
-                executable="wall_plan_server.py",
+                package="concrete_block_assembly_planning",
+                executable="wall_plan_server",
                 name="concrete_block_wall_plan_server",
                 output="screen",
                 parameters=[
-                    PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
+                    PathSubstitution(FindPackageShare("concrete_block_assembly_planning"))
                     / "config"
                     / "wall_plan_server.yaml",
                     {
                         "use_sim_time": True,
                         "world_model_service": "/world_model_node/get_coarse_blocks",
                         "world_model_timeout_s": 2.0,
+                        "output_frame": "world",
                         "wall_plans_file": PathSubstitution(
-                            FindPackageShare("concrete_block_behavior_tree"))
+                            FindPackageShare("concrete_block_assembly_planning"))
                         / "config" / "wall_plans.yaml",
                     },
                 ],

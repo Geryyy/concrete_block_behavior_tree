@@ -7,7 +7,7 @@ endif()
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp_v3
-  concrete_block_motion_planning
+  concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
   gazebo_msgs
   gazebo_grasp_plugin_ros

@@ -2,9 +2,22 @@
 
 #include "behaviortree_cpp_v3/bt_factory.h"
 #include "rclcpp/rclcpp.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace concrete_block_behavior_tree
 {
+
+namespace
+{
+
+double yawFromQuaternion(const geometry_msgs::msg::Quaternion & q)
+{
+  return std::atan2(
+    2.0 * (q.w * q.z + q.x * q.y),
+    1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+}
+
+}  // namespace
 
 void GetNextAssemblyTaskService::on_tick()
 {
@@ -19,28 +32,63 @@ void GetNextAssemblyTaskService::on_tick()
 
 BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<ResponseT> response)
 {
+  // Resolve the assembly poses (emitted in `world`) into the crane planning
+  // frame. This is the single world -> K0_mounting_base conversion boundary;
+  // upstream (plan, world model, visualization) stays in `world`.
+  std::string planning_frame = "K0_mounting_base";
+  getInput("planning_frame", planning_frame);
+
+  auto to_planning = [&](const geometry_msgs::msg::PoseStamped & in,
+      geometry_msgs::msg::PoseStamped & out, const char * label) -> bool
+    {
+      if (in.header.frame_id.empty() || in.header.frame_id == planning_frame) {
+        out = in;
+        return true;
+      }
+      try {
+        out = tf_buffer_->transform(in, planning_frame, tf2::durationFromSec(0.5));
+        return true;
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_ERROR(
+          node_->get_logger(),
+          "GetNextAssemblyTask: cannot transform %s from '%s' to '%s': %s",
+          label, in.header.frame_id.c_str(), planning_frame.c_str(), ex.what());
+        return false;
+      }
+    };
+
+  geometry_msgs::msg::PoseStamped pickup, target, reference;
+  if (response->has_task) {
+    if (!to_planning(response->pickup_pose, pickup, "pickup_pose") ||
+      !to_planning(response->target_pose, target, "target_pose") ||
+      !to_planning(response->reference_pose, reference, "reference_pose"))
+    {
+      return BT::NodeStatus::FAILURE;
+    }
+  } else {
+    pickup = response->pickup_pose;
+    target = response->target_pose;
+    reference = response->reference_pose;
+  }
+
   setOutput("task_id", response->task_id);
   setOutput("target_block_id", response->target_block_id);
   setOutput("reference_block_id", response->reference_block_id);
-  setOutput("target_block_pose_coarse", response->pickup_pose);
-  setOutput("target_block_pose_precise", response->target_pose);
-  setOutput("reference_block_pose_precise", response->reference_pose);
+  setOutput("target_block_pose_coarse", pickup);
+  setOutput("target_block_pose_precise", target);
+  setOutput("reference_block_pose_precise", reference);
   setOutput("plan_has_task", response->has_task);
   setOutput("plan_message", response->message);
 
-  // Decomposed scalar ports for epsilon_crane BT nodes
-  setOutput("pickup_x", response->pickup_pose.pose.position.x);
-  setOutput("pickup_y", response->pickup_pose.pose.position.y);
-  setOutput("pickup_z", response->pickup_pose.pose.position.z);
-  const auto & pq = response->pickup_pose.pose.orientation;
-  setOutput("pickup_yaw", std::atan2(2.0 * (pq.w * pq.z + pq.x * pq.y),
-    1.0 - 2.0 * (pq.y * pq.y + pq.z * pq.z)));
-  setOutput("place_x", response->target_pose.pose.position.x);
-  setOutput("place_y", response->target_pose.pose.position.y);
-  setOutput("place_z", response->target_pose.pose.position.z);
-  const auto & tq = response->target_pose.pose.orientation;
-  setOutput("place_yaw", std::atan2(2.0 * (tq.w * tq.z + tq.x * tq.y),
-    1.0 - 2.0 * (tq.y * tq.y + tq.z * tq.z)));
+  // Decomposed scalar ports for epsilon_crane BT nodes (planning frame).
+  setOutput("pickup_x", pickup.pose.position.x);
+  setOutput("pickup_y", pickup.pose.position.y);
+  setOutput("pickup_z", pickup.pose.position.z);
+  setOutput("pickup_yaw", yawFromQuaternion(pickup.pose.orientation));
+  setOutput("place_x", target.pose.position.x);
+  setOutput("place_y", target.pose.position.y);
+  setOutput("place_z", target.pose.position.z);
+  setOutput("place_yaw", yawFromQuaternion(target.pose.orientation));
 
   RCLCPP_INFO(
     node_->get_logger(),
@@ -50,12 +98,12 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     response->task_id.c_str(),
     response->target_block_id.c_str(),
     response->reference_block_id.c_str(),
-    response->pickup_pose.pose.position.x,
-    response->pickup_pose.pose.position.y,
-    response->pickup_pose.pose.position.z,
-    response->target_pose.pose.position.x,
-    response->target_pose.pose.position.y,
-    response->target_pose.pose.position.z,
+    pickup.pose.position.x,
+    pickup.pose.position.y,
+    pickup.pose.position.z,
+    target.pose.position.x,
+    target.pose.position.y,
+    target.pose.position.z,
     response->message.c_str());
 
   if (!response->success || !response->has_task) {
