@@ -1,0 +1,45 @@
+<root>
+  <!-- Place the in-hand block ({grasp_object_contains}) at place_{x,y,z,yaw},
+       approaching via place_approach_{x,y}. Approach above (carrying) ->
+       descend (carrying) -> write final pose to world model -> detach + open
+       -> lift away empty. -->
+  <BehaviorTree ID="SubTreePlaceBlock">
+    <Sequence name="place_block">
+
+      <!-- 1. Move above place approach (carrying) -->
+      <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
+      <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
+      <SetBlackboard output_key="mv_z" value="{carry_approach_z}"/>
+      <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
+      <SetBlackboard output_key="mv_carries" value="true"/>
+      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+
+      <!-- 2. Descend to place (carrying) -->
+      <SetBlackboard output_key="dz_x" value="{place_x}"/>
+      <SetBlackboard output_key="dz_y" value="{place_y}"/>
+      <SetBlackboard output_key="dz_z" value="{place_z}"/>
+      <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
+      <SetBlackboard output_key="dz_carries" value="true"/>
+      <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
+
+      <!-- 3. Write final block pose, then detach + open gripper -->
+      <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
+        service_name="/world_model_node/upsert_block"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        grasp_offset="{grasp_offset}"
+        task_status="3"
+        pose_status="1"/>
+      <Action ID="PublishGraspCommand" name="Release block"
+        arm="gripper" object="{grasp_object_contains}" attached="false"/>
+      <SetBlackboard output_key="gr_phase" value="3"/>
+      <SetBlackboard output_key="gr_carries" value="true"/>
+      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+
+      <!-- 4. Lift away empty -->
+      <SetBlackboard output_key="lf_carries" value="false"/>
+      <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

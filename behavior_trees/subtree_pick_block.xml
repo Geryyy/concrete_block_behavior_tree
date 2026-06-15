@@ -1,0 +1,59 @@
+<root>
+  <!-- Pick the block identified by {grasp_object_contains} at pickup_{x,y,z,yaw}.
+       Approach above -> open -> descend -> close -> verify grasp ->
+       capture grasp offset / mark MOVING -> lift. Carries nothing on the way
+       in; leaves the arm holding the block. -->
+  <BehaviorTree ID="SubTreePickBlock">
+    <Sequence name="pick_block">
+
+      <!-- 1. Move above pickup -->
+      <SetBlackboard output_key="mv_x" value="{pickup_x}"/>
+      <SetBlackboard output_key="mv_y" value="{pickup_y}"/>
+      <SetBlackboard output_key="mv_z" value="{approach_z}"/>
+      <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
+      <SetBlackboard output_key="mv_carries" value="false"/>
+      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+
+      <!-- 2. Open gripper -->
+      <SetBlackboard output_key="gr_phase" value="3"/>
+      <SetBlackboard output_key="gr_carries" value="false"/>
+      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+
+      <!-- 3. Descend to pickup -->
+      <SetBlackboard output_key="dz_x" value="{pickup_x}"/>
+      <SetBlackboard output_key="dz_y" value="{pickup_y}"/>
+      <SetBlackboard output_key="dz_z" value="{pickup_z}"/>
+      <SetBlackboard output_key="dz_yaw" value="{pickup_yaw}"/>
+      <SetBlackboard output_key="dz_carries" value="false"/>
+      <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
+
+      <!-- 4. Close gripper -->
+      <SetBlackboard output_key="gr_phase" value="2"/>
+      <SetBlackboard output_key="gr_carries" value="false"/>
+      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+
+      <!-- 5. Verify grasp + register block as in-hand -->
+      <Action ID="CheckGripperEffort" name="Check grip via effort"
+        joint="q9_left_rail_joint"
+        min_effort="1000"
+        timeout_ms="5000"
+        arm="gripper"
+        object="{grasp_object_contains}"/>
+      <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset"
+        service_name="/world_model_node/get_coarse_blocks"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        grasp_offset="{grasp_offset}"/>
+      <Action ID="SetBlockTaskStatus" name="Mark block TASK_MOVE"
+        service_name="/world_model_node/set_block_task_status"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        task_status="2"/>
+
+      <!-- 6. Lift the grasped block -->
+      <SetBlackboard output_key="lf_carries" value="false"/>
+      <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
+
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,18 @@
+<root>
+  <!-- Lift away from the current CoG pose (grip-trajectory phase 4).
+       Caller sets on the (shared) blackboard before invoking:
+         lf_carries  - "true"/"false": carrying a block?
+       Acts at the last CoG goal pose ({COG}). Produces: trajectory. -->
+  <BehaviorTree ID="SubTreeLift">
+    <Sequence name="lift">
+      <Action ID="CalcGripMovement" name="Plan lift"
+        carriesLog="{lf_carries}" logShape="{logShape}" phase="4"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_8_x="{s_log_8_x}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

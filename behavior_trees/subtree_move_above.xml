@@ -1,0 +1,23 @@
+<root>
+  <!-- Collision-aware A2B move to an approach pose above a target.
+       Caller sets on the (shared) blackboard before invoking:
+         mv_x, mv_y, mv_z, mv_yaw  - approach pose (world)
+         mv_carries                - "true"/"false": carrying a block?
+       Produces: yN, phi (goal pose), trajectory. -->
+  <BehaviorTree ID="SubTreeMoveAbove">
+    <Sequence name="move_above">
+      <Action ID="SetGoalPose" name="Set approach pose"
+        yN.x="{mv_x}" yN.y="{mv_y}" yN.z="{mv_z}"
+        phiN="{mv_yaw}"
+        goal="{yN}" phi="{phi}"/>
+      <Action ID="CalcA2BMovement" name="Plan approach"
+        carriesLog="{mv_carries}" logCarrying="{logShape}" logsScene="{logsScene}"
+        phiToolN="{phi}" s_log_8_x="{s_log_8_x}"
+        service_name="a2b_movement" server_timeout="10000"
+        slowDown="{slow_down}" tEnd="0.0"
+        trajectory="{trajectory}" yN="{yN}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
