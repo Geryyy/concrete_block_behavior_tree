@@ -84,12 +84,12 @@ def generate_launch_description():
         ]
     )
 
-    # World model starts empty for Gazebo BT runs.
-    # Blocks are spawned from the seed YAML, then upserted here from settled Gazebo poses.
+    # World model is seeded from the same YAML the Gazebo block spawner uses, so
+    # markers / GetCoarseBlocks and the spawned Gazebo blocks share one source.
     world_model_seed = (
         PathSubstitution(FindPackageShare("concrete_block_world_model"))
         / "config"
-        / "world_model_seed_none.yaml"
+        / "world_model_seed_pick_place.yaml"
     )
 
     ld.add_action(
@@ -104,7 +104,10 @@ def generate_launch_description():
                 world_model_seed,
                 {
                     "use_sim_time": True,
-                    "world_frame": "K0_mounting_base",
+                    # Whole CBS stack (spec, plan, world model, viz) stays in `world`;
+                    # the single world -> K0_mounting_base conversion happens in the
+                    # GetNextAssemblyTask BT plugin.
+                    "world_frame": "world",
                     "pipeline_mode": "idle",
                     "perception_mode": "IDLE",
                 },

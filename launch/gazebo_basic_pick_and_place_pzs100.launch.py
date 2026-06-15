@@ -124,12 +124,14 @@ def generate_launch_description():
                                 ]),
                                 "gazebo_world_frame": "world",
                                 "use_precomputed_gazebo_pose": False,
-                                "seed_frame_id": "K0_mounting_base",
-                                # gazebo_base.launch.py spawns the crane entity at
-                                # y=-6, yaw=pi.  Combined with the URDF fixed
-                                # joints, K0_mounting_base lands here in Gazebo.
-                                "gazebo_seed_frame_xyz": [6.93852, -6.35, 1.1407],
-                                "gazebo_seed_frame_rpy_deg": [0.0, 0.0, 0.0],
+                                # Seed is in `world` (same frame as wall_spec / plan).
+                                "seed_frame_id": "world",
+                                # Pose of the ROS `world` frame in the Gazebo world
+                                # frame. gazebo_base.launch.py spawns the crane at
+                                # y=-6, yaw=pi, so the two worlds differ by yaw 180 +
+                                # a -6 m y shift.
+                                "gazebo_seed_frame_xyz": [0.0, -6.0, 0.0],
+                                "gazebo_seed_frame_rpy_deg": [0.0, 0.0, 180.0],
                                 "spawn_height_offset": 0.15,
                                 "sync_world_model_from_gazebo": False,
                                 "settle_time_sec": 3.0,
