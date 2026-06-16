@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 <root main_tree_to_execute="WallAssembly">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_gripper.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_lift.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_block.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
   <!-- ////////// -->
   <BehaviorTree ID="WallAssembly">
@@ -9,6 +15,9 @@
       <!-- ============================================================
            CONFIGURATION
            ============================================================ -->
+      <!-- Which expanded wall plan to build (see wall_plans.yaml). Override on
+           the blackboard to build a different wall. -->
+      <SetBlackboard output_key="wall_plan_name" value="example_wall"/>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
@@ -30,7 +39,7 @@
           <GetNextAssemblyTask
             service_name="/concrete_block_wall_plan_server/get_next_assembly_task"
             server_timeout="10000"
-            wall_plan_name="pzs100_pick_place"
+            wall_plan_name="{wall_plan_name}"
             reset_plan="false"
             task_id="{task_id}"
             target_block_id="{target_block_id}"

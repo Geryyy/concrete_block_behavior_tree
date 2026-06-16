@@ -1,0 +1,23 @@
+<root>
+  <!-- Grip-trajectory descent to a block CoG target (phase 1).
+       Caller sets on the (shared) blackboard before invoking:
+         dz_x, dz_y, dz_z, dz_yaw  - target CoG pose (world)
+         dz_carries                - "true"/"false": carrying a block?
+       Produces: COG, phi (goal pose), trajectory. -->
+  <BehaviorTree ID="SubTreeDescendTo">
+    <Sequence name="descend_to">
+      <Action ID="SetGoalPose" name="Set descend target"
+        yN.x="{dz_x}" yN.y="{dz_y}" yN.z="{dz_z}"
+        phiN="{dz_yaw}"
+        goal="{COG}" phi="{phi}"/>
+      <Action ID="CalcGripMovement" name="Plan descend"
+        carriesLog="{dz_carries}" logShape="{logShape}" phase="1"
+        phiToolN="{phi}" service_name="grip_traj_movement"
+        server_timeout="40000" slowDown="{slow_down}"
+        s_log_8_x="{s_log_8_x}"
+        trajectory="{trajectory}" yN="{COG}"/>
+      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
