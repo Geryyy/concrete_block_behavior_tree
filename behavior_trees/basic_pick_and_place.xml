@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 <root main_tree_to_execute="BasicPickAndPlace">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_gripper.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_lift.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_block.xml"/>
+  <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
   <!-- ////////// -->
   <BehaviorTree ID="BasicPickAndPlace">
@@ -20,6 +26,7 @@
       <SetBlackboard output_key="place_yaw" value="0.0"/>
       <SetBlackboard output_key="place_approach_x" value="5.0"/>
       <SetBlackboard output_key="place_approach_y" value="-2.0"/>
+      <SetBlackboard output_key="place_approach_z" value="{carry_approach_z}"/>
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
       <!-- CBS has no log-scene perception; leave logsScene unset on the BB.
