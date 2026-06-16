@@ -4,6 +4,7 @@
 #include <string>
 
 #include "concrete_block_world_model_interfaces/srv/set_block_task_status.hpp"
+#include "geometry_msgs/msg/pose.hpp"
 #include "nav2_behavior_tree/bt_service_node.hpp"
 
 namespace concrete_block_behavior_tree
@@ -28,6 +29,8 @@ public:
       {
         BT::InputPort<std::string>("block_id", "", "Block ID to update"),
         BT::InputPort<int>("task_status", 3, "Task status int (TASK_PLACED=3)"),
+        BT::InputPort<geometry_msgs::msg::Pose>(
+          "grasp_offset", "Optional captured TCP->block offset (for TASK_MOVE FK tracking)"),
         BT::OutputPort<bool>("status_ok"),
         BT::OutputPort<std::string>("status_message")
       });

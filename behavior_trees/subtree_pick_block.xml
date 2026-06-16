@@ -43,12 +43,15 @@
         service_name="/world_model_node/get_coarse_blocks"
         server_timeout="5000"
         block_id="{grasp_object_contains}"
+        gripper_frame="K8_tool_center_point"
+        world_frame="world"
         grasp_offset="{grasp_offset}"/>
       <Action ID="SetBlockTaskStatus" name="Mark block TASK_MOVE"
         service_name="/world_model_node/set_block_task_status"
         server_timeout="5000"
         block_id="{grasp_object_contains}"
-        task_status="2"/>
+        task_status="2"
+        grasp_offset="{grasp_offset}"/>
 
       <!-- 6. Lift the grasped block -->
       <SetBlackboard output_key="lf_carries" value="false"/>
