@@ -57,11 +57,12 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
       }
     };
 
-  geometry_msgs::msg::PoseStamped pickup, target, reference;
+  geometry_msgs::msg::PoseStamped pickup, target, reference, approach;
   if (response->has_task) {
     if (!to_planning(response->pickup_pose, pickup, "pickup_pose") ||
       !to_planning(response->target_pose, target, "target_pose") ||
-      !to_planning(response->reference_pose, reference, "reference_pose"))
+      !to_planning(response->reference_pose, reference, "reference_pose") ||
+      !to_planning(response->approach_pose, approach, "approach_pose"))
     {
       return BT::NodeStatus::FAILURE;
     }
@@ -69,6 +70,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     pickup = response->pickup_pose;
     target = response->target_pose;
     reference = response->reference_pose;
+    approach = response->approach_pose;
   }
 
   setOutput("task_id", response->task_id);
@@ -89,6 +91,9 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("place_y", target.pose.position.y);
   setOutput("place_z", target.pose.position.z);
   setOutput("place_yaw", yawFromQuaternion(target.pose.orientation));
+  setOutput("approach_x", approach.pose.position.x);
+  setOutput("approach_y", approach.pose.position.y);
+  setOutput("approach_z", approach.pose.position.z);
 
   RCLCPP_INFO(
     node_->get_logger(),

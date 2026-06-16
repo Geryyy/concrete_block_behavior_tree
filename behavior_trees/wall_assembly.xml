@@ -56,11 +56,16 @@
             place_x="{place_x}"
             place_y="{place_y}"
             place_z="{place_z}"
-            place_yaw="{place_yaw}"/>
+            place_yaw="{place_yaw}"
+            approach_x="{approach_x}"
+            approach_y="{approach_y}"
+            approach_z="{approach_z}"/>
 
-          <!-- Approach = place position; adjust per-task in wall plan for angled descent -->
-          <SetBlackboard output_key="place_approach_x" value="{place_x}"/>
-          <SetBlackboard output_key="place_approach_y" value="{place_y}"/>
+          <!-- Pre-place approach: above + laterally offset (angled descent for
+               clearance), computed by the wall plan server. -->
+          <SetBlackboard output_key="place_approach_x" value="{approach_x}"/>
+          <SetBlackboard output_key="place_approach_y" value="{approach_y}"/>
+          <SetBlackboard output_key="place_approach_z" value="{approach_z}"/>
           <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
           <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>

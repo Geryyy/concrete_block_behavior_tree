@@ -56,7 +56,11 @@ public:
         BT::OutputPort<double>("place_x"),
         BT::OutputPort<double>("place_y"),
         BT::OutputPort<double>("place_z"),
-        BT::OutputPort<double>("place_yaw")
+        BT::OutputPort<double>("place_yaw"),
+        // Decomposed pre-place approach point (above + laterally offset)
+        BT::OutputPort<double>("approach_x"),
+        BT::OutputPort<double>("approach_y"),
+        BT::OutputPort<double>("approach_z")
       });
   }
 

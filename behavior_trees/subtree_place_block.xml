@@ -6,10 +6,10 @@
   <BehaviorTree ID="SubTreePlaceBlock">
     <Sequence name="place_block">
 
-      <!-- 1. Move above place approach (carrying) -->
+      <!-- 1. Move to the pre-place approach point (above + laterally offset) -->
       <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
       <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
-      <SetBlackboard output_key="mv_z" value="{carry_approach_z}"/>
+      <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
       <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="true"/>
       <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
