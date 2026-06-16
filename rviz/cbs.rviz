@@ -1559,6 +1559,19 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /cbp/block_world_model_markers
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Block Goals
+      Namespaces:
+        cbp_block_goals: true
+        cbp_block_goal_ids: true
+      Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /cbp/block_goal_markers
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 175; 175; 175
