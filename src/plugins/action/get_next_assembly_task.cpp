@@ -57,9 +57,10 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
       }
     };
 
-  geometry_msgs::msg::PoseStamped pickup, target, reference, approach;
+  geometry_msgs::msg::PoseStamped pickup, pickup_approach, target, reference, approach;
   if (response->has_task) {
     if (!to_planning(response->pickup_pose, pickup, "pickup_pose") ||
+      !to_planning(response->pickup_approach_pose, pickup_approach, "pickup_approach_pose") ||
       !to_planning(response->target_pose, target, "target_pose") ||
       !to_planning(response->reference_pose, reference, "reference_pose") ||
       !to_planning(response->approach_pose, approach, "approach_pose"))
@@ -68,6 +69,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     }
   } else {
     pickup = response->pickup_pose;
+    pickup_approach = response->pickup_approach_pose;
     target = response->target_pose;
     reference = response->reference_pose;
     approach = response->approach_pose;
@@ -87,6 +89,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("pickup_y", pickup.pose.position.y);
   setOutput("pickup_z", pickup.pose.position.z);
   setOutput("pickup_yaw", yawFromQuaternion(pickup.pose.orientation));
+  setOutput("pickup_approach_z", pickup_approach.pose.position.z);
   setOutput("place_x", target.pose.position.x);
   setOutput("place_y", target.pose.position.y);
   setOutput("place_z", target.pose.position.z);

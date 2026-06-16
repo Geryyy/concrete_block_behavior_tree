@@ -52,6 +52,7 @@ public:
         BT::OutputPort<double>("pickup_y"),
         BT::OutputPort<double>("pickup_z"),
         BT::OutputPort<double>("pickup_yaw"),
+        BT::OutputPort<double>("pickup_approach_z"),
         // Decomposed target/place pose
         BT::OutputPort<double>("place_x"),
         BT::OutputPort<double>("place_y"),

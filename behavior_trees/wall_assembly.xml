@@ -20,8 +20,9 @@
       <SetBlackboard output_key="wall_plan_name" value="example_wall"/>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
-      <SetBlackboard output_key="approach_z" value="2.0"/>
-      <SetBlackboard output_key="carry_approach_z" value="2.0"/>
+      <!-- Pickup (approach_z) and place (place_approach_*) pre-approach points
+           are provided per-task by the wall plan server; see its
+           pickup_approach_height_m / place_approach_{height_m,angle_deg} params. -->
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -57,15 +58,14 @@
             place_y="{place_y}"
             place_z="{place_z}"
             place_yaw="{place_yaw}"
-            approach_x="{approach_x}"
-            approach_y="{approach_y}"
-            approach_z="{approach_z}"/>
+            pickup_approach_z="{approach_z}"
+            approach_x="{place_approach_x}"
+            approach_y="{place_approach_y}"
+            approach_z="{place_approach_z}"/>
 
-          <!-- Pre-place approach: above + laterally offset (angled descent for
-               clearance), computed by the wall plan server. -->
-          <SetBlackboard output_key="place_approach_x" value="{approach_x}"/>
-          <SetBlackboard output_key="place_approach_y" value="{approach_y}"/>
-          <SetBlackboard output_key="place_approach_z" value="{approach_z}"/>
+          <!-- Pre-approach points come straight from the plan server:
+               approach_z = above pickup; place_approach_* = above + laterally
+               offset target (angled place descent). -->
           <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
           <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
