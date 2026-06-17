@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<root main_tree_to_execute="StackBlock1OnBlock2">
+<root main_tree_to_execute="StackC0B0OnC0B1">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
@@ -9,25 +9,12 @@
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
 
-  <BehaviorTree ID="StackBlock1OnBlock2">
-    <Sequence name="stack_block_1_on_block_2">
-
-      <SyncGazeboBlocksToWorldModel name="Discover blocks from Gazebo"
-        block_ids="block_1,block_2"
-        gazebo_state_service="/gazebo/get_entity_state"
-        upsert_service="/world_model_node/upsert_block"
-        gazebo_reference_frame="world"
-        world_frame_id="K0_mounting_base"
-        gazebo_seed_frame_xyz="6.93852,-6.35,1.1407"
-        gazebo_seed_frame_rpy_deg="0.0,0.0,0.0"
-        service_timeout_ms="5000"/>
+  <BehaviorTree ID="StackC0B0OnC0B1">
+    <Sequence name="stack_c0_b0_on_c0_b1">
 
       <!-- Shared skill parameters -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
-      <SetBlackboard output_key="approach_z" value="2.0"/>
-      <SetBlackboard output_key="carry_approach_z" value="2.6"/>
-      <SetBlackboard output_key="grasp_object_contains" value="block_1"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -56,11 +43,12 @@
         place_x="{place_x}"
         place_y="{place_y}"
         place_z="{place_z}"
-        place_yaw="{place_yaw}"/>
+        place_yaw="{place_yaw}"
+        pickup_approach_z="{approach_z}"
+        approach_x="{place_approach_x}"
+        approach_y="{place_approach_y}"
+        approach_z="{place_approach_z}"/>
 
-      <SetBlackboard output_key="place_approach_x" value="{place_x}"/>
-      <SetBlackboard output_key="place_approach_y" value="{place_y}"/>
-      <SetBlackboard output_key="place_approach_z" value="{carry_approach_z}"/>
       <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
       <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>

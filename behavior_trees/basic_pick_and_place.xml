@@ -15,15 +15,15 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
       <SetBlackboard output_key="carry_approach_z" value="2.0"/>
-      <SetBlackboard output_key="grasp_object_contains" value="block_1"/>
-      <SetBlackboard output_key="pickup_x" value="5.0"/>
-      <SetBlackboard output_key="pickup_y" value="2.0"/>
+      <SetBlackboard output_key="grasp_object_contains" value="c0_b0"/>
+      <SetBlackboard output_key="pickup_x" value="6.06"/>
+      <SetBlackboard output_key="pickup_y" value="0.35"/>
       <SetBlackboard output_key="pickup_z" value="-0.84"/>
-      <SetBlackboard output_key="pickup_yaw" value="0.0"/>
+      <SetBlackboard output_key="pickup_yaw" value="-1.5708"/>
       <SetBlackboard output_key="place_x" value="5.0"/>
       <SetBlackboard output_key="place_y" value="-2.0"/>
       <SetBlackboard output_key="place_z" value="-0.84"/>
-      <SetBlackboard output_key="place_yaw" value="0.0"/>
+      <SetBlackboard output_key="place_yaw" value="-1.5708"/>
       <SetBlackboard output_key="place_approach_x" value="5.0"/>
       <SetBlackboard output_key="place_approach_y" value="-2.0"/>
       <SetBlackboard output_key="place_approach_z" value="{carry_approach_z}"/>

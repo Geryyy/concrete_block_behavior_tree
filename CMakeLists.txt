@@ -9,7 +9,6 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp_v3
   concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
-  gazebo_msgs
   gazebo_grasp_plugin_ros
   geometry_msgs
   lsrl_behavior_tree
@@ -38,7 +37,6 @@ endfunction()
 
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
-add_bt_plugin(BT_cb_sync_gazebo_blocks_to_world_model_action src/plugins/action/sync_gazebo_blocks_to_world_model.cpp)
 add_bt_plugin(BT_cb_wait_for_gazebo_grasp_condition src/plugins/condition/wait_for_gazebo_grasp.cpp)
 add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp)
 add_bt_plugin(BT_cb_publish_grasp_command_action src/plugins/action/publish_grasp_command.cpp)

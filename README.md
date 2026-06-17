@@ -53,14 +53,16 @@ assembly stack:
 - `gazebo_block_spawner.py`
 - optional keyboard TUI
 
-### Basic Pick And Place
+### Commissioning Stack
 
 ```bash
 ros2 launch concrete_block_behavior_tree gazebo_basic_pick_and_place_pzs100.launch.py
 ```
 
-Starts a simpler pick-and-place behavior tree using
-`behavior_trees/basic_pick_and_place.xml`.
+Starts a smaller commissioning behavior tree using
+`behavior_trees/stack_block_1_on_block_2.xml`. It runs the same
+wall-plan/world-model path as wall assembly, but with one task: stack `c0_b0`
+on `c0_b1`.
 
 Common launch arguments:
 
@@ -76,9 +78,12 @@ Main trees:
 
 ```text
 behavior_trees/stack_block_1_on_block_2.xml
-behavior_trees/basic_pick_and_place.xml
 behavior_trees/wall_assembly.xml
 ```
+
+`behavior_trees/basic_pick_and_place.xml` is a legacy hard-coded simulation demo
+kept for direct launch testing. The BT panel catalog lists only trees that use
+the wall-plan/world-model path.
 
 Reusable subtrees:
 
@@ -127,12 +132,12 @@ The spawn seed contains:
 ```yaml
 world_model_node:
   ros__parameters:
-    world_frame: K0_mounting_base
+    world_frame: world
     world_model:
       initial_blocks: |
-        - id: block_1
-          frame_id: K0_mounting_base
-          position: [4.5, 0.25, -0.960]
+        - id: c0_b0
+          frame_id: world
+          position: [-13.0, 0.0, 0.3]
           yaw_deg: 0.0
           pose_status: POSE_PRECISE
           task_status: TASK_FREE
@@ -166,28 +171,26 @@ after Gazebo has started. The spawner:
 4. calls Gazebo `/spawn_entity` once per block
 
 For PZS100, precomputed `gazebo_pose` entries are not used. Instead, the
-spawner transforms each block from `K0_mounting_base` into Gazebo `world` using
-parameters in the PZS100 launch files:
+spawner transforms each block from the CBS `world` frame into Gazebo `world`
+using parameters in the PZS100 launch files:
 
 ```yaml
 use_precomputed_gazebo_pose: False
-seed_frame_id: K0_mounting_base
-gazebo_seed_frame_xyz: [6.93852, -6.35, 1.1407]
-gazebo_seed_frame_rpy_deg: [0.0, 0.0, 0.0]
-spawn_height_offset: 0.3
+seed_frame_id: world
+gazebo_seed_frame_xyz: [0.0, -6.0, 0.0]
+gazebo_seed_frame_rpy_deg: [0.0, 0.0, 180.0]
+spawn_height_offset: 0.15
 sync_world_model_from_gazebo: False
 ```
 
-`gazebo_seed_frame_xyz` is the pose of `K0_mounting_base` in Gazebo coordinates
-for the current crane spawn setup. `spawn_height_offset` raises each block
-before spawning so it can settle onto the terrain.
+`gazebo_seed_frame_xyz` and `gazebo_seed_frame_rpy_deg` describe the CBS
+`world` frame in Gazebo coordinates for the current crane spawn setup.
+`spawn_height_offset` raises each block before spawning so it can settle onto
+the terrain.
 
-The YAML seed is therefore only the initial Gazebo spawn guess. The stack BT
-then runs `SyncGazeboBlocksToWorldModel`, which queries
-`/gazebo/get_entity_state`, transforms each block pose back into
-`K0_mounting_base`, and calls `/world_model_node/upsert_block`. This mirrors the
-real workflow where scene discovery/perception updates the world model before
-planning.
+The behavior trees do not query Gazebo directly. In simulation the world model
+is seeded from the YAML file; on the real crane perception updates the same
+world model before planning.
 
 ## Gazebo Grasp Fix
 
@@ -206,7 +209,7 @@ The Gazebo plugin publishes attach/detach events through Gazebo transport.
 
 `subtree_pick_and_place_block.xml` waits for `WaitForGazeboGrasp` immediately
 after the close-gripper trajectory. The top-level tree sets
-`grasp_object_contains` to the expected block id, for example `block_1`, so the
+`grasp_object_contains` to the expected block id, for example `c0_b0`, so the
 BT only lifts after Gazebo reports that the requested block is attached.
 
 ## Wall Plans
@@ -223,33 +226,34 @@ Example:
 wall_plans:
   stack_block_1_on_block_2:
     sequence:
-      - id: "block_1"
-        relative_to_world_model: "block_2"
+      - id: c0_b0
+        relative_to_world_model: c0_b1
         offset: [0.0, 0.0, 0.6]
-        fallback_absolute_position: [6.0, 0.25, -0.345]
+        fallback_absolute_position: [-14.0, 0.0, 0.9]
         yaw_deg: 0.0
+        gripper_yaw_offset_deg: 90.0
 
-  pzs100_pick_place:
+  example_wall:
     sequence:
-      - id: "block_1"
-        absolute_position: [5.0, 2.0, -0.84]
+      - id: c0_b0
         yaw_deg: 0.0
+        gripper_yaw_offset_deg: 90.0
+        absolute_position: [-15.0, -3.0, 0.3]
+      - id: c0_b1
+        yaw_deg: 0.0
+        gripper_yaw_offset_deg: 90.0
+        absolute_position: [-14.08, -3.0, 0.3]
 ```
 
 The wall-plan server reads this file and serves the next task to the
 `GetNextAssemblyTask` BT node. Block IDs in a wall plan should match block IDs
 in the world-model seed file.
 
-`relative_to_world_model` places a target relative to the current pose of a
-block in the world model. In `stack_block_1_on_block_2`, the target for
-`block_1` is computed from `block_2` plus a 0.6 m z-offset, so block 1 is placed
-on top of block 2. `fallback_absolute_position` is used only if the reference
-block cannot be read from the world model.
-
-`behavior_trees/stack_block_1_on_block_2.xml` is intentionally simpler than the
-wall assembly loop: it sets the known seeded poses directly on the blackboard
-and then calls `SubTreePickAndPlaceBlock`. This keeps the one-shot stack demo
-independent of the wall-plan service.
+Both simulation and the real system use the world model as the block-pose
+boundary. In simulation, `world_model_seed_pick_place.yaml` seeds the world
+model and the Gazebo spawner uses the same IDs. On the real crane, perception
+updates the world model with those IDs instead. The behavior trees and wall-plan
+server stay unchanged.
 
 ## Useful Topics And Services
 

@@ -1,4 +1,4 @@
-"""PZS100 Gazebo simulation with the basic CBS pick-and-place BT."""
+"""PZS100 Gazebo simulation with the CBS commissioning stack BT."""
 
 import os
 
@@ -21,11 +21,11 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    basic_bt_profile = (
+    stack_bt_profile = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
         / "profiles"
-        / "basic_pick_and_place.yaml"
+        / "stack_block_1_on_block_2.yaml"
     )
 
     if os.path.exists("/usr/bin/xterm"):
@@ -83,20 +83,40 @@ def generate_launch_description():
                 ],
             ),
             Node(
+                package="concrete_block_assembly_planning",
+                executable="wall_plan_server",
+                name="concrete_block_wall_plan_server",
+                output="screen",
+                parameters=[
+                    PathSubstitution(FindPackageShare("concrete_block_assembly_planning"))
+                    / "config"
+                    / "wall_plan_server.yaml",
+                    {
+                        "use_sim_time": True,
+                        "world_model_service": "/world_model_node/get_coarse_blocks",
+                        "world_model_timeout_s": 2.0,
+                        "output_frame": "world",
+                        "wall_plans_file": PathSubstitution(
+                            FindPackageShare("concrete_block_assembly_planning"))
+                        / "config" / "wall_plans.yaml",
+                    },
+                ],
+            ),
+            Node(
                 package="lsrl_behavior_tree",
                 executable="bt_action_server",
                 output="both",
                 parameters=[
                     base_bt_config,
                     override_bt_config,
-                    basic_bt_profile,
+                    stack_bt_profile,
                     {"use_sim_time": True},
                     {
                         "behaviortree": PathSubstitution(
                             FindPackageShare("concrete_block_behavior_tree")
                         )
                         / "behavior_trees"
-                        / "basic_pick_and_place.xml"
+                        / "stack_block_1_on_block_2.xml"
                     },
                 ],
             ),

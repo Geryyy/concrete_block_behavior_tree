@@ -37,21 +37,29 @@ def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
         for node in nodes
     ), "CBS simple grip trajectory server is not launched"
 
+    assert any(
+        node.node_package == "concrete_block_assembly_planning" and
+        node.node_executable == "wall_plan_server"
+        for node in nodes
+    ), "Commissioning stack launch must start the wall-plan server"
+
     assert not any(
         node.node_package == "timber_crane_motion_planning" and
         node.node_executable == "grip_traj_server"
         for node in nodes
     ), "Timber grip trajectory server must not be launched directly"
 
-    gazebo_include = next(
+    pzs100_include = next(
         (
             action for action in include_actions
-            if "gazebo_model_bt.launch.py" in str(action.launch_description_source.location)
+            if "pzs100_bringup.launch.py" in str(action.launch_description_source.location)
         ),
         None,
     )
-    assert gazebo_include is not None, "Expected base Gazebo BT launch include"
+    assert pzs100_include is not None, "Expected PZS100 bringup launch include"
 
-    launch_arguments = dict(gazebo_include.launch_arguments)
+    launch_arguments = dict(pzs100_include.launch_arguments)
+    assert "start_bt_action_server" in launch_arguments
+    assert str(launch_arguments["start_bt_action_server"]) == "False"
     assert "start_grip_traj_server" in launch_arguments
     assert str(launch_arguments["start_grip_traj_server"]) == "False"
