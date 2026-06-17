@@ -36,7 +36,7 @@
       <Action ID="CheckGripperEffort" name="Check grip via effort"
         joint="q9_left_rail_joint"
         min_effort="1000"
-        timeout_ms="5000"
+        timeout_ms="8000"
         arm="gripper"
         object="{grasp_object_contains}"/>
       <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset"
