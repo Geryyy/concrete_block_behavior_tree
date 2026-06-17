@@ -12,7 +12,8 @@
         goal="{yN}" phi="{phi}"/>
       <Action ID="CalcA2BMovement" name="Plan approach"
         carriesLog="{mv_carries}" logCarrying="{logShape}" logsScene="{logsScene}"
-        phiToolN="{phi}" s_log_8_x="{s_log_8_x}"
+        m_log="{payload_mass}" phiToolN="{phi}"
+        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"
         service_name="a2b_movement" server_timeout="10000"
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>

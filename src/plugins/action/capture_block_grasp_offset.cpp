@@ -96,6 +96,9 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   offset_pose.orientation.w = q.w();
 
   setOutput("grasp_offset", offset_pose);
+  setOutput("s_log_8_x", offset_pose.position.x);
+  setOutput("s_log_8_y", offset_pose.position.y);
+  setOutput("s_log_8_z", offset_pose.position.z);
 
   RCLCPP_INFO(
     node_->get_logger(),

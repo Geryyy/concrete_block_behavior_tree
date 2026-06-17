@@ -20,6 +20,9 @@
       <SetBlackboard output_key="wall_plan_name" value="example_wall"/>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
+      <SetBlackboard output_key="s_log_8_y" value="0.0"/>
+      <SetBlackboard output_key="s_log_8_z" value="nan"/>
+      <SetBlackboard output_key="payload_mass" value="777.6"/>
       <!-- Pickup approach and place approach come from the wall plan server.
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
@@ -93,8 +96,11 @@
       <input_port name="carriesLog">Carrying payload?</input_port>
       <input_port name="logCarrying">Payload shape (LogShape)</input_port>
       <input_port name="logsScene">Other logs in the scene (vector&lt;Log&gt;)</input_port>
+      <input_port name="m_log">Payload mass override in kg</input_port>
       <input_port name="phiToolN">Gripper yaw</input_port>
       <input_port name="s_log_8_x">Grip point offset</input_port>
+      <input_port name="s_log_8_y">Payload CoM y in K8</input_port>
+      <input_port name="s_log_8_z">Payload CoM z in K8</input_port>
       <input_port name="server_timeout">Timeout (ms)</input_port>
       <input_port name="service_name">Service name</input_port>
       <input_port name="slowDown">Speed factor</input_port>

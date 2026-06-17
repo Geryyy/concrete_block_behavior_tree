@@ -45,6 +45,9 @@ public:
           "World frame in which world_model block poses are expressed"),
         BT::OutputPort<geometry_msgs::msg::Pose>(
           "grasp_offset", "Offset gripper_tcp <- block_center as a Pose"),
+        BT::OutputPort<double>("s_log_8_x", "Payload CoM x in K8"),
+        BT::OutputPort<double>("s_log_8_y", "Payload CoM y in K8"),
+        BT::OutputPort<double>("s_log_8_z", "Payload CoM z in K8"),
       });
   }
 

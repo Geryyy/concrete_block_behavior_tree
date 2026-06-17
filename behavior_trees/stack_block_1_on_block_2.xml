@@ -15,6 +15,9 @@
       <!-- Shared skill parameters -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
+      <SetBlackboard output_key="s_log_8_y" value="0.0"/>
+      <SetBlackboard output_key="s_log_8_z" value="nan"/>
+      <SetBlackboard output_key="payload_mass" value="777.6"/>
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
