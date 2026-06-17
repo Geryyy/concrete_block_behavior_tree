@@ -42,6 +42,7 @@ add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_g
 add_bt_plugin(BT_cb_publish_grasp_command_action src/plugins/action/publish_grasp_command.cpp)
 add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp)
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp)
+add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp)
 
 install(DIRECTORY
   behavior_trees

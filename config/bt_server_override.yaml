@@ -45,3 +45,4 @@ lifecycle_manager:
       - BT_cb_publish_grasp_command_action
       - BT_cb_capture_block_grasp_offset_action
       - BT_cb_write_block_pose_from_gripper_action
+      - BT_cb_plan_complete_condition

@@ -35,8 +35,14 @@
 
       <!-- ============================================================
            ASSEMBLY LOOP
-           Terminates when GetNextAssemblyTask returns FAILURE (plan complete)
+           The loop runs until its child fails. That failure has two causes:
+           (a) the plan is complete (GetNextAssemblyTask returns has_task=false),
+           or (b) a genuine pick/place failure. The Fallback's recovery branch
+           uses PlanComplete to turn (a) into overall SUCCESS while letting (b)
+           propagate as FAILURE. GetNextAssemblyTask writes plan_has_task to the
+           blackboard before returning, so the two causes are distinguishable.
            ============================================================ -->
+      <Fallback name="assembly_until_complete">
       <KeepRunningUntilFailure name="assembly_loop">
         <Sequence name="pick_and_place_one_block">
 
@@ -79,6 +85,12 @@
 
         </Sequence>
       </KeepRunningUntilFailure>
+
+        <!-- Recovery: loop ended. Succeed iff that was because the plan is
+             complete (plan_has_task=false); a real pick/place failure leaves
+             plan_has_task=true and falls through as FAILURE. -->
+        <PlanComplete name="plan_complete" plan_has_task="{plan_has_task}"/>
+      </Fallback>
 
     </Sequence>
   </BehaviorTree>
@@ -143,6 +155,9 @@
       <output_port name="status_ok">Success flag</output_port>
       <output_port name="status_message">Status message</output_port>
     </Action>
+    <Condition ID="PlanComplete">
+      <input_port name="plan_has_task">Last GetNextAssemblyTask had a task? false =&gt; complete</input_port>
+    </Condition>
     <Action ID="FollowJointTrajectory">
       <input_port name="server_name">Action server</input_port>
       <input_port name="server_timeout">Timeout (ms)</input_port>
