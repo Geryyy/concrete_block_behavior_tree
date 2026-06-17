@@ -20,9 +20,9 @@
       <SetBlackboard output_key="wall_plan_name" value="example_wall"/>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
-      <!-- Pickup (approach_z) and place (place_approach_*) pre-approach points
-           are provided per-task by the wall plan server; see its
-           pickup_approach_height_m / place_approach_{height_m,angle_deg} params. -->
+      <!-- Pickup approach and place approach come from the wall plan server.
+           Place approach is a high A2B endpoint; CalcGripMovement handles the
+           low angled final descent. -->
       <!-- Block approximated as cylinder for timber planner compatibility -->
       <SetBlackboard output_key="logShape"
         value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
@@ -63,9 +63,6 @@
             approach_y="{place_approach_y}"
             approach_z="{place_approach_z}"/>
 
-          <!-- Pre-approach points come straight from the plan server:
-               approach_z = above pickup; place_approach_* = above + laterally
-               offset target (angled place descent). -->
           <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
           <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
