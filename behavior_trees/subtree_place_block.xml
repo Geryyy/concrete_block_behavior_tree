@@ -27,6 +27,7 @@
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"
         block_id="{grasp_object_contains}"
+        world_frame="world"
         grasp_offset="{grasp_offset}"
         task_status="3"
         pose_status="1"/>

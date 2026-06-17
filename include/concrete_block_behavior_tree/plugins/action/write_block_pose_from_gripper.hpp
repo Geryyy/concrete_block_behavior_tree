@@ -41,7 +41,7 @@ public:
           "gripper_frame", "K8_tool_center_point",
           "TF frame of the gripper TCP (on /tf; perception's elastic/ prefix lives on tf_elastic_full)"),
         BT::InputPort<std::string>(
-          "world_frame", "K0_mounting_base",
+          "world_frame", "world",
           "Frame in which to write the block pose"),
         BT::InputPort<geometry_msgs::msg::Pose>(
           "grasp_offset",
