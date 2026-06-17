@@ -10,14 +10,14 @@
     <!-- Model origin is at box centre.                                   -->
     <link name='link'>
       <inertial>
-        <mass>778</mass>
+        <mass>80</mass>
         <inertia>
-          <ixx>46.7</ixx>
+          <ixx>4.67</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>75.5</iyy>
+          <iyy>7.55</iyy>
           <iyz>0</iyz>
-          <izz>75.5</izz>
+          <izz>7.55</izz>
         </inertia>
         <pose>0 0 0 0 0 0</pose>
       </inertial>

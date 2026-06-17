@@ -22,7 +22,7 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
-      <SetBlackboard output_key="payload_mass" value="777.6"/>
+      <SetBlackboard output_key="payload_mass" value="80.0"/>
       <!-- Pickup approach and place approach come from the wall plan server.
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
