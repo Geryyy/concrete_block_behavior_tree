@@ -54,7 +54,7 @@
         grasp_offset="{grasp_offset}"/>
 
       <!-- 6. Lift the grasped block -->
-      <SetBlackboard output_key="lf_carries" value="false"/>
+      <SetBlackboard output_key="lf_carries" value="true"/>
       <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
 
     </Sequence>
