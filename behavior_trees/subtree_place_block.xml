@@ -30,7 +30,7 @@
         world_frame="world"
         grasp_offset="{grasp_offset}"
         task_status="3"
-        pose_status="1"/>
+        pose_status="2"/>
       <Action ID="PublishGraspCommand" name="Release block"
         arm="gripper" object="{grasp_object_contains}" attached="false"/>
       <SetBlackboard output_key="gr_phase" value="3"/>

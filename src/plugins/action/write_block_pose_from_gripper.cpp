@@ -28,7 +28,7 @@ void WriteBlockPoseFromGripper::on_tick()
   std::string world_frame;
   geometry_msgs::msg::Pose grasp_offset;
   int task_status = 3;   // TASK_PLACED
-  int pose_status = 1;   // POSE_COARSE
+  int pose_status = 2;   // POSE_PRECISE (placed pose is known from FK + grasp offset)
   double confidence = 1.0;
 
   getInput("block_id", block_id);
