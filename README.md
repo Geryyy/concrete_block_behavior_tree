@@ -11,6 +11,21 @@ This package glues together:
 - block state from `concrete_block_world_model/world_model_node`
 - Gazebo block spawning from the same world-model seed data
 
+## Dependencies & interactions
+
+This is the **orchestrator** of the stack — its BT plugins (`src/plugins/`) are clients of nearly every other package, and the tree itself runs inside `lsrl_behavior_tree`'s `bt_action_server` (BehaviorTree.CPP **v3**). The `wall_assembly.xml` tree composes the subtrees `MoveAbove → Gripper → DescendTo → Lift → ExecuteTrajectory`.
+
+| BT node / plugin | Talks to | Interface |
+|---|---|---|
+| `GetNextAssemblyTask`, `PlanComplete` | [concrete_block_assembly_planning](../concrete_block_assembly_planning/) | `concrete_block_assembly_interfaces/GetNextAssemblyTask` |
+| `CalcGripMovement` (descend / gripper / lift) | [concrete_block_motion_planning](../concrete_block_motion_planning/) | `grip_traj_movement` |
+| `CalcA2BMovement` (move-above) | timber_crane A2B server | `a2b_movement` |
+| `SetBlockTaskStatus`, `CaptureBlockGraspOffset`, `WriteBlockPoseFromGripper` | [concrete_block_world_model](../concrete_block_world_model/) | `concrete_block_world_model_interfaces` (`SetBlockTaskStatus`, `GetCoarseBlocks`, `UpsertBlock`) |
+| `ExecuteTrajectory` (`SwitchController` + `FollowJointTrajectory`) | `controller_manager` / `ros2_control` | controller switch + FJT action |
+| `PublishGraspCommand`, `CheckGripperEffort`, `WaitForGazeboGrasp` | `gazebo_grasp_plugin_ros` / Gazebo | grasp attach/detach + effort |
+
+Bringup / infrastructure deps: `lsrl_behavior_tree` (BT engine), `epsilon_crane_bringup_sim` / `epsilon_crane_bringup_mp` (PZS100 Gazebo + MP bringup), `pzs100_description`, `epsilon_7040_description`, `collision_body_handler`, `nav2_behavior_tree` / `nav2_lifecycle_manager`. Because it pulls in the epsilon/timber stacks, `--packages-up-to concrete_block_behavior_tree` builds ~76 packages.
+
 ## Contents
 
 ```text
