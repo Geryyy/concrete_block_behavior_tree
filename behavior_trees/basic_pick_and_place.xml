@@ -18,7 +18,7 @@
       <SetBlackboard output_key="payload_mass" value="777.6"/>
       <SetBlackboard output_key="approach_z" value="2.0"/>
       <SetBlackboard output_key="carry_approach_z" value="2.0"/>
-      <SetBlackboard output_key="grasp_object_contains" value="c0_b0"/>
+      <SetBlackboard output_key="grasp_object_contains" value="block_0"/>
       <SetBlackboard output_key="pickup_x" value="6.06"/>
       <SetBlackboard output_key="pickup_y" value="0.35"/>
       <SetBlackboard output_key="pickup_z" value="-0.84"/>
