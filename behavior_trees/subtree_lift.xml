@@ -6,7 +6,7 @@
   <BehaviorTree ID="SubTreeLift">
     <Sequence name="lift">
       <Action ID="CalcGripMovement" name="Plan lift"
-        carriesLog="{lf_carries}" logShape="{logShape}" phase="4"
+        carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"

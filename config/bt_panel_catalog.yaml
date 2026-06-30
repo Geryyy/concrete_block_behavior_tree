@@ -4,3 +4,5 @@ behavior_trees:
     path: "/behavior_trees/stack_block_1_on_block_2.xml"
   - name: "Wall assembly"
     path: "/behavior_trees/wall_assembly.xml"
+  - name: "Row 3 middle last"
+    path: "/behavior_trees/wall_assembly_row3_middle_last.xml"

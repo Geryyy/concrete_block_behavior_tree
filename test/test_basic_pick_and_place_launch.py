@@ -1,13 +1,13 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch_ros.actions import Node
 
 
-def _load_launch_module():
-    launch_path = Path(__file__).resolve().parents[1] / "launch" / "gazebo_basic_pick_and_place_pzs100.launch.py"
-    spec = spec_from_file_location("gazebo_basic_pick_and_place_pzs100", launch_path)
+def _load_launch_module(name):
+    launch_path = Path(__file__).resolve().parents[1] / "launch" / name
+    spec = spec_from_file_location(name.removesuffix(".py"), launch_path)
     module = module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
@@ -23,7 +23,7 @@ def _walk_entities(entities):
 
 
 def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
-    module = _load_launch_module()
+    module = _load_launch_module("gazebo_basic_pick_and_place_pzs100.launch.py")
     ld = module.generate_launch_description()
 
     nodes = [entity for entity in _walk_entities(ld.entities) if isinstance(entity, Node)]
@@ -63,3 +63,54 @@ def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
     assert str(launch_arguments["start_bt_action_server"]) == "False"
     assert "start_grip_traj_server" in launch_arguments
     assert str(launch_arguments["start_grip_traj_server"]) == "False"
+
+
+def _node_parameter_names(node):
+    names = []
+    for param in getattr(node, "_Node__parameters"):
+        if not isinstance(param, dict):
+            continue
+        for key in param:
+            if isinstance(key, tuple):
+                names.extend(getattr(part, "text", None) for part in key)
+            else:
+                names.append(str(key))
+    return {name for name in names if name}
+
+
+def test_wall_assembly_launch_exposes_grip_lift_height_override():
+    module = _load_launch_module("gazebo_wall_assembly_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    declares = [
+        entity for entity in _walk_entities(ld.entities)
+        if isinstance(entity, DeclareLaunchArgument)
+    ]
+    assert any(
+        declare.name == "lift_height"
+        and getattr(declare.default_value[0], "text", None) == "1.0"
+        for declare in declares
+    )
+
+    grip_node = next(
+        node for node in _walk_entities(ld.entities)
+        if isinstance(node, Node)
+        and node.node_package == "concrete_block_motion_planning"
+        and node.node_executable == "grip_traj_server_simple.py"
+    )
+    assert "lift_height" in _node_parameter_names(grip_node)
+
+
+def test_row3_truck_launch_uses_larger_grip_lift_height():
+    module = _load_launch_module("gazebo_row3_middle_last_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    wall_include = next(
+        action for action in _walk_entities(ld.entities)
+        if isinstance(action, IncludeLaunchDescription)
+        and "gazebo_wall_assembly_pzs100.launch.py" in str(
+            action.launch_description_source.location
+        )
+    )
+    launch_arguments = dict(wall_include.launch_arguments)
+    assert launch_arguments["lift_height"] == "1.2"

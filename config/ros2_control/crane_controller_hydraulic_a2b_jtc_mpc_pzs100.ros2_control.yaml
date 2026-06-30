@@ -46,9 +46,9 @@
       stopped_velocity_tolerance: 0.15 # raised from 0.05 to absorb EPSCOPE state_factor=2.0 doubling on q9 at squeeze-settled goal
       goal_time: 10.0 # s, 0=deactivate goal_time check
       theta1_slewing_joint:
-        goal: 0.025
+        goal: 0.05
       theta2_boom_joint:
-        goal: 0.025
+        goal: 0.05
       theta3_arm_joint:
         goal: 0.025
       q4_big_telescope:

@@ -27,8 +27,8 @@
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
       <!-- Block approximated as cylinder for timber planner compatibility -->
-      <SetBlackboard output_key="logShape"
-        value="{radius_top: 0.30, radius_bottom: 0.30, length: 0.90}"/>
+      <SetBlackboard output_key="log_shape_text"
+        value="radius_top: 0.30, radius_bottom: 0.30, length: 0.90"/>
       <!-- CBS has no log-scene perception; leave logsScene unset on the BB.
            CalcA2BMovement's getInput returns failure without convertFromString
            and request_->logs_scene stays default-empty. -->
@@ -94,81 +94,5 @@
 
     </Sequence>
   </BehaviorTree>
-  <!-- ////////// -->
-  <TreeNodesModel>
-    <Action ID="SetGoalPose">
-      <input_port name="yN.x">Target x in K0_mounting_base</input_port>
-      <input_port name="yN.y">Target y in K0_mounting_base</input_port>
-      <input_port name="yN.z">Target z in K0_mounting_base</input_port>
-      <input_port name="phiN">Target yaw (rad)</input_port>
-      <output_port name="goal">geometry_msgs::Point</output_port>
-      <output_port name="phi">Yaw (rad)</output_port>
-    </Action>
-    <Action ID="CalcA2BMovement">
-      <input_port name="carriesLog">Carrying payload?</input_port>
-      <input_port name="logCarrying">Payload shape (LogShape)</input_port>
-      <input_port name="logsScene">Other logs in the scene (vector&lt;Log&gt;)</input_port>
-      <input_port name="m_log">Payload mass override in kg</input_port>
-      <input_port name="phiToolN">Gripper yaw</input_port>
-      <input_port name="s_log_8_x">Grip point offset</input_port>
-      <input_port name="s_log_8_y">Payload CoM y in K8</input_port>
-      <input_port name="s_log_8_z">Payload CoM z in K8</input_port>
-      <input_port name="server_timeout">Timeout (ms)</input_port>
-      <input_port name="service_name">Service name</input_port>
-      <input_port name="slowDown">Speed factor</input_port>
-      <input_port name="tEnd">Fixed end time (0=auto)</input_port>
-      <output_port name="trajectory">Computed trajectory</output_port>
-      <input_port name="yN">Target position</input_port>
-    </Action>
-    <Action ID="CalcGripMovement">
-      <input_port name="carriesLog">Carrying payload?</input_port>
-      <input_port name="logShape">Payload shape</input_port>
-      <input_port name="phase">1=descend, 2=close gripper, 3=open gripper, 4=lift</input_port>
-      <input_port name="phiToolN">Gripper yaw</input_port>
-      <input_port name="s_log_8_x">Grip point offset</input_port>
-      <input_port name="server_timeout">Timeout (ms)</input_port>
-      <input_port name="service_name">Service name</input_port>
-      <input_port name="slowDown">Speed factor</input_port>
-      <output_port name="trajectory">Computed trajectory</output_port>
-      <input_port name="yN">Target position (CoG)</input_port>
-    </Action>
-    <Action ID="GetNextAssemblyTask">
-      <input_port name="service_name">Service name</input_port>
-      <input_port name="wall_plan_name">Wall plan name</input_port>
-      <input_port name="reset_plan">Reset plan progress</input_port>
-      <output_port name="task_id">Current task ID</output_port>
-      <output_port name="target_block_id">Block ID</output_port>
-      <output_port name="reference_block_id">Reference block ID</output_port>
-      <output_port name="pickup_x">Pickup X</output_port>
-      <output_port name="pickup_y">Pickup Y</output_port>
-      <output_port name="pickup_z">Pickup Z</output_port>
-      <output_port name="pickup_yaw">Pickup yaw (rad)</output_port>
-      <output_port name="place_x">Place X</output_port>
-      <output_port name="place_y">Place Y</output_port>
-      <output_port name="place_z">Place Z</output_port>
-      <output_port name="place_yaw">Place yaw (rad)</output_port>
-    </Action>
-    <Action ID="SetBlockTaskStatus">
-      <input_port name="service_name">Service name</input_port>
-      <input_port name="block_id">Block to update</input_port>
-      <input_port name="task_status">Status code (3=placed)</input_port>
-      <output_port name="status_ok">Success flag</output_port>
-      <output_port name="status_message">Status message</output_port>
-    </Action>
-    <Condition ID="PlanComplete">
-      <input_port name="plan_has_task">Last GetNextAssemblyTask had a task? false =&gt; complete</input_port>
-    </Condition>
-    <Action ID="FollowJointTrajectory">
-      <input_port name="server_name">Action server</input_port>
-      <input_port name="server_timeout">Timeout (ms)</input_port>
-      <input_port name="trajectory">Trajectory to follow</input_port>
-    </Action>
-    <Decorator ID="GetUserApproval">
-      <input_port name="topic">Topic</input_port>
-    </Decorator>
-    <Condition ID="CheckUserApproval">
-      <input_port name="topic">Topic</input_port>
-    </Condition>
-  </TreeNodesModel>
   <!-- ////////// -->
 </root>

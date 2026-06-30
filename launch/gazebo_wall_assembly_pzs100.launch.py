@@ -22,12 +22,11 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    use_sim_time = "true"
-
     # ── Plugin config ────────────────────────────────────────────────────
     # epsilon_crane default.yaml provides base settings (loop duration, lifecycle
     # manager, logging). bt_server_override.yaml overrides plugin_lib_names to
@@ -42,6 +41,7 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
+    seed_file = LaunchConfiguration("seed_file")
 
     # Keyboard TUI
     if os.path.exists("/usr/bin/xterm"):
@@ -55,6 +55,14 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("gui", default_value="True"),
             DeclareLaunchArgument(
+                "gazebo_world_file",
+                default_value="epsilon_crane.world",
+                description=(
+                    "World file from testsite_description/worlds. Use empty.world "
+                    "for a clean sim without the Seibersdorf container."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "initial_pose",
                 default_value="1",
                 description="Initial crane pose (see epsilon_crane_description)",
@@ -63,6 +71,27 @@ def generate_launch_description():
                 "controller",
                 default_value="pid",
                 description="Low-level A2B controller: 'pid' or 'mpc'",
+            ),
+            DeclareLaunchArgument(
+                "place_approach_angle_deg",
+                default_value="4.0",
+                description="Pre-place lateral approach angle in degrees.",
+            ),
+            DeclareLaunchArgument(
+                "lift_height",
+                default_value="1.0",
+                description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
+            ),
+            DeclareLaunchArgument(
+                "seed_file",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_world_model"),
+                        "config",
+                        "world_model_seed_pick_place.yaml",
+                    ]
+                ),
+                description="World-model/Gazebo seed YAML with world_model.initial_blocks.",
             ),
             # Point the RViz BT panel to concrete_block_behavior_tree
             SetEnvironmentVariable(
@@ -89,6 +118,9 @@ def generate_launch_description():
                     "start_grip_traj_server": "False",
                     "controller": LaunchConfiguration("controller"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
+                    "seed_file": seed_file,
+                    "gui": LaunchConfiguration("gui"),
+                    "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
                 }.items(),
             ),
             # World model is launched by gazebo_model_bt_pzs100.launch.py.
@@ -103,6 +135,12 @@ def generate_launch_description():
                     PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
                     / "config"
                     / "grip_traj_simple.yaml",
+                    {
+                        "lift_height": ParameterValue(
+                            LaunchConfiguration("lift_height"),
+                            value_type=float,
+                        ),
+                    },
                     {"use_sim_time": True},
                 ],
             ),
@@ -121,6 +159,10 @@ def generate_launch_description():
                         "world_model_service": "/world_model_node/get_coarse_blocks",
                         "world_model_timeout_s": 2.0,
                         "output_frame": "world",
+                        "place_approach_angle_deg": ParameterValue(
+                            LaunchConfiguration("place_approach_angle_deg"),
+                            value_type=float,
+                        ),
                         "wall_plans_file": PathSubstitution(
                             FindPackageShare("concrete_block_assembly_planning"))
                         / "config" / "wall_plans.yaml",
@@ -173,11 +215,7 @@ def generate_launch_description():
                         parameters=[
                             {
                                 "use_sim_time": True,
-                                "seed_config_file": PathJoinSubstitution([
-                                    FindPackageShare("concrete_block_world_model"),
-                                    "config",
-                                    "world_model_seed_pick_place.yaml",
-                                ]),
+                                "seed_config_file": seed_file,
                                 "gazebo_world_frame": "world",
                                 "use_precomputed_gazebo_pose": False,
                                 # Seed is in `world` (same frame as wall_spec / plan).

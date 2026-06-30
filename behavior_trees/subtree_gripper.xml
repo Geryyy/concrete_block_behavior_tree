@@ -7,7 +7,7 @@
   <BehaviorTree ID="SubTreeGripper">
     <Sequence name="gripper">
       <Action ID="CalcGripMovement" name="Plan gripper move"
-        carriesLog="{gr_carries}" logShape="{logShape}" phase="{gr_phase}"
+        carriesLog="{gr_carries}" logShapeText="{log_shape_text}" phase="{gr_phase}"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"

@@ -1,5 +1,5 @@
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.substitutions import LaunchConfiguration, PathSubstitution, PythonExpression
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PathSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -9,6 +9,7 @@ from launch import LaunchDescription
 def generate_launch_description():
     planner = LaunchConfiguration("planner")
     controller = LaunchConfiguration("controller")
+    seed_file = LaunchConfiguration("seed_file")
 
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
@@ -34,6 +35,30 @@ def generate_launch_description():
                 "controller",
                 default_value="pid",
                 description="Controller: 'pid' or 'mpc'",
+            ),
+            DeclareLaunchArgument(
+                "seed_file",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_world_model"),
+                        "config",
+                        "world_model_seed_pick_place.yaml",
+                    ]
+                ),
+                description="World-model/Gazebo seed YAML with world_model.initial_blocks.",
+            ),
+            DeclareLaunchArgument(
+                "gui",
+                default_value="True",
+                description="Flag to launch gazebo+rviz2 GUI.",
+            ),
+            DeclareLaunchArgument(
+                "gazebo_world_file",
+                default_value="epsilon_crane.world",
+                description=(
+                    "World file from testsite_description/worlds. Use empty.world "
+                    "for a clean sim without the Seibersdorf container."
+                ),
             ),
             # Spawn the PZS100 joint-state adapter that publishes
             # /joint_states_rviz with the per-rail-corrected EPSCOPE q9.
@@ -79,6 +104,8 @@ def generate_launch_description():
                     / "rviz"
                     / "cbs.rviz",
                     "joint_states_topic": "joint_states_rviz",
+                    "gui": LaunchConfiguration("gui"),
+                    "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
                 }.items(),
             ),
         ]
@@ -86,12 +113,6 @@ def generate_launch_description():
 
     # World model is seeded from the same YAML the Gazebo block spawner uses, so
     # markers / GetCoarseBlocks and the spawned Gazebo blocks share one source.
-    world_model_seed = (
-        PathSubstitution(FindPackageShare("concrete_block_world_model"))
-        / "config"
-        / "world_model_seed_pick_place.yaml"
-    )
-
     ld.add_action(
         Node(
             package="concrete_block_world_model",
@@ -101,7 +122,7 @@ def generate_launch_description():
                 PathSubstitution(FindPackageShare("concrete_block_world_model"))
                 / "config"
                 / "world_model.yaml",
-                world_model_seed,
+                seed_file,
                 {
                     "use_sim_time": True,
                     # Whole CBS stack (spec, plan, world model, viz) stays in `world`;

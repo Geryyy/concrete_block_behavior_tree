@@ -11,7 +11,7 @@
         phiN="{dz_yaw}"
         goal="{COG}" phi="{phi}"/>
       <Action ID="CalcGripMovement" name="Plan descend"
-        carriesLog="{dz_carries}" logShape="{logShape}" phase="1"
+        carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"

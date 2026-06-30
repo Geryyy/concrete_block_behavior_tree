@@ -27,6 +27,7 @@ def generate_launch_description():
         / "profiles"
         / "stack_block_1_on_block_2.yaml"
     )
+    seed_file = LaunchConfiguration("seed_file")
 
     if os.path.exists("/usr/bin/xterm"):
       spawn_terminal_prefix = "xterm -e "
@@ -38,8 +39,20 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("gui", default_value="True"),
+            DeclareLaunchArgument("gazebo_world_file", default_value="epsilon_crane.world"),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("controller", default_value="pid"),
+            DeclareLaunchArgument(
+                "seed_file",
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare("concrete_block_world_model"),
+                        "config",
+                        "world_model_seed_pick_place.yaml",
+                    ]
+                ),
+                description="World-model/Gazebo seed YAML with world_model.initial_blocks.",
+            ),
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
                 value="concrete_block_behavior_tree",
@@ -68,6 +81,8 @@ def generate_launch_description():
                     "start_grip_traj_server": "False",
                     "initial_pose": LaunchConfiguration("initial_pose"),
                     "gui": LaunchConfiguration("gui"),
+                    "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
+                    "seed_file": seed_file,
                 }.items(),
             ),
             Node(
@@ -137,11 +152,7 @@ def generate_launch_description():
                         parameters=[
                             {
                                 "use_sim_time": True,
-                                "seed_config_file": PathJoinSubstitution([
-                                    FindPackageShare("concrete_block_world_model"),
-                                    "config",
-                                    "world_model_seed_pick_place.yaml",
-                                ]),
+                                "seed_config_file": seed_file,
                                 "gazebo_world_frame": "world",
                                 "use_precomputed_gazebo_pose": False,
                                 # Seed is in `world` (same frame as wall_spec / plan).
