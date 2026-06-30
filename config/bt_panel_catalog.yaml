@@ -1,6 +1,6 @@
 package: concrete_block_behavior_tree
 behavior_trees:
-  - name: "Stack c0_b0 on c0_b1"
+  - name: "Stack block 1 on block 2"
     path: "/behavior_trees/stack_block_1_on_block_2.xml"
   - name: "Wall assembly"
     path: "/behavior_trees/wall_assembly.xml"

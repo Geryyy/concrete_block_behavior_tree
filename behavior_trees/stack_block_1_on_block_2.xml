@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<root main_tree_to_execute="StackC0B0OnC0B1">
+<root main_tree_to_execute="StackBlock1OnBlock2">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
@@ -9,8 +9,8 @@
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_place_block.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_pick_and_place_block.xml"/>
 
-  <BehaviorTree ID="StackC0B0OnC0B1">
-    <Sequence name="stack_c0_b0_on_c0_b1">
+  <BehaviorTree ID="StackBlock1OnBlock2">
+    <Sequence name="stack_block_1_on_block_2">
 
       <!-- Shared skill parameters -->
       <SetBlackboard output_key="slow_down" value="1.0"/>
