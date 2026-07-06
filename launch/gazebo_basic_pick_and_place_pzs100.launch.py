@@ -21,11 +21,11 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    stack_bt_profile = (
+    grip_profile = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
         / "profiles"
-        / "stack_block_1_on_block_2.yaml"
+        / "grip_sim.yaml"
     )
     seed_file = LaunchConfiguration("seed_file")
 
@@ -124,7 +124,7 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
-                    stack_bt_profile,
+                    grip_profile,
                     {"use_sim_time": True},
                     {
                         "behaviortree": PathSubstitution(

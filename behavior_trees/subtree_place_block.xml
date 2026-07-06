@@ -22,7 +22,7 @@
       <SetBlackboard output_key="dz_carries" value="true"/>
       <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
 
-      <!-- 3. Write final block pose, then detach + open gripper -->
+      <!-- 3. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"
@@ -31,8 +31,6 @@
         grasp_offset="{grasp_offset}"
         task_status="3"
         pose_status="2"/>
-      <Action ID="PublishGraspCommand" name="Release block"
-        arm="gripper" object="{grasp_object_contains}" attached="false"/>
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="true"/>
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>

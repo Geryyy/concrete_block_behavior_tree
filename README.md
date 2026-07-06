@@ -22,7 +22,8 @@ This is the **orchestrator** of the stack — its BT plugins (`src/plugins/`) ar
 | `CalcA2BMovement` (move-above) | timber_crane A2B server | `a2b_movement` |
 | `SetBlockTaskStatus`, `CaptureBlockGraspOffset`, `WriteBlockPoseFromGripper` | [concrete_block_world_model](../concrete_block_world_model/) | `concrete_block_world_model_interfaces` (`SetBlockTaskStatus`, `GetCoarseBlocks`, `UpsertBlock`) |
 | `ExecuteTrajectory` (`SwitchController` + `FollowJointTrajectory`) | `controller_manager` / `ros2_control` | controller switch + FJT action |
-| `PublishGraspCommand`, `CheckGripperEffort`, `WaitForGazeboGrasp` | `gazebo_grasp_plugin_ros` / Gazebo | grasp attach/detach + effort |
+| `CheckGripperEffort` | `/joint_states` | grip verification from sustained gripper effort |
+| `PublishGraspCommand`, `WaitForGazeboGrasp` | `gazebo_grasp_plugin_ros` / Gazebo | optional simulation-only grasp attach/detach helpers |
 
 Bringup / infrastructure deps: `lsrl_behavior_tree` (BT engine), `epsilon_crane_bringup_sim` / `epsilon_crane_bringup_mp` (PZS100 Gazebo + MP bringup), `pzs100_description`, `epsilon_7040_description`, `collision_body_handler`, `nav2_behavior_tree` / `nav2_lifecycle_manager`. Because it pulls in the epsilon/timber stacks, `--packages-up-to concrete_block_behavior_tree` builds ~76 packages.
 
@@ -77,7 +78,9 @@ ros2 launch concrete_block_behavior_tree gazebo_basic_pick_and_place_pzs100.laun
 Starts a smaller commissioning behavior tree using
 `behavior_trees/stack_block_1_on_block_2.xml`. It runs the same
 wall-plan/world-model path as wall assembly, but with one task: stack `c0_b0`
-on `c0_b1`.
+on `c0_b1`. In Gazebo this launch loads
+`config/profiles/grip_sim.yaml`, which keeps BT selection separate from the
+grip effort threshold for simulated joint-state effort.
 
 Common launch arguments:
 
@@ -113,7 +116,10 @@ the concrete-block-specific plugins:
 ```text
 BT_cb_get_next_assembly_task_action
 BT_cb_set_block_task_status_action
-BT_cb_wait_for_gazebo_grasp_condition
+BT_cb_check_gripper_effort_condition
+BT_cb_capture_block_grasp_offset_action
+BT_cb_write_block_pose_from_gripper_action
+BT_cb_plan_complete_condition
 ```
 
 These are service-backed BehaviorTree.CPP nodes:
@@ -121,8 +127,8 @@ These are service-backed BehaviorTree.CPP nodes:
 - `GetNextAssemblyTask` calls the wall-plan server and writes pickup/place poses
   to the blackboard.
 - `SetBlockTaskStatus` updates a block in the world model after placement.
-- `WaitForGazeboGrasp` waits for a Gazebo grasp attach event before the crane
-  starts lifting the block.
+- `CheckGripperEffort` waits until the gripper effort stays above threshold for
+  a minimum duration before the crane starts lifting the block.
 
 ## Block Configuration
 
@@ -207,25 +213,47 @@ The behavior trees do not query Gazebo directly. In simulation the world model
 is seeded from the YAML file; on the real crane perception updates the same
 world model before planning.
 
-## Gazebo Grasp Fix
+## Grasp Verification
 
-The PZS100 gripper already loads `gazebo_grasp_fix` in:
+The shared pick tree verifies a grasp with `CheckGripperEffort`, which watches
+the configured gripper joint in `/joint_states` and requires `|effort|` to stay
+above `min_effort` for `min_duration_ms`. This works for both simulation and
+the real crane as long as the gripper effort/pressure is exposed through joint
+state effort.
+
+Deployment-specific thresholds are ROS parameters on the BT action server:
+
+```yaml
+check_gripper_effort:
+  topic: "/joint_states"
+  joint: "q9_left_rail_joint"
+  min_effort: 1000.0
+  min_duration_ms: 500
+  timeout_ms: 8000
+```
+
+For the real crane, tune these in `config/profiles/grip_real.yaml`. For Gazebo,
+tune them in `config/profiles/grip_sim.yaml`. These profiles intentionally do
+not set `behaviortree`, so RViz panel tree selection and grip tuning stay
+independent.
+
+The PZS100 Gazebo gripper may also load `gazebo_grasp_fix` in:
 
 ```text
 crane_tools_description/pzs100/gazebo/gripper.gazebo.xacro
 ```
 
-The Gazebo plugin publishes attach/detach events through Gazebo transport.
-`gazebo_grasp_plugin_ros` republishes them to ROS 2 on:
+When `gazebo_grasp_plugin_ros` is available, this package also builds optional
+Gazebo-only BT plugins for legacy/simulation-specific trees:
 
 ```text
-/grasp_events
+WaitForGazeboGrasp
+PublishGraspCommand
 ```
 
-`subtree_pick_and_place_block.xml` waits for `WaitForGazeboGrasp` immediately
-after the close-gripper trajectory. The top-level tree sets
-`grasp_object_contains` to the expected block id, for example `c0_b0`, so the
-BT only lifts after Gazebo reports that the requested block is attached.
+The default BT plugin config does not load those Gazebo-only plugins, so the
+behavior-tree package does not require `gazebo_grasp_plugin_ros` on the real
+crane.
 
 ## Wall Plans
 

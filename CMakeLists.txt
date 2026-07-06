@@ -9,7 +9,6 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp_v3
   concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
-  gazebo_grasp_plugin_ros
   geometry_msgs
   lsrl_behavior_tree
   nav2_behavior_tree
@@ -24,25 +23,39 @@ find_package(ament_cmake REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
+find_package(gazebo_grasp_plugin_ros QUIET)
 
 include_directories(include)
 
 function(add_bt_plugin plugin_name source_file)
   add_library(${plugin_name} SHARED ${source_file})
-  ament_target_dependencies(${plugin_name} ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  ament_target_dependencies(${plugin_name} ${ARGN})
   target_compile_definitions(${plugin_name} PRIVATE BT_PLUGIN_EXPORT)
   list(APPEND plugin_libs ${plugin_name})
   set(plugin_libs "${plugin_libs}" PARENT_SCOPE)
 endfunction()
 
-add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp)
-add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp)
-add_bt_plugin(BT_cb_wait_for_gazebo_grasp_condition src/plugins/condition/wait_for_gazebo_grasp.cpp)
-add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp)
-add_bt_plugin(BT_cb_publish_grasp_command_action src/plugins/action/publish_grasp_command.cpp)
-add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp)
-add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp)
-add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp)
+add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+if(gazebo_grasp_plugin_ros_FOUND)
+  add_bt_plugin(
+    BT_cb_wait_for_gazebo_grasp_condition
+    src/plugins/condition/wait_for_gazebo_grasp.cpp
+    ${THIS_PACKAGE_INCLUDE_DEPENDS}
+    gazebo_grasp_plugin_ros)
+  add_bt_plugin(
+    BT_cb_publish_grasp_command_action
+    src/plugins/action/publish_grasp_command.cpp
+    ${THIS_PACKAGE_INCLUDE_DEPENDS}
+    gazebo_grasp_plugin_ros)
+else()
+  message(STATUS "gazebo_grasp_plugin_ros not found; skipping Gazebo grasp BT plugins")
+endif()
 
 install(DIRECTORY
   behavior_trees

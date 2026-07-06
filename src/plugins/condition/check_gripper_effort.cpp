@@ -9,6 +9,29 @@
 namespace concrete_block_behavior_tree
 {
 
+namespace
+{
+
+template<typename T>
+T getParameterOrDeclare(
+  const rclcpp::Node::SharedPtr & node,
+  const std::string & name,
+  const T & default_value)
+{
+  if (!node->has_parameter(name)) {
+    try {
+      node->declare_parameter<T>(name, default_value);
+    } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException &) {
+    }
+  }
+
+  T value = default_value;
+  node->get_parameter(name, value);
+  return value;
+}
+
+}  // namespace
+
 CheckGripperEffort::CheckGripperEffort(
   const std::string & name,
   const BT::NodeConfiguration & conf)
@@ -16,7 +39,9 @@ CheckGripperEffort::CheckGripperEffort(
 {
   node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
+  getInput("param_prefix", param_prefix_);
   getInput("topic", topic_);
+  topic_ = getParameterOrDeclare(node_, param_prefix_ + ".topic", topic_);
   if (topic_.empty()) {
     throw std::invalid_argument("CheckGripperEffort input 'topic' must not be empty");
   }
@@ -36,12 +61,6 @@ CheckGripperEffort::CheckGripperEffort(
     std::bind(&CheckGripperEffort::callback, this, std::placeholders::_1),
     options);
 
-  std::string command_topic;
-  getInput("grasp_command_topic", command_topic);
-  if (!command_topic.empty()) {
-    command_pub_ = node_->create_publisher<GraspEvent>(command_topic, 10);
-  }
-
   RCLCPP_INFO(
     node_->get_logger(),
     "CheckGripperEffort initialized, listening to %s",
@@ -52,19 +71,26 @@ BT::NodeStatus CheckGripperEffort::onStart()
 {
   getInput("joint", joint_);
   getInput("min_effort", min_effort_);
+  getInput("min_duration_ms", min_duration_ms_);
   getInput("timeout_ms", timeout_ms_);
+  joint_ = getParameterOrDeclare(node_, param_prefix_ + ".joint", joint_);
+  min_effort_ = getParameterOrDeclare(node_, param_prefix_ + ".min_effort", min_effort_);
+  min_duration_ms_ = getParameterOrDeclare(
+    node_, param_prefix_ + ".min_duration_ms", min_duration_ms_);
+  timeout_ms_ = getParameterOrDeclare(node_, param_prefix_ + ".timeout_ms", timeout_ms_);
 
   {
     std::lock_guard<std::mutex> lock(mutex_);
     have_sample_ = false;
+    above_threshold_ = false;
     last_effort_ = 0.0;
   }
 
   start_time_ = std::chrono::steady_clock::now();
   RCLCPP_INFO(
     node_->get_logger(),
-    "Checking gripper grip | joint='%s' min_effort=%.1f timeout_ms=%d",
-    joint_.c_str(), min_effort_, timeout_ms_);
+    "Checking gripper grip | joint='%s' min_effort=%.1f min_duration_ms=%d timeout_ms=%d",
+    joint_.c_str(), min_effort_, min_duration_ms_, timeout_ms_);
 
   return onRunning();
 }
@@ -75,13 +101,24 @@ BT::NodeStatus CheckGripperEffort::onRunning()
 
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (have_sample_ && std::abs(last_effort_) >= min_effort_) {
-      RCLCPP_INFO(
-        node_->get_logger(),
-        "Grip detected | joint='%s' effort=%.1f >= %.1f",
-        joint_.c_str(), last_effort_, min_effort_);
-      publishAttachCommand();
-      return BT::NodeStatus::SUCCESS;
+    const auto now = std::chrono::steady_clock::now();
+    const bool currently_above = have_sample_ && std::abs(last_effort_) >= min_effort_;
+    if (currently_above) {
+      if (!above_threshold_) {
+        above_threshold_ = true;
+        above_threshold_since_ = now;
+      }
+      const auto held_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - above_threshold_since_).count();
+      if (held_ms >= min_duration_ms_) {
+        RCLCPP_INFO(
+          node_->get_logger(),
+          "Grip detected | joint='%s' effort=%.1f >= %.1f for %ld ms",
+          joint_.c_str(), last_effort_, min_effort_, held_ms);
+        return BT::NodeStatus::SUCCESS;
+      }
+    } else {
+      above_threshold_ = false;
     }
   }
 
@@ -103,30 +140,7 @@ void CheckGripperEffort::onHalted()
 {
   std::lock_guard<std::mutex> lock(mutex_);
   have_sample_ = false;
-}
-
-void CheckGripperEffort::publishAttachCommand()
-{
-  if (!command_pub_) {return;}
-  std::string arm;
-  std::string object;
-  getInput("arm", arm);
-  getInput("object", object);
-  if (object.empty()) {
-    RCLCPP_WARN(
-      node_->get_logger(),
-      "CheckGripperEffort: 'object' input is empty; skipping attach command");
-    return;
-  }
-  GraspEvent cmd;
-  cmd.arm = arm;
-  cmd.object = object;
-  cmd.attached = true;
-  command_pub_->publish(cmd);
-  RCLCPP_INFO(
-    node_->get_logger(),
-    "Published grasp attach command | arm='%s' object='%s'",
-    arm.c_str(), object.c_str());
+  above_threshold_ = false;
 }
 
 void CheckGripperEffort::callback(const JointState::SharedPtr msg)

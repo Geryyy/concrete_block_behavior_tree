@@ -41,6 +41,12 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
+    grip_profile = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "profiles"
+        / "grip_sim.yaml"
+    )
     seed_file = LaunchConfiguration("seed_file")
 
     # Keyboard TUI
@@ -179,6 +185,7 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
+                    grip_profile,
                     {"use_sim_time": True},
                     {
                         "behaviortree": PathSubstitution(

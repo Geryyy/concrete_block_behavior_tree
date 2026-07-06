@@ -20,7 +20,6 @@
   <exec_depend>concrete_block_assembly_planning</exec_depend>
   <exec_depend>concrete_block_motion_planning</exec_depend>
   <depend>gazebo_msgs</depend>
-  <depend>gazebo_grasp_plugin_ros</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>tf2</depend>
