@@ -41,7 +41,7 @@ Panels:
     Name: PerceptionControlPanel
     RefineGraspedUseTarget: false
     RunPoseService: /world_model_node/run_pose_estimation
-    TargetBlockId: wm_block_1
+    TargetBlockId: block_0
     TaskStatusService: /world_model_node/set_block_task_status
     TimeoutS: 8
 Visualization Manager:
