@@ -36,6 +36,7 @@ Panels:
   - Class: behavior_tree_panel/BehaviorTreePanel
     Name: BehaviorTreePanel
   - Class: concrete_block_rviz_plugins/PerceptionControlPanel
+    ClearWorldService: /world_model_node/clear_world_model
     EnableDebug: true
     Name: PerceptionControlPanel
     RefineGraspedUseTarget: false
