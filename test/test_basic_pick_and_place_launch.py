@@ -28,7 +28,9 @@ def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
 
     nodes = [entity for entity in _walk_entities(ld.entities) if isinstance(entity, Node)]
     include_actions = [
-        entity for entity in _walk_entities(ld.entities) if isinstance(entity, IncludeLaunchDescription)
+        entity
+        for entity in _walk_entities(ld.entities)
+        if isinstance(entity, IncludeLaunchDescription)
     ]
 
     assert any(
@@ -114,3 +116,49 @@ def test_row3_truck_launch_uses_larger_grip_lift_height():
     )
     launch_arguments = dict(wall_include.launch_arguments)
     assert launch_arguments["lift_height"] == "1.2"
+
+
+def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
+    module = _load_launch_module("real_wall_assembly_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    nodes = [entity for entity in _walk_entities(ld.entities) if isinstance(entity, Node)]
+    include_actions = [
+        entity
+        for entity in _walk_entities(ld.entities)
+        if isinstance(entity, IncludeLaunchDescription)
+    ]
+
+    assert not any(
+        "gazebo" in str(action.launch_description_source.location)
+        for action in include_actions
+    ), "Real launch must not include Gazebo launch files"
+
+    perception_include = next(
+        (
+            action for action in include_actions
+            if "concrete_block_perception" in str(action.launch_description_source.location)
+            and "perception.launch.py" in str(action.launch_description_source.location)
+        ),
+        None,
+    )
+    assert perception_include is not None, "Expected concrete-block perception include"
+
+    launch_arguments = dict(perception_include.launch_arguments)
+    assert "start_world_model" in launch_arguments
+    assert (
+        launch_arguments["start_world_model"].describe()
+        == "LaunchConfig('start_world_model')"
+    )
+
+    assert any(
+        node.node_package == "rviz2"
+        and node.node_executable == "rviz2"
+        for node in nodes
+    ), "Real launch should start RViz"
+
+    assert any(
+        node.node_package == "lsrl_behavior_tree"
+        and node.node_executable == "bt_action_server"
+        for node in nodes
+    ), "Real launch should start the BT action server"
