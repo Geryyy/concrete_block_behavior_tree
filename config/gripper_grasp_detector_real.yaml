@@ -1,0 +1,18 @@
+gripper_grasp_detector:
+  ros__parameters:
+    joint_states_topic: /joint_states
+    output_topic: /gripper/grasp_detected
+    q9_joint_name: q9_left_rail_joint
+
+    # q9 position must be inside this inclusive window.
+    position_window:
+      min: 0.1
+      max: 0.3
+
+    # abs(q9 effort) must stay above this threshold for hold_time_s.
+    effort_threshold: 100000.0
+    hold_time_s: 1.0
+
+    # Publish output_topic=true for this long after detection.
+    signal_duration_s: 1.0
+    publish_rate_hz: 10.0

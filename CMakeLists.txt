@@ -14,6 +14,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   nav2_behavior_tree
   rclcpp
   sensor_msgs
+  std_msgs
   tf2
   tf2_ros
   tf2_geometry_msgs
@@ -23,7 +24,6 @@ find_package(ament_cmake REQUIRED)
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
-find_package(gazebo_grasp_plugin_ros QUIET)
 
 include_directories(include)
 
@@ -37,25 +37,19 @@ endfunction()
 
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
-add_bt_plugin(BT_cb_check_gripper_effort_condition src/plugins/condition/check_gripper_effort.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_wait_for_grasp_signal_condition src/plugins/condition/wait_for_grasp_signal.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
-if(gazebo_grasp_plugin_ros_FOUND)
-  add_bt_plugin(
-    BT_cb_wait_for_gazebo_grasp_condition
-    src/plugins/condition/wait_for_gazebo_grasp.cpp
-    ${THIS_PACKAGE_INCLUDE_DEPENDS}
-    gazebo_grasp_plugin_ros)
-  add_bt_plugin(
-    BT_cb_publish_grasp_command_action
-    src/plugins/action/publish_grasp_command.cpp
-    ${THIS_PACKAGE_INCLUDE_DEPENDS}
-    gazebo_grasp_plugin_ros)
-else()
-  message(STATUS "gazebo_grasp_plugin_ros not found; skipping Gazebo grasp BT plugins")
-endif()
+add_executable(gripper_grasp_detector
+  src/nodes/gripper_grasp_detector.cpp
+)
+ament_target_dependencies(gripper_grasp_detector
+  rclcpp
+  sensor_msgs
+  std_msgs
+)
 
 install(DIRECTORY
   behavior_trees
@@ -73,10 +67,11 @@ install(PROGRAMS
 )
 
 install(TARGETS
+  gripper_grasp_detector
   ${plugin_libs}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

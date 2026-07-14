@@ -1,8 +1,0 @@
-/**:
-  ros__parameters:
-    check_gripper_effort:
-      topic: "/joint_states"
-      joint: "q9_left_rail_joint"
-      min_effort: 1000.0
-      min_duration_ms: 500
-      timeout_ms: 8000

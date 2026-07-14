@@ -1,4 +1,4 @@
-"""PZS100 Gazebo simulation with the CBS commissioning stack BT."""
+"""PZS100 Gazebo simulation with the CBS single-block pick-and-place BT."""
 
 import os
 
@@ -21,11 +21,10 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    grip_profile = (
+    grasp_detector_config = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
-        / "profiles"
-        / "grip_sim.yaml"
+        / "gripper_grasp_detector_sim.yaml"
     )
     seed_file = LaunchConfiguration("seed_file")
 
@@ -118,20 +117,26 @@ def generate_launch_description():
                 ],
             ),
             Node(
+                package="concrete_block_behavior_tree",
+                executable="gripper_grasp_detector",
+                name="gripper_grasp_detector",
+                output="screen",
+                parameters=[grasp_detector_config, {"use_sim_time": True}],
+            ),
+            Node(
                 package="lsrl_behavior_tree",
                 executable="bt_action_server",
                 output="both",
                 parameters=[
                     base_bt_config,
                     override_bt_config,
-                    grip_profile,
                     {"use_sim_time": True},
                     {
                         "behaviortree": PathSubstitution(
                             FindPackageShare("concrete_block_behavior_tree")
                         )
                         / "behavior_trees"
-                        / "stack_block_1_on_block_2.xml"
+                        / "basic_pick_and_place.xml"
                     },
                 ],
             ),

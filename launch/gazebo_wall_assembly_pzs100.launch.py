@@ -41,11 +41,10 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    grip_profile = (
+    grasp_detector_config = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
-        / "profiles"
-        / "grip_sim.yaml"
+        / "gripper_grasp_detector_sim.yaml"
     )
     seed_file = LaunchConfiguration("seed_file")
 
@@ -175,6 +174,13 @@ def generate_launch_description():
                     },
                 ],
             ),
+            Node(
+                package="concrete_block_behavior_tree",
+                executable="gripper_grasp_detector",
+                name="gripper_grasp_detector",
+                output="screen",
+                parameters=[grasp_detector_config, {"use_sim_time": True}],
+            ),
             # ── BT action server ─────────────────────────────────────────
             # Loads base config from epsilon_crane, then overrides plugins
             # to include CBS plugins. Same lifecycle pattern as timber framework.
@@ -185,7 +191,6 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
-                    grip_profile,
                     {"use_sim_time": True},
                     {
                         "behaviortree": PathSubstitution(

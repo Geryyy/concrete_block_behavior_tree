@@ -45,6 +45,12 @@ def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
         for node in nodes
     ), "Commissioning stack launch must start the wall-plan server"
 
+    assert any(
+        node.node_package == "concrete_block_behavior_tree" and
+        node.node_executable == "gripper_grasp_detector"
+        for node in nodes
+    ), "Commissioning stack launch must start the grasp detector"
+
     assert not any(
         node.node_package == "timber_crane_motion_planning" and
         node.node_executable == "grip_traj_server"
@@ -65,6 +71,27 @@ def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
     assert str(launch_arguments["start_bt_action_server"]) == "False"
     assert "start_grip_traj_server" in launch_arguments
     assert str(launch_arguments["start_grip_traj_server"]) == "False"
+
+
+def test_basic_pick_and_place_launch_loads_single_block_tree():
+    module = _load_launch_module("gazebo_basic_pick_and_place_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    bt_node = next(
+        node for node in _walk_entities(ld.entities)
+        if isinstance(node, Node)
+        and node.node_package == "lsrl_behavior_tree"
+        and node.node_executable == "bt_action_server"
+    )
+    for param in getattr(bt_node, "_Node__parameters"):
+        if not isinstance(param, dict):
+            continue
+        for key, value in param.items():
+            key_text = "".join(getattr(part, "text", str(part)) for part in key)
+            if key_text == "behaviortree":
+                assert "basic_pick_and_place.xml" in str(value)
+                return
+    assert False, "bt_action_server does not set a behaviortree parameter"
 
 
 def _node_parameter_names(node):
@@ -101,6 +128,13 @@ def test_wall_assembly_launch_exposes_grip_lift_height_override():
         and node.node_executable == "grip_traj_server_simple.py"
     )
     assert "lift_height" in _node_parameter_names(grip_node)
+
+    assert any(
+        node.node_package == "concrete_block_behavior_tree"
+        and node.node_executable == "gripper_grasp_detector"
+        for node in _walk_entities(ld.entities)
+        if isinstance(node, Node)
+    ), "Wall assembly launch must start the grasp detector"
 
 
 def test_row3_truck_launch_uses_larger_grip_lift_height():
@@ -162,3 +196,9 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
         and node.node_executable == "bt_action_server"
         for node in nodes
     ), "Real launch should start the BT action server"
+
+    assert any(
+        node.node_package == "concrete_block_behavior_tree"
+        and node.node_executable == "gripper_grasp_detector"
+        for node in nodes
+    ), "Real launch should start the grasp detector"

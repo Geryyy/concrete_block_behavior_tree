@@ -32,13 +32,9 @@
       <SetBlackboard output_key="gr_carries" value="false"/>
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
 
-      <!-- 5. Verify real grasp + register block as in-hand -->
-      <Action ID="CheckGripperEffort" name="Check grip via effort"
-        topic="/joint_states"
-        joint="q9_left_rail_joint"
-        param_prefix="check_gripper_effort"
-        min_effort="1000"
-        min_duration_ms="500"
+      <!-- 5. Verify grasp signal + register block as in-hand -->
+      <Action ID="WaitForGraspSignal" name="Wait for grasp detector"
+        topic="/gripper/grasp_detected"
         timeout_ms="8000"/>
       <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset"
         service_name="/world_model_node/get_coarse_blocks"

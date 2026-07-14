@@ -40,11 +40,10 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    grip_profile = (
+    grasp_detector_config = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
-        / "profiles"
-        / "grip_real.yaml"
+        / "gripper_grasp_detector_real.yaml"
     )
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
@@ -289,13 +288,23 @@ def generate_launch_description():
                 condition=IfCondition(LaunchConfiguration("start_wall_plan_server")),
             ),
             Node(
+                package="concrete_block_behavior_tree",
+                executable="gripper_grasp_detector",
+                name="gripper_grasp_detector",
+                output="screen",
+                parameters=[
+                    grasp_detector_config,
+                    {"use_sim_time": use_sim_time},
+                ],
+                condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
+            ),
+            Node(
                 package="lsrl_behavior_tree",
                 executable="bt_action_server",
                 output="both",
                 parameters=[
                     base_bt_config,
                     override_bt_config,
-                    grip_profile,
                     {"use_sim_time": use_sim_time},
                     {"behaviortree": LaunchConfiguration("bt_xml")},
                 ],
