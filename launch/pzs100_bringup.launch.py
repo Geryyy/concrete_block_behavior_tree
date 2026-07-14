@@ -1,4 +1,5 @@
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PathSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -10,6 +11,11 @@ def generate_launch_description():
     planner = LaunchConfiguration("planner")
     controller = LaunchConfiguration("controller")
     seed_file = LaunchConfiguration("seed_file")
+    grasp_detector_config = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "gripper_grasp_detector_sim.yaml"
+    )
 
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
@@ -60,6 +66,11 @@ def generate_launch_description():
                     "for a clean sim without the Seibersdorf container."
                 ),
             ),
+            DeclareLaunchArgument(
+                "start_grasp_detector",
+                default_value="True",
+                description="Start the q9 gripper grasp detector for PZS100 Gazebo runs.",
+            ),
             # Spawn the PZS100 joint-state adapter that publishes
             # /joint_states_rviz with the per-rail-corrected EPSCOPE q9.
             Node(
@@ -68,6 +79,14 @@ def generate_launch_description():
                 name="pzs100_rviz_joint_state_adapter",
                 parameters=[{"use_sim_time": True}],
                 arguments=["--ros-args", "--log-level", "WARN"],
+            ),
+            Node(
+                package="concrete_block_behavior_tree",
+                executable="gripper_grasp_detector",
+                name="gripper_grasp_detector",
+                output="screen",
+                parameters=[grasp_detector_config, {"use_sim_time": True}],
+                condition=IfCondition(LaunchConfiguration("start_grasp_detector")),
             ),
             IncludeLaunchDescription(
                 PathSubstitution(FindPackageShare("epsilon_crane_bringup_sim"))

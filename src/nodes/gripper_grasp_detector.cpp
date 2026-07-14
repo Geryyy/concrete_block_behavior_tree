@@ -115,6 +115,7 @@ private:
     const auto stamp = sampleTime(*msg);
     if (have_last_sample_time_ && stamp < last_sample_time_) {
       resetCandidate();
+      signal_active_ = false;
       signal_until_ = stamp;
       RCLCPP_INFO(get_logger(), "JointState time moved backward; reset grasp detector state");
     }
@@ -138,16 +139,19 @@ private:
     }
 
     const double held_s = (stamp - candidate_since_).seconds();
-    if (!triggered_for_candidate_ && held_s >= hold_time_s_) {
+    if (held_s >= hold_time_s_) {
       signal_until_ = stamp + rclcpp::Duration::from_seconds(signal_duration_s_);
-      triggered_for_candidate_ = true;
-      RCLCPP_INFO(
-        get_logger(),
-        "Grasp detected | q9 position=%.4f effort=%.3f held_s=%.3f signal_duration_s=%.3f",
-        position,
-        effort,
-        held_s,
-        signal_duration_s_);
+      signal_active_ = true;
+      if (!triggered_for_candidate_) {
+        triggered_for_candidate_ = true;
+        RCLCPP_INFO(
+          get_logger(),
+          "Grasp detected | q9 position=%.4f effort=%.3f held_s=%.3f signal_duration_s=%.3f",
+          position,
+          effort,
+          held_s,
+          signal_duration_s_);
+      }
       publishSignal(stamp);
     }
   }
@@ -160,7 +164,7 @@ private:
   void publishSignal(const rclcpp::Time & stamp)
   {
     std_msgs::msg::Bool msg;
-    msg.data = stamp <= signal_until_;
+    msg.data = signal_active_ && stamp <= signal_until_;
     grasp_pub_->publish(msg);
   }
 
@@ -182,6 +186,7 @@ private:
 
   bool candidate_active_{false};
   bool triggered_for_candidate_{false};
+  bool signal_active_{false};
   bool have_last_sample_time_{false};
   rclcpp::Time candidate_since_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_sample_time_{0, 0, RCL_ROS_TIME};

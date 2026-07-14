@@ -11,7 +11,7 @@
   <!-- ////////// -->
   <BehaviorTree ID="BasicPickAndPlace">
     <Sequence name="basic_pick_and_place">
-      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <SetBlackboard output_key="slow_down" value="2.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>

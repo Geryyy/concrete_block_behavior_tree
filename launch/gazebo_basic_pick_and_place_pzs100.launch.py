@@ -21,11 +21,6 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
-    grasp_detector_config = (
-        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
-        / "config"
-        / "gripper_grasp_detector_sim.yaml"
-    )
     seed_file = LaunchConfiguration("seed_file")
 
     if os.path.exists("/usr/bin/xterm"):
@@ -115,13 +110,6 @@ def generate_launch_description():
                         / "config" / "wall_plans.yaml",
                     },
                 ],
-            ),
-            Node(
-                package="concrete_block_behavior_tree",
-                executable="gripper_grasp_detector",
-                name="gripper_grasp_detector",
-                output="screen",
-                parameters=[grasp_detector_config, {"use_sim_time": True}],
             ),
             Node(
                 package="lsrl_behavior_tree",
