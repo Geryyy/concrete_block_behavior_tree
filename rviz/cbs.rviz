@@ -1,6 +1,6 @@
 Panels:
   - Class: rviz_common/Displays
-    Help Height: 94
+    Help Height: 70
     Name: Displays
     Property Tree Widget:
       Expanded:
@@ -14,7 +14,7 @@ Panels:
         - /Planning and Control1
         - /Perception1
       Splitter Ratio: 0.762273907661438
-    Tree Height: 804
+    Tree Height: 249
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -44,6 +44,10 @@ Panels:
     TargetBlockId: block_0
     TaskStatusService: /world_model_node/set_block_task_status
     TimeoutS: 8
+  - Class: concrete_block_rviz_plugins/PlanControlPanel
+    Name: PlanControlPanel
+    PlanControlService: /concrete_block_wall_plan_server/plan_control
+    WallPlansFile: /workspaces/ros2_baustelle_ws/src/concrete_block_stack/concrete_block_assembly_planning/config/wall_plans.yaml
 Visualization Manager:
   Class: ""
   Displays:
@@ -69,6 +73,14 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
+        A_ortho_frame_facing_back:
+          Value: true
+        A_ortho_frame_facing_front:
+          Value: true
+        A_ortho_frame_facing_left:
+          Value: true
+        A_ortho_frame_facing_right:
+          Value: true
         All Enabled: false
         K0_mounting_base:
           Value: false
@@ -110,12 +122,10 @@ Visualization Manager:
           Value: false
         before_q9:
           Value: false
-        blackfly_left_camera_frame:
-          Value: false
-        blackfly_left_camera_optical_frame:
-          Value: false
-        blackfly_right_camera_optical_frame:
-          Value: false
+        blackfly:
+          Value: true
+        blackfly_rotated:
+          Value: true
         cab_fender:
           Value: false
         control_box:
@@ -124,8 +134,232 @@ Visualization Manager:
           Value: false
         desired/K0_mounting_base:
           Value: false
-        floor:
-          Value: false
+        desired/K10_left_rail:
+          Value: true
+        desired/K11:
+          Value: true
+        desired/K12_right_rail:
+          Value: true
+        desired/K1_boom_cylinder_suspension:
+          Value: true
+        desired/K1_slewing_column:
+          Value: true
+        desired/K2_arm_cylinder_suspension:
+          Value: true
+        desired/K2_boom:
+          Value: true
+        desired/K3_arm:
+          Value: true
+        desired/K3_hook:
+          Value: true
+        desired/K3_light_box:
+          Value: true
+        desired/K4_outer_telescope:
+          Value: true
+        desired/K5_inner_telescope:
+          Value: true
+        desired/K6_double_joint_link:
+          Value: true
+        desired/K7_rotator_upper_part:
+          Value: true
+        desired/K8_rotator_lower_part:
+          Value: true
+        desired/K8_tool_center_point:
+          Value: true
+        desired/K9:
+          Value: true
+        desired/before_q11:
+          Value: true
+        desired/before_q9:
+          Value: true
+        desired/blackfly:
+          Value: true
+        desired/blackfly_rotated:
+          Value: true
+        desired/control_box:
+          Value: true
+        desired/control_box_sensor_mount:
+          Value: true
+        desired/hesai_frame:
+          Value: true
+        desired/hydraulic_block:
+          Value: true
+        desired/imu11_origin:
+          Value: true
+        desired/imu12_origin:
+          Value: true
+        desired/imu13_origin:
+          Value: true
+        desired/imu14_origin:
+          Value: true
+        desired/imu15:
+          Value: true
+        desired/imu15_origin:
+          Value: true
+        desired/imu16:
+          Value: true
+        desired/imu16_origin:
+          Value: true
+        desired/imu17:
+          Value: true
+        desired/imu17_origin:
+          Value: true
+        desired/livox_frame:
+          Value: true
+        desired/livox_frame_up:
+          Value: true
+        desired/moved_with_q1:
+          Value: true
+        desired/moved_with_q2:
+          Value: true
+        desired/moved_with_q3:
+          Value: true
+        desired/moved_with_q4:
+          Value: true
+        desired/moved_with_q5:
+          Value: true
+        desired/moved_with_q6:
+          Value: true
+        desired/moved_with_q7:
+          Value: true
+        desired/moved_with_q8:
+          Value: true
+        desired/sensor_konsole:
+          Value: true
+        desired/seyond:
+          Value: true
+        desired/telescope_bended:
+          Value: true
+        elastic/K0_mounting_base:
+          Value: true
+        elastic/K10_left_rail:
+          Value: true
+        elastic/K11:
+          Value: true
+        elastic/K12_right_rail:
+          Value: true
+        elastic/K1_boom_cylinder_suspension:
+          Value: true
+        elastic/K1_slewing_column:
+          Value: true
+        elastic/K2_arm_cylinder_suspension:
+          Value: true
+        elastic/K2_boom:
+          Value: true
+        elastic/K3_arm:
+          Value: true
+        elastic/K3_hook:
+          Value: true
+        elastic/K3_light_box:
+          Value: true
+        elastic/K4_outer_telescope:
+          Value: true
+        elastic/K5_inner_telescope:
+          Value: true
+        elastic/K6_double_joint_link:
+          Value: true
+        elastic/K7_rotator_upper_part:
+          Value: true
+        elastic/K8_rotator_lower_part:
+          Value: true
+        elastic/K8_tool_center_point:
+          Value: true
+        elastic/K9:
+          Value: true
+        elastic/before_q11:
+          Value: true
+        elastic/before_q9:
+          Value: true
+        elastic/blackfly:
+          Value: true
+        elastic/blackfly_rotated:
+          Value: true
+        elastic/cab_fender:
+          Value: true
+        elastic/control_box:
+          Value: true
+        elastic/control_box_sensor_mount:
+          Value: true
+        elastic/hesai_frame:
+          Value: true
+        elastic/hydraulic_block:
+          Value: true
+        elastic/imu11_origin:
+          Value: true
+        elastic/imu12_origin:
+          Value: true
+        elastic/imu13_origin:
+          Value: true
+        elastic/imu14_origin:
+          Value: true
+        elastic/imu15:
+          Value: true
+        elastic/imu15_origin:
+          Value: true
+        elastic/imu16:
+          Value: true
+        elastic/imu16_origin:
+          Value: true
+        elastic/imu17:
+          Value: true
+        elastic/imu17_origin:
+          Value: true
+        elastic/livox_frame:
+          Value: true
+        elastic/livox_frame_up:
+          Value: true
+        elastic/moved_with_q1:
+          Value: true
+        elastic/moved_with_q2:
+          Value: true
+        elastic/moved_with_q3:
+          Value: true
+        elastic/moved_with_q4:
+          Value: true
+        elastic/moved_with_q5:
+          Value: true
+        elastic/moved_with_q6:
+          Value: true
+        elastic/moved_with_q7:
+          Value: true
+        elastic/moved_with_q8:
+          Value: true
+        elastic/sensor_konsole:
+          Value: true
+        elastic/seyond:
+          Value: true
+        elastic/telescope_bended:
+          Value: true
+        elastic/tr_bed:
+          Value: true
+        elastic/tr_black:
+          Value: true
+        elastic/tr_crane_frameplate:
+          Value: true
+        elastic/tr_grey:
+          Value: true
+        elastic/tr_rr_fender:
+          Value: true
+        elastic/tr_rr_rims:
+          Value: true
+        elastic/tr_rr_wheels:
+          Value: true
+        elastic/tr_rungen:
+          Value: true
+        elastic/tr_tank:
+          Value: true
+        elastic/tr_white:
+          Value: true
+        elastic/truck_cab:
+          Value: true
+        elastic/truck_origin:
+          Value: true
+        elastic/truck_rotated_pitch:
+          Value: true
+        elastic/truck_rotated_roll:
+          Value: true
+        elastic/world:
+          Value: true
         hesai_frame:
           Value: true
         hydraulic_block:
@@ -152,6 +386,8 @@ Visualization Manager:
           Value: false
         livox_frame:
           Value: false
+        livox_frame_up:
+          Value: true
         load_bed_reference:
           Value: false
         moved_with_q1:
@@ -170,6 +406,8 @@ Visualization Manager:
           Value: false
         moved_with_q8:
           Value: false
+        sensor_konsole:
+          Value: true
         seyond:
           Value: false
         telescope_bended:
@@ -206,18 +444,6 @@ Visualization Manager:
           Value: true
         world:
           Value: false
-        zed2i_camera_center:
-          Value: false
-        zed2i_camera_screw:
-          Value: false
-        zed2i_left_camera_frame:
-          Value: false
-        zed2i_left_camera_optical_frame:
-          Value: false
-        zed2i_right_camera_frame:
-          Value: false
-        zed2i_right_camera_optical_frame:
-          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -225,14 +451,116 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
-          floor:
-            {}
+          elastic/world:
+            elastic/truck_origin:
+              elastic/truck_rotated_pitch:
+                elastic/truck_rotated_roll:
+                  elastic/K0_mounting_base:
+                    elastic/imu11_origin:
+                      {}
+                    elastic/moved_with_q1:
+                      elastic/K1_slewing_column:
+                        elastic/K1_boom_cylinder_suspension:
+                          {}
+                        elastic/control_box:
+                          elastic/control_box_sensor_mount:
+                            {}
+                        elastic/hydraulic_block:
+                          {}
+                        elastic/moved_with_q2:
+                          elastic/K2_boom:
+                            elastic/K2_arm_cylinder_suspension:
+                              {}
+                            elastic/imu12_origin:
+                              {}
+                            elastic/imu13_origin:
+                              {}
+                            elastic/moved_with_q3:
+                              elastic/K3_arm:
+                                elastic/K3_hook:
+                                  {}
+                                elastic/K3_light_box:
+                                  {}
+                                elastic/imu14_origin:
+                                  {}
+                                elastic/telescope_bended:
+                                  elastic/moved_with_q4:
+                                    elastic/K4_outer_telescope:
+                                      elastic/moved_with_q5:
+                                        elastic/K5_inner_telescope:
+                                          elastic/imu15:
+                                            elastic/imu15_origin:
+                                              {}
+                                          elastic/moved_with_q6:
+                                            elastic/K6_double_joint_link:
+                                              elastic/moved_with_q7:
+                                                elastic/K7_rotator_upper_part:
+                                                  elastic/imu16:
+                                                    elastic/imu16_origin:
+                                                      {}
+                                                  elastic/moved_with_q8:
+                                                    elastic/K8_rotator_lower_part:
+                                                      elastic/K8_tool_center_point:
+                                                        elastic/before_q11:
+                                                          elastic/K11:
+                                                            elastic/K12_right_rail:
+                                                              {}
+                                                        elastic/before_q9:
+                                                          elastic/K9:
+                                                            elastic/K10_left_rail:
+                                                              {}
+                                                    elastic/imu17:
+                                                      elastic/imu17_origin:
+                                                        {}
+                      elastic/sensor_konsole:
+                        elastic/blackfly:
+                          elastic/blackfly_rotated:
+                            {}
+                        elastic/hesai_frame:
+                          {}
+                        elastic/livox_frame:
+                          elastic/livox_frame_up:
+                            {}
+                        elastic/seyond:
+                          {}
+                  elastic/truck_cab:
+                    elastic/cab_fender:
+                      {}
+                    elastic/tr_bed:
+                      {}
+                    elastic/tr_black:
+                      {}
+                    elastic/tr_crane_frameplate:
+                      {}
+                    elastic/tr_grey:
+                      {}
+                    elastic/tr_rr_fender:
+                      {}
+                    elastic/tr_rr_rims:
+                      {}
+                    elastic/tr_rr_wheels:
+                      {}
+                    elastic/tr_rungen:
+                      {}
+                    elastic/tr_tank:
+                      {}
+                    elastic/tr_white:
+                      {}
           truck_origin:
             truck_rotated_pitch:
               truck_rotated_roll:
                 K0_mounting_base:
-                  desired/K0_mounting_base:
+                  A_ortho_frame_facing_back:
                     {}
+                  A_ortho_frame_facing_front:
+                    {}
+                  A_ortho_frame_facing_left:
+                    {}
+                  A_ortho_frame_facing_right:
+                    {}
+                  desired/K0_mounting_base:
+                    desired/imu11_origin:
+                      {}
                   imu11_origin:
                     {}
                   moved_with_q1:
@@ -291,24 +619,17 @@ Visualization Manager:
                                                   imu17:
                                                     imu17_origin:
                                                       {}
-                    livox_frame:
-                      blackfly_left_camera_optical_frame:
-                        blackfly_left_camera_frame:
-                          {}
-                        blackfly_right_camera_optical_frame:
+                    sensor_konsole:
+                      blackfly:
+                        blackfly_rotated:
                           {}
                       hesai_frame:
                         {}
+                      livox_frame:
+                        livox_frame_up:
+                          {}
                       seyond:
                         {}
-                      zed2i_left_camera_optical_frame:
-                        zed2i_left_camera_frame:
-                          zed2i_camera_center:
-                            zed2i_camera_screw:
-                              {}
-                            zed2i_right_camera_frame:
-                              zed2i_right_camera_optical_frame:
-                                {}
                 truck_cab:
                   cab_fender:
                     {}
@@ -447,16 +768,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        blackfly_left_camera_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        blackfly_left_camera_optical_frame:
+        blackfly:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        blackfly_right_camera_optical_frame:
+        blackfly_rotated:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -537,6 +854,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        livox_frame_up:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         moved_with_q1:
           Alpha: 1
           Show Axes: false
@@ -569,6 +890,11 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        sensor_konsole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         seyond:
           Alpha: 1
           Show Axes: false
@@ -646,31 +972,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         world:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        zed2i_camera_center:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        zed2i_camera_screw:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        zed2i_left_camera_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        zed2i_left_camera_optical_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        zed2i_right_camera_frame:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        zed2i_right_camera_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -1371,10 +1672,10 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: Intensity
           Decay Time: 0.5
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 0
+          Max Intensity: 255
           Min Color: 0; 0; 0
           Min Intensity: 0
           Name: LivoxLidar
@@ -1392,7 +1693,7 @@ Visualization Manager:
             Value: /livox/lidar
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -1483,6 +1784,7 @@ Visualization Manager:
             Value: /zed2i/left/image_rect_color/compressed
           Value: false
           Visibility:
+            "": true
             Decision Making:
               "": true
               Value: true
@@ -1559,9 +1861,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        cbp_block_axes: true
-        cbp_block_ids: true
-        cbp_blocks: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -1580,6 +1880,40 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /cbp/block_goal_markers
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: ""
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: ""
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /cbp/debug/registration/cleaned_cutout
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
   Enabled: true
   Global Options:
@@ -1634,7 +1968,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 24.49280548095703
+      Distance: 65.74846649169922
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1649,17 +1983,17 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8026732802391052
+      Pitch: -0.037326566874980927
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.188326120376587
+      Yaw: 3.818324089050293
     Saved: ~
 Window Geometry:
   BehaviorTreePanel:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1043
+  Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
@@ -1670,7 +2004,9 @@ Window Geometry:
     collapsed: false
   PerceptionControlPanel:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000185000003bdfc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000005a000000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b000003bd000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000014005a00650064002000430061006d0065007200610000000000ffffffff0000000000000000fb00000012005a0065006400430061006d0065007200610200000483000005a0000002fd00000243fb00000022004c00690076006f00780020006f007200740068006f00200069006d006100670065000000032c000000cc0000002800ffffff0000000100000219000003bdfc0200000005fc0000003b000003bd0000034d0100001afa000000000100000004fb00000022004200650068006100760069006f0072005400720065006500500061006e0065006c0100000000ffffffff000000a300fffffffb0000002000540069006d006200650072004300720061006e006500500061006e0065006c0100000000ffffffff0000021000fffffffb00000026004d006f00740069006f006e0050006c0061006e006e0069006e006700500061006e0065006c01000004ea0000024e0000018800fffffffb00000052007200760069007a005f006c006900660065006300790063006c0065005f0070006c007500670069006e0020005200760069007a004c006900660065006300790063006c00650050006c007500670069006e02000007c60000013b0000021900000247fb0000000a0049006d0061006700650000000386000000570000002800fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000031a000000c3000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000057fc0100000002fb00000006005a00650064020000033c000005a00000044400000336fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000003d6000003bd00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  PlanControlPanel:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001790000039dfc020000000cfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000039500000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000017a000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000014005a00650064002000430061006d0065007200610000000000ffffffff0000000000000000fb00000012005a0065006400430061006d0065007200610200000483000001f5000002fd00000243fb00000022004c00690076006f00780020006f007200740068006f00200069006d006100670065000000032c000000cc0000002800fffffffc000001bb0000021d0000021d0100001afa000000000100000002fb000000200050006c0061006e0043006f006e00740072006f006c00500061006e0065006c0100000000ffffffff0000011800fffffffb0000002c00500065007200630065007000740069006f006e0043006f006e00740072006f006c00500061006e0065006c010000000000000185000000fb00ffffff00000001000002100000039dfc0200000005fc0000003b0000039d0000034d0100001afa000000000100000004fb00000022004200650068006100760069006f0072005400720065006500500061006e0065006c0100000000ffffffff000000a300fffffffb0000002000540069006d006200650072004300720061006e006500500061006e0065006c0100000000ffffffff0000021000fffffffb00000026004d006f00740069006f006e0050006c0061006e006e0069006e006700500061006e0065006c01000004ea0000024e0000018800fffffffb00000052007200760069007a005f006c006900660065006300790063006c0065005f0070006c007500670069006e0020005200760069007a004c006900660065006300790063006c00650050006c007500670069006e02000007c60000013b0000021900000247fb0000000a0049006d0061006700650000000386000000570000002800fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000031a000000c3000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000057fc0100000002fb00000006005a00650064020000033c000001020000044400000336fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000003a90000039d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   TimberCranePanel:
@@ -1679,9 +2015,9 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1920
-  X: 1430
-  Y: 158
+  Width: 1854
+  X: 66
+  Y: 32
   Zed:
     collapsed: false
   ZedCamera:

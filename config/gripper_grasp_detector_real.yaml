@@ -6,13 +6,14 @@ gripper_grasp_detector:
 
     # q9 position must be inside this inclusive window.
     position_window:
-      min: 0.1
-      max: 0.3
+      min: 0.05
+      max: 0.2
 
     # abs(q9 effort) must stay above this threshold for hold_time_s.
-    effort_threshold: 100000.0
+    # effort_threshold: 10000.0 # empty
+    effort_threshold: 100000.0 # grasp
     hold_time_s: 1.0
 
     # Publish output_topic=true for this long after detection.
-    signal_duration_s: 1.0
+    signal_duration_s: 4.0
     publish_rate_hz: 10.0

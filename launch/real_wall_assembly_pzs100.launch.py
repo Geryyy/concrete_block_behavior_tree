@@ -29,6 +29,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     tool = LaunchConfiguration("tool")
     planner = LaunchConfiguration("planner")
+    seed_block_0 = LaunchConfiguration("seed_block_0")
 
     base_bt_config = (
         PathSubstitution(FindPackageShare("epsilon_crane_behavior_tree"))
@@ -47,6 +48,24 @@ def generate_launch_description():
     )
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
+    )
+    world_model_seed_block_0 = PathJoinSubstitution(
+        [
+            FindPackageShare("concrete_block_world_model"),
+            "config",
+            "world_model_seed_b0.yaml",
+        ]
+    )
+    selected_world_model_overlay_params_file = PythonExpression(
+        [
+            "'",
+            world_model_seed_block_0,
+            "' if '",
+            seed_block_0,
+            "'.lower() in ('true', '1', 'yes', 'on') else '",
+            LaunchConfiguration("world_model_overlay_params_file"),
+            "'",
+        ]
     )
 
     return LaunchDescription(
@@ -74,7 +93,7 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument("start_motion_planning", default_value="true"),
-            DeclareLaunchArgument("start_perception", default_value="true"),
+            DeclareLaunchArgument("start_perception", default_value="false"),
             DeclareLaunchArgument("start_processing_stack", default_value="true"),
             DeclareLaunchArgument(
                 "start_world_model",
@@ -102,6 +121,14 @@ def generate_launch_description():
                         "config",
                         "world_model_seed_none.yaml",
                     ]
+                ),
+            ),
+            DeclareLaunchArgument(
+                "seed_block_0",
+                default_value="false",
+                description=(
+                    "Testing helper: seed block_0 into the world model at startup. "
+                    "Leave false when perception should populate the model."
                 ),
             ),
             DeclareLaunchArgument(
@@ -248,9 +275,7 @@ def generate_launch_description():
                     "use_gpu": LaunchConfiguration("use_gpu"),
                     "perception_mode": LaunchConfiguration("perception_mode"),
                     "calib_yaml": LaunchConfiguration("calib_yaml"),
-                    "world_model_overlay_params_file": LaunchConfiguration(
-                        "world_model_overlay_params_file"
-                    ),
+                    "world_model_overlay_params_file": selected_world_model_overlay_params_file,
                     "start_world_model": LaunchConfiguration("start_world_model"),
                     "start_processing_stack": LaunchConfiguration(
                         "start_processing_stack"
