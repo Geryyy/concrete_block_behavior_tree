@@ -10,6 +10,8 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_behavior_tree/bt_service_node.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/bool.hpp"
+#include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/buffer.h"
@@ -48,6 +50,14 @@ public:
       "/assembly_operator/refinement_status", rclcpp::QoS(1).transient_local());
     markers_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(
       "/assembly_operator/refinement_markers", rclcpp::QoS(1).transient_local());
+    indicator_pub_ = node_->create_publisher<std_msgs::msg::Bool>(
+      "/assembly_operator/placement_residual_within_indicator", rclcpp::QoS(1).transient_local());
+    indicator_threshold_pub_ = node_->create_publisher<std_msgs::msg::Float64>(
+      "/assembly_operator/placement_indicator_threshold_m", rclcpp::QoS(1).transient_local());
+    translation_error_pub_ = node_->create_publisher<std_msgs::msg::Float64>(
+      "/assembly_operator/placement_translation_error_m", rclcpp::QoS(1).transient_local());
+    indicator_threshold_m_ = node_->declare_parameter<double>(
+      "placement_indicator_threshold_m", 0.10);
   }
 
   static BT::PortsList providedPorts()
@@ -55,7 +65,10 @@ public:
     return providedBasicPorts({
       BT::InputPort<std::string>("block_id", "", "TASK_MOVE block to evaluate"),
       BT::InputPort<geometry_msgs::msg::PoseStamped>(
-        "expected_hover_pose", "Planned block CoG pose at placement hover"),
+        "expected_placement_pose", "Planned final block CoG pose"),
+      BT::InputPort<bool>(
+        "compare_z", false,
+        "Compare vertical error too; false is appropriate while hovering above the placement"),
       BT::InputPort<std::string>("planning_frame", "K0_mounting_base", "Comparison frame"),
       BT::InputPort<double>("translation_tolerance_m", 0.04, "Allowed CoG error"),
       BT::InputPort<double>("yaw_tolerance_rad", 0.0873, "Allowed yaw error"),
@@ -73,9 +86,10 @@ public:
     if (!getInput("block_id", block_id_) || block_id_.empty()) {
       throw std::invalid_argument("EvaluatePlacementResidual requires block_id");
     }
-    if (!getInput("expected_hover_pose", expected_hover_pose_)) {
-      throw std::invalid_argument("EvaluatePlacementResidual requires expected_hover_pose");
+    if (!getInput("expected_placement_pose", expected_placement_pose_)) {
+      throw std::invalid_argument("EvaluatePlacementResidual requires expected_placement_pose");
     }
+    getInput("compare_z", compare_z_);
     getInput("planning_frame", planning_frame_);
     getInput("translation_tolerance_m", translation_tolerance_m_);
     getInput("yaw_tolerance_rad", yaw_tolerance_rad_);
@@ -114,7 +128,7 @@ public:
       return fail("Cannot transform FK block pose to '" + planning_frame_ + "': " + ex.what());
     }
 
-    auto expected = expected_hover_pose_;
+    auto expected = expected_placement_pose_;
     if (expected.header.frame_id.empty()) {
       expected.header.frame_id = planning_frame_;
     }
@@ -127,6 +141,14 @@ public:
       return fail("Cannot transform planned hover pose to '" + planning_frame_ + "': " + ex.what());
     }
 
+    // A2B's high approach endpoint is a crane planner reference, not a
+    // block-CoG setpoint.  While the block is hovering, validate the two
+    // placement-relevant lateral coordinates and block yaw against the final
+    // plan.  The later grip descent owns the vertical placement coordinate.
+    if (!compare_z_) {
+      expected.pose.position.z = observed.pose.position.z;
+    }
+
     const double dx = expected.pose.position.x - observed.pose.position.x;
     const double dy = expected.pose.position.y - observed.pose.position.y;
     const double dz = expected.pose.position.z - observed.pose.position.z;
@@ -137,14 +159,24 @@ public:
       std::sin(expected_yaw - observed_yaw), std::cos(expected_yaw - observed_yaw));
     const bool within = translation_error <= translation_tolerance_m_ &&
       std::abs(yaw_error) <= yaw_tolerance_rad_;
+    const bool within_indicator = translation_error <= indicator_threshold_m_;
 
     std::ostringstream text;
     text << std::fixed << std::setprecision(3)
-         << "Placement residual (FK, " << block_id_ << "): dxyz=[" << dx << ", " << dy << ", "
+         << "Placement residual (FK " << (compare_z_ ? "XYZ" : "XY") << "+yaw, " << block_id_ << "): dxyz=[" << dx << ", " << dy << ", "
          << dz << "] m, |d|=" << translation_error << " m, dyaw="
          << yaw_error * 180.0 / 3.14159265358979323846 << " deg; "
          << (within ? "within tolerance" : "correction recommended");
     publish(text.str());
+    std_msgs::msg::Bool indicator;
+    indicator.data = within_indicator;
+    indicator_pub_->publish(indicator);
+    std_msgs::msg::Float64 indicator_threshold;
+    indicator_threshold.data = indicator_threshold_m_;
+    indicator_threshold_pub_->publish(indicator_threshold);
+    std_msgs::msg::Float64 translation_error_message;
+    translation_error_message.data = translation_error;
+    translation_error_pub_->publish(translation_error_message);
     publishMarkers(observed, expected, dx, dy, dz, yaw_error, within, text.str());
     setOutput("within_tolerance", within);
     setOutput("translation_error_m", translation_error);
@@ -208,7 +240,8 @@ private:
     markers.markers.push_back(makeBlockMarker(
       header, observed.pose, 0, 0.1F, 0.4F, 1.0F, 0.30F, "measured FK pose"));
     markers.markers.push_back(makeBlockMarker(
-      header, expected.pose, 1, 0.1F, 1.0F, 0.2F, 0.22F, "planned hover pose"));
+      header, expected.pose, 1, 0.1F, 1.0F, 0.2F, 0.22F,
+      compare_z_ ? "planned placement pose" : "planned XY/yaw projected to hover"));
 
     visualization_msgs::msg::Marker correction;
     correction.header = header;
@@ -257,14 +290,19 @@ private:
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr markers_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr indicator_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr indicator_threshold_pub_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr translation_error_pub_;
   std::string block_id_;
   std::string planning_frame_{"K0_mounting_base"};
-  geometry_msgs::msg::PoseStamped expected_hover_pose_;
+  geometry_msgs::msg::PoseStamped expected_placement_pose_;
+  bool compare_z_{false};
   double translation_tolerance_m_{0.04};
   double yaw_tolerance_rad_{0.0873};
   double block_length_m_{0.90};
   double block_width_m_{0.60};
   double block_height_m_{0.60};
+  double indicator_threshold_m_{0.10};
 };
 
 }  // namespace concrete_block_behavior_tree

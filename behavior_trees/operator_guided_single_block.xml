@@ -29,17 +29,19 @@
         pickup_x="{pickup_x}" pickup_y="{pickup_y}" pickup_z="{pickup_z}" pickup_yaw="{pickup_yaw}"
         pickup_approach_z="{approach_z}" place_x="{place_x}" place_y="{place_y}"
         place_z="{place_z}" place_yaw="{place_yaw}"
-        approach_x="{place_approach_x}" approach_y="{place_approach_y}" approach_z="{place_approach_z}"/>
+        approach_x="{place_approach_x}" approach_y="{place_approach_y}" approach_z="{place_approach_z}"
+        disturbed_approach_x="{initial_hover_x}" disturbed_approach_y="{initial_hover_y}"
+        disturbed_approach_z="{initial_hover_z}" disturbed_approach_yaw="{initial_hover_yaw}"/>
       <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
       <WaitForOperatorCommand expected="pick"/>
       <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
 
       <WaitForOperatorCommand expected="hover"/>
-      <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
-      <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
-      <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
-      <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
+      <SetBlackboard output_key="mv_x" value="{initial_hover_x}"/>
+      <SetBlackboard output_key="mv_y" value="{initial_hover_y}"/>
+      <SetBlackboard output_key="mv_z" value="{initial_hover_z}"/>
+      <SetBlackboard output_key="mv_yaw" value="{initial_hover_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="true"/>
       <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
 
@@ -68,7 +70,7 @@
           <EvaluatePlacementResidual
             service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
             block_id="{grasp_object_contains}"
-            expected_hover_pose="{placement_approach_pose}"
+            expected_placement_pose="{reference_block_pose_precise}" compare_z="false"
             translation_tolerance_m="0.04" yaw_tolerance_rad="0.0873"
             within_tolerance="{placement_within_tolerance}"
             translation_error_m="{placement_translation_error_m}"

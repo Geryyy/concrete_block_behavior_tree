@@ -99,6 +99,18 @@ def generate_launch_description():
                 description="Raw PointCloud2 topic published by the simulated Livox sensor.",
             ),
             DeclareLaunchArgument(
+                "enable_placement_disturbance",
+                default_value="false",
+                description=(
+                    "Inject a one-shot initial-hover pose bias in the operator workflow, "
+                    "so the placement correction loop can be tested."
+                ),
+            ),
+            DeclareLaunchArgument("placement_disturbance_x_m", default_value="0.06"),
+            DeclareLaunchArgument("placement_disturbance_y_m", default_value="-0.04"),
+            DeclareLaunchArgument("placement_disturbance_z_m", default_value="0.00"),
+            DeclareLaunchArgument("placement_disturbance_yaw_rad", default_value="0.035"),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -239,6 +251,18 @@ def generate_launch_description():
                     base_bt_config,
                     override_bt_config,
                     {"use_sim_time": True},
+                    {
+                        "simulated_placement_disturbance.enabled": ParameterValue(
+                            LaunchConfiguration("enable_placement_disturbance"), value_type=bool),
+                        "simulated_placement_disturbance.x_m": ParameterValue(
+                            LaunchConfiguration("placement_disturbance_x_m"), value_type=float),
+                        "simulated_placement_disturbance.y_m": ParameterValue(
+                            LaunchConfiguration("placement_disturbance_y_m"), value_type=float),
+                        "simulated_placement_disturbance.z_m": ParameterValue(
+                            LaunchConfiguration("placement_disturbance_z_m"), value_type=float),
+                        "simulated_placement_disturbance.yaw_rad": ParameterValue(
+                            LaunchConfiguration("placement_disturbance_yaw_rad"), value_type=float),
+                    },
                     {
                         "behaviortree": PathSubstitution(
                             FindPackageShare("lsrl_behavior_tree")

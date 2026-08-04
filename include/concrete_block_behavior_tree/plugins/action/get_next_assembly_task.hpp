@@ -25,6 +25,21 @@ public:
   {
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    if (!node_->has_parameter("simulated_placement_disturbance.enabled")) {
+      node_->declare_parameter("simulated_placement_disturbance.enabled", false);
+    }
+    if (!node_->has_parameter("simulated_placement_disturbance.x_m")) {
+      node_->declare_parameter("simulated_placement_disturbance.x_m", 0.06);
+    }
+    if (!node_->has_parameter("simulated_placement_disturbance.y_m")) {
+      node_->declare_parameter("simulated_placement_disturbance.y_m", -0.04);
+    }
+    if (!node_->has_parameter("simulated_placement_disturbance.z_m")) {
+      node_->declare_parameter("simulated_placement_disturbance.z_m", 0.0);
+    }
+    if (!node_->has_parameter("simulated_placement_disturbance.yaw_rad")) {
+      node_->declare_parameter("simulated_placement_disturbance.yaw_rad", 0.035);
+    }
   }
 
   void on_tick() override;
@@ -62,7 +77,13 @@ public:
         // Decomposed pre-place approach point (above + laterally offset)
         BT::OutputPort<double>("approach_x"),
         BT::OutputPort<double>("approach_y"),
-        BT::OutputPort<double>("approach_z")
+        BT::OutputPort<double>("approach_z"),
+        // Simulation-only first-hover output.  It equals approach_* unless
+        // the Gazebo launch enables the placement-disturbance parameters.
+        BT::OutputPort<double>("disturbed_approach_x"),
+        BT::OutputPort<double>("disturbed_approach_y"),
+        BT::OutputPort<double>("disturbed_approach_z"),
+        BT::OutputPort<double>("disturbed_approach_yaw")
       });
   }
 

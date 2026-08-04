@@ -99,6 +99,29 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("approach_y", approach.pose.position.y);
   setOutput("approach_z", approach.pose.position.z);
 
+  bool disturbance_enabled = false;
+  double disturbance_x = 0.0;
+  double disturbance_y = 0.0;
+  double disturbance_z = 0.0;
+  double disturbance_yaw = 0.0;
+  node_->get_parameter("simulated_placement_disturbance.enabled", disturbance_enabled);
+  node_->get_parameter("simulated_placement_disturbance.x_m", disturbance_x);
+  node_->get_parameter("simulated_placement_disturbance.y_m", disturbance_y);
+  node_->get_parameter("simulated_placement_disturbance.z_m", disturbance_z);
+  node_->get_parameter("simulated_placement_disturbance.yaw_rad", disturbance_yaw);
+  setOutput("disturbed_approach_x", approach.pose.position.x + (disturbance_enabled ? disturbance_x : 0.0));
+  setOutput("disturbed_approach_y", approach.pose.position.y + (disturbance_enabled ? disturbance_y : 0.0));
+  setOutput("disturbed_approach_z", approach.pose.position.z + (disturbance_enabled ? disturbance_z : 0.0));
+  setOutput(
+    "disturbed_approach_yaw",
+    yawFromQuaternion(approach.pose.orientation) + (disturbance_enabled ? disturbance_yaw : 0.0));
+  if (disturbance_enabled) {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "SIMULATION A2B goal bias: dxyz=[%.3f, %.3f, %.3f] m dyaw=%.3f rad",
+      disturbance_x, disturbance_y, disturbance_z, disturbance_yaw);
+  }
+
   RCLCPP_INFO(
     node_->get_logger(),
     "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s pickup=(%.2f,%.2f,%.2f) place=(%.2f,%.2f,%.2f) message=%s",

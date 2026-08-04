@@ -12,6 +12,17 @@ lifecycle_manager:
 
 /**:
   ros__parameters:
+    # Operator-panel residual light: green at or below this translation
+    # residual, red above.  This is deliberately looser than the 4 cm
+    # correction tolerance used by the tree.
+    placement_indicator_threshold_m: 0.10
+    # Simulation test hook.  Gazebo launch arguments override these values;
+    # disabled by default and never enabled by the real-crane launch.
+    simulated_placement_disturbance.enabled: false
+    simulated_placement_disturbance.x_m: 0.06
+    simulated_placement_disturbance.y_m: -0.04
+    simulated_placement_disturbance.z_m: 0.00
+    simulated_placement_disturbance.yaw_rad: 0.035
     plugin_lib_names:
       # epsilon_crane_behavior_tree
       - BT_wait_log_msg_decorator
