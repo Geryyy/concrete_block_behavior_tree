@@ -171,12 +171,12 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
     perception_include = next(
         (
             action for action in include_actions
-            if "concrete_block_perception" in str(action.launch_description_source.location)
-            and "perception.launch.py" in str(action.launch_description_source.location)
+            if "concrete_block_detector" in str(action.launch_description_source.location)
+            and "wall_assembly_perception.launch.py" in str(action.launch_description_source.location)
         ),
         None,
     )
-    assert perception_include is not None, "Expected concrete-block perception include"
+    assert perception_include is not None, "Expected concrete-block detector pipeline include"
 
     launch_arguments = dict(perception_include.launch_arguments)
     assert "start_world_model" in launch_arguments
@@ -184,6 +184,7 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
         launch_arguments["start_world_model"].describe()
         == "LaunchConfig('start_world_model')"
     )
+    assert "points_topic" in launch_arguments
 
     assert any(
         node.node_package == "rviz2"

@@ -1,7 +1,7 @@
 """Real PZS100 wall-assembly operator stack, without Gazebo.
 
 This starts only ROS-side infrastructure for the real crane: description/TF,
-motion-planning servers, perception + world model, wall-plan server, BT server,
+motion-planning servers, point-cloud block detection + world model, wall-plan server, BT server,
 and RViz. The low-level ros2_control bridge is usually managed outside this
 launch on the crane IPC, but controller spawners can be enabled with
 start_controller_spawners:=true.
@@ -93,26 +93,20 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument("start_motion_planning", default_value="true"),
-            DeclareLaunchArgument("start_perception", default_value="false"),
-            DeclareLaunchArgument("start_processing_stack", default_value="true"),
+            DeclareLaunchArgument(
+                "start_perception",
+                default_value="false",
+                description="Start the point-cloud detector and its world-model bridge.",
+            ),
             DeclareLaunchArgument(
                 "start_world_model",
                 default_value="true",
-                description="Passed to concrete_block_perception/perception.launch.py.",
+                description="Start the world model within the detector pipeline.",
             ),
             DeclareLaunchArgument("start_wall_plan_server", default_value="true"),
             DeclareLaunchArgument("start_bt_action_server", default_value="true"),
             DeclareLaunchArgument("start_rviz", default_value="true"),
-            DeclareLaunchArgument("use_gpu", default_value="false"),
-            DeclareLaunchArgument(
-                "perception_mode",
-                default_value="IDLE",
-                description="World-model perception mode at startup.",
-            ),
-            DeclareLaunchArgument(
-                "calib_yaml",
-                default_value="calib_zed2i_to_seyond_new_sensor_head.yaml",
-            ),
+            DeclareLaunchArgument("points_topic", default_value="/seyond/points"),
             DeclareLaunchArgument(
                 "world_model_overlay_params_file",
                 default_value=PathJoinSubstitution(
@@ -267,19 +261,14 @@ def generate_launch_description():
                 condition=IfCondition(LaunchConfiguration("start_motion_planning")),
             ),
             IncludeLaunchDescription(
-                PathSubstitution(FindPackageShare("concrete_block_perception"))
+                PathSubstitution(FindPackageShare("concrete_block_detector"))
                 / "launch"
-                / "perception.launch.py",
+                / "wall_assembly_perception.launch.py",
                 launch_arguments={
                     "use_sim_time": use_sim_time,
-                    "use_gpu": LaunchConfiguration("use_gpu"),
-                    "perception_mode": LaunchConfiguration("perception_mode"),
-                    "calib_yaml": LaunchConfiguration("calib_yaml"),
                     "world_model_overlay_params_file": selected_world_model_overlay_params_file,
                     "start_world_model": LaunchConfiguration("start_world_model"),
-                    "start_processing_stack": LaunchConfiguration(
-                        "start_processing_stack"
-                    ),
+                    "points_topic": LaunchConfiguration("points_topic"),
                 }.items(),
                 condition=IfCondition(LaunchConfiguration("start_perception")),
             ),

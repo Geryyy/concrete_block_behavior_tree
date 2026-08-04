@@ -14,7 +14,17 @@
       <SetBlackboard output_key="mv_carries" value="true"/>
       <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
 
-      <!-- 2. Descend to place (carrying) -->
+      <SubTree ID="SubTreePlaceFromHover" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- For workflows that have already reached place_approach_* and verified
+       their residual there.  This intentionally starts with the vertical
+       carrying descent rather than issuing a second A2B approach motion. -->
+  <BehaviorTree ID="SubTreePlaceFromHover">
+    <Sequence name="place_from_hover">
+
+      <!-- 1. Descend to place (carrying) -->
       <SetBlackboard output_key="dz_x" value="{place_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_y}"/>
       <SetBlackboard output_key="dz_z" value="{place_z}"/>
@@ -22,7 +32,7 @@
       <SetBlackboard output_key="dz_carries" value="true"/>
       <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
 
-      <!-- 3. Write final block pose, then open gripper -->
+      <!-- 2. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"
@@ -35,7 +45,7 @@
       <SetBlackboard output_key="gr_carries" value="true"/>
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
 
-      <!-- 4. Lift away empty -->
+      <!-- 3. Lift away empty -->
       <SetBlackboard output_key="lf_carries" value="false"/>
       <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
 

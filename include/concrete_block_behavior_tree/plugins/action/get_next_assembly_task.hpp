@@ -45,6 +45,7 @@ public:
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("target_block_pose_coarse"),
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("target_block_pose_precise"),
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("reference_block_pose_precise"),
+        BT::OutputPort<geometry_msgs::msg::PoseStamped>("placement_approach_pose"),
         BT::OutputPort<bool>("plan_has_task"),
         BT::OutputPort<std::string>("plan_message"),
         // Decomposed pickup pose (for SetGoalPose / CalcA2BMovement compatibility)
@@ -71,4 +72,3 @@ private:
 };
 
 }  // namespace concrete_block_behavior_tree
-

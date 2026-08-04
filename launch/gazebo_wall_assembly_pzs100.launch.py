@@ -10,20 +10,21 @@ import os
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
     SetEnvironmentVariable,
+    IncludeLaunchDescription,
     TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
     LaunchConfiguration,
+    EnvironmentVariable,
     PathJoinSubstitution,
     PathSubstitution,
     PythonExpression,
 )
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-from launch_ros.substitutions import FindPackageShare
+from launch_ros.substitutions import FindPackagePrefix, FindPackageShare
 
 
 def generate_launch_description():
@@ -83,6 +84,21 @@ def generate_launch_description():
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),
             DeclareLaunchArgument(
+                "start_perception",
+                default_value="false",
+                description="Start the concrete-block detector on the simulated raw LiDAR cloud.",
+            ),
+            DeclareLaunchArgument(
+                "enable_livox_sim",
+                default_value="off",
+                description="Enable the Gazebo Livox PointCloud2 sensor with value 'livox'.",
+            ),
+            DeclareLaunchArgument(
+                "lidar_points_topic",
+                default_value="/livox/points",
+                description="Raw PointCloud2 topic published by the simulated Livox sensor.",
+            ),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -108,6 +124,14 @@ def generate_launch_description():
                     ]
                 ),
             ),
+            SetEnvironmentVariable(
+                name="GAZEBO_PLUGIN_PATH",
+                value=[
+                    EnvironmentVariable("GAZEBO_PLUGIN_PATH", default_value=""),
+                    ":",
+                    PathSubstitution(FindPackagePrefix("livox_simulation")) / "lib",
+                ],
+            ),
             # ── PZS100 crane simulation (without epsilon_crane BT) ───────
             IncludeLaunchDescription(
                 PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
@@ -121,7 +145,42 @@ def generate_launch_description():
                     "seed_file": seed_file,
                     "gui": LaunchConfiguration("gui"),
                     "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
+                    "enable_livox_sim": LaunchConfiguration("enable_livox_sim"),
                 }.items(),
+            ),
+            # The PZS100 bringup owns the seeded world model.  The detector
+            # talks to it through /concrete_block_detector/discover_blocks;
+            # launching the detector directly avoids a second world model.
+            # Gazebo reduces the sensor's fixed joint, while the Livox plugin
+            # still publishes its sensor name as frame_id. Restore that fixed
+            # identity edge so raw cloud stamps can be transformed to world.
+            Node(
+                package="tf2_ros",
+                executable="static_transform_publisher",
+                name="livox_sim_sensor_frame",
+                arguments=["0", "0", "0", "0", "0", "0", "livox_frame", "livox_sim"],
+                parameters=[{"use_sim_time": True}],
+            ),
+            Node(
+                package="concrete_block_detector",
+                executable="concrete_block_detector_node",
+                name="concrete_block_detector",
+                output="screen",
+                parameters=[
+                    PathSubstitution(FindPackageShare("concrete_block_detector"))
+                    / "config"
+                    / "detector.yaml",
+                    {
+                        "use_sim_time": True,
+                        "point_cloud_transport": "raw",
+                        "debug.enabled": True,
+                        "debug.publish_markers": True,
+                        "debug.publish_clouds": True,
+                        "debug.publish_diagnostics": True,
+                    },
+                ],
+                remappings=[("points", LaunchConfiguration("lidar_points_topic"))],
+                condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
             # World model is launched by gazebo_model_bt_pzs100.launch.py.
             # Virtual TCP TF is published by grip_traj_server from tcp_z_offset param.

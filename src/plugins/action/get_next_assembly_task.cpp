@@ -81,6 +81,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("target_block_pose_coarse", pickup);
   setOutput("target_block_pose_precise", target);
   setOutput("reference_block_pose_precise", reference);
+  setOutput("placement_approach_pose", approach);
   setOutput("plan_has_task", response->has_task);
   setOutput("plan_message", response->message);
 

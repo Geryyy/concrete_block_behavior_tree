@@ -67,6 +67,11 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "enable_livox_sim",
+                default_value="off",
+                description="Enable the raw PointCloud2 Livox simulation with value 'livox'.",
+            ),
+            DeclareLaunchArgument(
                 "start_grasp_detector",
                 default_value="True",
                 description="Start the q9 gripper grasp detector for PZS100 Gazebo runs.",
@@ -125,6 +130,7 @@ def generate_launch_description():
                     "joint_states_topic": "joint_states_rviz",
                     "gui": LaunchConfiguration("gui"),
                     "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
+                    "enable_livox_sim": LaunchConfiguration("enable_livox_sim"),
                 }.items(),
             ),
         ]

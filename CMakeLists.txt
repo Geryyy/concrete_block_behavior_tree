@@ -18,6 +18,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   tf2
   tf2_ros
   tf2_geometry_msgs
+  visualization_msgs
 )
 
 find_package(ament_cmake REQUIRED)
@@ -41,6 +42,9 @@ add_bt_plugin(BT_cb_wait_for_grasp_signal_condition src/plugins/condition/wait_f
 add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action src/plugins/action/write_block_pose_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_wait_for_operator_command_action src/plugins/action/wait_for_operator_command.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 add_executable(gripper_grasp_detector
   src/nodes/gripper_grasp_detector.cpp
