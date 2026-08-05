@@ -83,6 +83,21 @@
             status_ok="{status_ok}"
             status_message="{status_message}"/>
 
+          <!-- Re-observe the just-placed block against its FK-derived pose
+               and correct it in the world model. The crane has known
+               goal-pose error, so placement errors would otherwise compound
+               uncorrected into the next block's plan. ForceSuccess: an
+               occluded/failed re-measurement must not abort the assembly
+               loop; the FK pose already written above remains the
+               fallback, exactly as REFINE_GRASPED is treated pre-placement
+               in operator_guided_single_block.xml. -->
+          <ForceSuccess>
+            <RunPoseEstimation
+              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+              mode="REFINE_BLOCK" target_block_id="{target_block_id}"
+              enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
+          </ForceSuccess>
+
         </Sequence>
       </KeepRunningUntilFailure>
 
