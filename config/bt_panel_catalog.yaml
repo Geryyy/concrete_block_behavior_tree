@@ -2,9 +2,5 @@ package: concrete_block_behavior_tree
 behavior_trees:
   - name: "Basic pick and place"
     path: "/behavior_trees/basic_pick_and_place.xml"
-  - name: "Stack block 1 on block 2"
-    path: "/behavior_trees/stack_block_1_on_block_2.xml"
   - name: "Wall assembly"
     path: "/behavior_trees/wall_assembly.xml"
-  - name: "Row 3 middle last"
-    path: "/behavior_trees/wall_assembly_row3_middle_last.xml"

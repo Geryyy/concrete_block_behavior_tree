@@ -58,6 +58,17 @@
         task_status="3"
         status_ok="{status_ok}"
         status_message="{status_message}"/>
+
+      <!-- Re-observe the just-placed block against its FK-derived pose and
+           correct it in the world model; same fix as wall_assembly.xml.
+           ForceSuccess: an occluded/failed re-measurement must not fail this
+           tree; the FK pose already written above remains the fallback. -->
+      <ForceSuccess>
+        <RunPoseEstimation
+          service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+          mode="REFINE_BLOCK" target_block_id="{target_block_id}"
+          enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
+      </ForceSuccess>
     </Sequence>
   </BehaviorTree>
   <!-- ////////// -->

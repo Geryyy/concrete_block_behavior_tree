@@ -95,12 +95,17 @@ Main trees:
 
 ```text
 behavior_trees/basic_pick_and_place.xml
-behavior_trees/stack_block_1_on_block_2.xml
 behavior_trees/wall_assembly.xml
 ```
 
-`behavior_trees/stack_block_1_on_block_2.xml` is the two-block stacking
-commissioning variant.
+`behavior_trees/wall_assembly.xml` sends `wall_plan_name=""` to
+`GetNextAssemblyTask`, so it runs whatever plan the operator activated in the
+Plan Control RViz panel -- one tree serves every named `wall_plans.yaml`
+entry (including single- and two-block scenarios like `stack_block_1_on_block_2`,
+see the example below), not just one wall. `basic_pick_and_place.xml` stays a
+separate, self-contained tree (hardcoded `wall_plan_name`) because it's the
+`behaviortree` startup parameter for the unattended Gazebo commissioning
+launch, which has no RViz operator available to activate a plan first.
 
 Reusable subtrees:
 

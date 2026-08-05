@@ -15,9 +15,6 @@
       <!-- ============================================================
            CONFIGURATION
            ============================================================ -->
-      <!-- Which expanded wall plan to build (see wall_plans.yaml). Override on
-           the blackboard to build a different wall. -->
-      <SetBlackboard output_key="wall_plan_name" value="example_wall"/>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
@@ -46,10 +43,17 @@
       <KeepRunningUntilFailure name="assembly_loop">
         <Sequence name="pick_and_place_one_block">
 
+          <!-- wall_plan_name="" deliberately: this must consume exactly the
+               plan the operator activated in the Plan Control RViz panel,
+               not a hidden default baked into this tree (see
+               wall_plan_server.py's _handle_get_next_task); matches
+               operator_guided_single_block.xml's existing pattern. Activate
+               a plan (e.g. "example_wall") in Plan Control before running
+               this tree. -->
           <GetNextAssemblyTask
             service_name="/concrete_block_wall_plan_server/get_next_assembly_task"
             server_timeout="10000"
-            wall_plan_name="{wall_plan_name}"
+            wall_plan_name=""
             reset_plan="false"
             task_id="{task_id}"
             target_block_id="{target_block_id}"
