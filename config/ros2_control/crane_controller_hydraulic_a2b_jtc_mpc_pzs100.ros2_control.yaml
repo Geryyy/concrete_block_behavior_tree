@@ -36,6 +36,20 @@
       weight_sDot: 0.2
       weight_lag: 10.0
       sDot_ref: 1.0
+    # Integral action against the hydraulic valve dead zone. The MPC model has unity actuator
+    # gain, no friction and no gravity term on the actuated axes, so its equilibrium input is
+    # u=0 everywhere: near the goal it asks for a velocity the valve does not act on, the axis
+    # stalls and the residual error never decays. This models the resulting velocity deficit so
+    # the optimizer has to carry a standing command that clears the dead zone.
+    # Arrays are indexed by actuated joint: [theta1, theta2, theta3, q4, theta8].
+    # clamp is the number to measure: read off the plots the commanded velocity at which the
+    # axis actually breaks away, and set clamp to roughly 1.5-2x that threshold.
+    # error_deadband must stay below the goal tolerance of the joint (see constraints below).
+    integral:
+      ki: [0.5, 0.5, 0.5, 0.5, 0.5]
+      clamp: [0.05, 0.05, 0.05, 0.05, 0.05]
+      error_deadband: [0.02, 0.02, 0.01, 0.01, 0.01]
+      stall_velocity: [0.0, 0.0, 0.0, 0.0, 0.0]
     solver:
       num_integration_steps: 5
       Ts: 0.05
