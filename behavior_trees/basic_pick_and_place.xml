@@ -15,7 +15,7 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
-      <SetBlackboard output_key="payload_mass" value="80.0"/>
+      <SetBlackboard output_key="payload_mass" value="800.0"/>
       <SetBlackboard output_key="log_shape_text"
         value="radius_top: 0.30, radius_bottom: 0.30, length: 0.90"/>
       <!-- CBS has no log-scene perception; leave logsScene unset on the BB.

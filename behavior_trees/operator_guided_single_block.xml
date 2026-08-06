@@ -13,7 +13,7 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
-      <SetBlackboard output_key="payload_mass" value="80.0"/>
+      <SetBlackboard output_key="payload_mass" value="800.0"/>
       <SetBlackboard output_key="log_shape_text" value="radius_top: 0.30, radius_bottom: 0.30, length: 0.90"/>
 
       <WaitForOperatorCommand expected="acquire"/>
@@ -54,38 +54,38 @@
       <PlacementExitAsSuccess exit_requested="{placement_exit_requested}">
         <KeepRunningUntilFailure name="placement_refinement_loop">
           <Sequence>
-          <!-- "place" returns FAILURE deliberately: it is the clean exit
+            <!-- "place" returns FAILURE deliberately: it is the clean exit
                from KeepRunningUntilFailure into SubTreePlaceBlock below. -->
-          <WaitForOperatorCommand expected="measure" failure_commands="place"
-                                  exit_requested="{placement_exit_requested}"/>
-          <!-- Prefer a direct observation of the carried block.  This can
+            <WaitForOperatorCommand expected="measure" failure_commands="place"
+              exit_requested="{placement_exit_requested}"/>
+            <!-- Prefer a direct observation of the carried block.  This can
                fail when the block is occluded; the FK TASK_MOVE pose below
                is deliberately retained as the deterministic fallback. -->
-          <ForceSuccess>
-            <RunPoseEstimation
-              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
-              mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
-              enable_debug="true" timeout_s="8.0" message="{grasped_measurement_message}"/>
-          </ForceSuccess>
-          <EvaluatePlacementResidual
-            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-            block_id="{grasp_object_contains}"
-            expected_placement_pose="{reference_block_pose_precise}" compare_z="false"
-            translation_tolerance_m="0.04" yaw_tolerance_rad="0.0873"
-            within_tolerance="{placement_within_tolerance}"
-            translation_error_m="{placement_translation_error_m}"
-            yaw_error_rad="{placement_yaw_error_rad}"
-            message="{placement_residual_message}"/>
-          <WaitForOperatorCommand expected="correct" failure_commands="place"
-                                  exit_requested="{placement_exit_requested}"/>
-          <Sequence name="correct_to_planned_hover">
-            <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
-            <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
-            <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
-            <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
-            <SetBlackboard output_key="mv_carries" value="true"/>
-            <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
-          </Sequence>
+            <ForceSuccess>
+              <RunPoseEstimation
+                service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+                mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
+                enable_debug="true" timeout_s="8.0" message="{grasped_measurement_message}"/>
+            </ForceSuccess>
+            <EvaluatePlacementResidual
+              service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+              block_id="{grasp_object_contains}"
+              expected_placement_pose="{reference_block_pose_precise}" compare_z="false"
+              translation_tolerance_m="0.04" yaw_tolerance_rad="0.0873"
+              within_tolerance="{placement_within_tolerance}"
+              translation_error_m="{placement_translation_error_m}"
+              yaw_error_rad="{placement_yaw_error_rad}"
+              message="{placement_residual_message}"/>
+            <WaitForOperatorCommand expected="correct" failure_commands="place"
+              exit_requested="{placement_exit_requested}"/>
+            <Sequence name="correct_to_planned_hover">
+              <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
+              <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
+              <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
+              <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
+              <SetBlackboard output_key="mv_carries" value="true"/>
+              <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+            </Sequence>
           </Sequence>
         </KeepRunningUntilFailure>
       </PlacementExitAsSuccess>
