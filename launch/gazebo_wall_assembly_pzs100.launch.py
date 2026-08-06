@@ -184,11 +184,10 @@ def generate_launch_description():
                     / "detector.yaml",
                     {
                         "use_sim_time": True,
+                        # Sim publishes the raw cloud; detector.yaml defaults to
+                        # cloudini for hardware.  Debug outlets are configured in
+                        # detector.yaml, not here.
                         "point_cloud_transport": "raw",
-                        "debug.enabled": True,
-                        "debug.publish_markers": True,
-                        "debug.publish_clouds": True,
-                        "debug.publish_diagnostics": True,
                     },
                 ],
                 remappings=[("points", LaunchConfiguration("lidar_points_topic"))],
