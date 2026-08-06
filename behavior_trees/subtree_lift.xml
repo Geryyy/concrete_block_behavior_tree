@@ -12,6 +12,10 @@
         s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <Action ID="PublishGripperState" name="Publish payload to MPC"
+        carries="{lf_carries}" mass="{payload_mass}"
+        log_shape_text="{log_shape_text}"
+        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
     </Sequence>
   </BehaviorTree>

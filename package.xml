@@ -15,6 +15,7 @@
 
   <depend>lsrl_behavior_tree</depend>
   <depend>concrete_block_world_model_interfaces</depend>
+  <depend>epsilon_crane_control_interfaces</depend>
   <exec_depend>concrete_block_world_model</exec_depend>
   <exec_depend>concrete_block_detector</exec_depend>
   <exec_depend>concrete_block_perception</exec_depend>
