@@ -5,6 +5,15 @@
          mv_carries                - "true"/"false": carrying a block?
        Produces: yN, phi (goal pose), trajectory. -->
   <BehaviorTree ID="SubTreeMoveAbove">
+    <!-- Retry re-plans, it does not replay. The crane can stall short of the goal on the valve
+         dead zone: the arm is close, the axis stops, and the controller aborts on goal time.
+         Re-running CalcA2BMovement from wherever it actually stopped produces a short, slow
+         correction move, which is the regime the crane positions accurately in. Replaying the
+         same trajectory instead would command a jump from the new position, so the plan step
+         has to be inside the retry.
+         Each attempt still passes through CheckUserApproval, so the operator sees and confirms
+         the correction rather than the crane moving again on its own. -->
+    <RetryUntilSuccessful num_attempts="2" name="replan_on_missed_goal">
     <Sequence name="move_above">
       <Action ID="SetGoalPose" name="Set approach pose"
         yN.x="{mv_x}" yN.y="{mv_y}" yN.z="{mv_z}"
@@ -24,5 +33,6 @@
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
     </Sequence>
+    </RetryUntilSuccessful>
   </BehaviorTree>
 </root>

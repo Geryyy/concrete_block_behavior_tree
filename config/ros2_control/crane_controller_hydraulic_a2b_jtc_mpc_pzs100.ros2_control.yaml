@@ -44,7 +44,13 @@
       constraint_discount_factor: 1.0
     constraints:
       stopped_velocity_tolerance: 0.15 # raised from 0.05 to absorb EPSCOPE state_factor=2.0 doubling on q9 at squeeze-settled goal
-      goal_time: 10.0 # s, 0=deactivate goal_time check
+      # Raised from 10.0. What blocks goal acceptance is not the arm -- theta2/theta3/q4 met
+      # their tolerances in every sim run -- it is the passive tool sway (theta7_tilt was still
+      # at 1.5 rad/s when the 10 s window expired) plus a few cm of residual on theta1. Both
+      # decay on their own given time, so the grace window is the cheapest thing to widen: it
+      # costs seconds, not accuracy. If the goal is still missed after this, the re-plan retry
+      # in SubTreeMoveAbove takes over rather than the run failing.
+      goal_time: 25.0 # s, 0=deactivate goal_time check
       theta1_slewing_joint:
         goal: 0.05
       theta2_boom_joint:
