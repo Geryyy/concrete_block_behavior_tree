@@ -13,7 +13,7 @@
          has to be inside the retry.
          Each attempt still passes through CheckUserApproval, so the operator sees and confirms
          the correction rather than the crane moving again on its own. -->
-    <RetryUntilSuccessful num_attempts="2" name="replan_on_missed_goal">
+    <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="replan_on_missed_goal">
     <Sequence name="move_above">
       <Action ID="SetGoalPose" name="Set approach pose"
         yN.x="{mv_x}" yN.y="{mv_y}" yN.z="{mv_z}"
@@ -33,6 +33,6 @@
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
     </Sequence>
-    </RetryUntilSuccessful>
+    </Decorator>
   </BehaviorTree>
 </root>
