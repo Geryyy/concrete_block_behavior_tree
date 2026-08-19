@@ -71,7 +71,9 @@ public:
     return providedBasicPorts({
       BT::InputPort<std::string>("block_id", "", "TASK_MOVE block to evaluate"),
       BT::InputPort<geometry_msgs::msg::PoseStamped>(
-        "expected_placement_pose", "Planned final block CoG pose"),
+        "expected_placement_pose", "Planned final block CoG pose and yaw"),
+      BT::InputPort<geometry_msgs::msg::PoseStamped>(
+        "expected_hover_pose", "Planned block CoG pose at the pre-place hover; XY is used"),
       BT::InputPort<bool>(
         "compare_z", false,
         "Compare vertical error too; false is appropriate while hovering above the placement"),
@@ -86,6 +88,14 @@ public:
       BT::InputPort<double>(
         "current_hover_y", "Hover y the residual was measured at (planning frame)"),
       BT::InputPort<double>(
+        "planned_hover_x", "Uncorrected planned hover x (planning frame)"),
+      BT::InputPort<double>(
+        "planned_hover_y", "Uncorrected planned hover y (planning frame)"),
+      BT::InputPort<double>(
+        "planned_place_x", "Uncorrected planned final placement x (planning frame)"),
+      BT::InputPort<double>(
+        "planned_place_y", "Uncorrected planned final placement y (planning frame)"),
+      BT::InputPort<double>(
         "max_correction_m", 0.30,
         "Correction magnitude is clamped to this; a bad pose estimate must not "
         "command a large lateral move on a loaded crane"),
@@ -96,6 +106,8 @@ public:
       BT::OutputPort<double>("residual_dy_m"),
       BT::OutputPort<double>("corrected_hover_x"),
       BT::OutputPort<double>("corrected_hover_y"),
+      BT::OutputPort<double>("corrected_place_x"),
+      BT::OutputPort<double>("corrected_place_y"),
       BT::OutputPort<std::string>("message")});
   }
 
@@ -106,6 +118,17 @@ public:
     }
     if (!getInput("expected_placement_pose", expected_placement_pose_)) {
       throw std::invalid_argument("EvaluatePlacementResidual requires expected_placement_pose");
+    }
+    if (!getInput("expected_hover_pose", expected_hover_pose_)) {
+      throw std::invalid_argument("EvaluatePlacementResidual requires expected_hover_pose");
+    }
+    if (!getInput("planned_hover_x", planned_hover_x_) ||
+      !getInput("planned_hover_y", planned_hover_y_) ||
+      !getInput("planned_place_x", planned_place_x_) ||
+      !getInput("planned_place_y", planned_place_y_))
+    {
+      throw std::invalid_argument(
+              "EvaluatePlacementResidual requires planned hover and placement coordinates");
     }
     getInput("compare_z", compare_z_);
     getInput("planning_frame", planning_frame_);
@@ -156,13 +179,27 @@ public:
           expected, planning_frame_, tf2::durationFromSec(0.5));
       }
     } catch (const tf2::TransformException & ex) {
+      return fail("Cannot transform planned placement pose to '" + planning_frame_ + "': " + ex.what());
+    }
+
+    auto expected_hover = expected_hover_pose_;
+    if (expected_hover.header.frame_id.empty()) {
+      expected_hover.header.frame_id = planning_frame_;
+    }
+    try {
+      if (expected_hover.header.frame_id != planning_frame_) {
+        expected_hover = tf_buffer_->transform(
+          expected_hover, planning_frame_, tf2::durationFromSec(0.5));
+      }
+    } catch (const tf2::TransformException & ex) {
       return fail("Cannot transform planned hover pose to '" + planning_frame_ + "': " + ex.what());
     }
 
-    // A2B's high approach endpoint is a crane planner reference, not a
-    // block-CoG setpoint.  While the block is hovering, validate the two
-    // placement-relevant lateral coordinates and block yaw against the final
-    // plan.  The later grip descent owns the vertical placement coordinate.
+    // The hover is laterally offset from the final placement for an angled
+    // descent.  Measure XY against that approach point, while retaining the
+    // final block yaw as the orientation reference.
+    expected.pose.position.x = expected_hover.pose.position.x;
+    expected.pose.position.y = expected_hover.pose.position.y;
     if (!compare_z_) {
       expected.pose.position.z = observed.pose.position.z;
     }
@@ -204,9 +241,9 @@ public:
     setOutput("message", text.str());
 
     // dx/dy are expected-minus-observed, so shifting the gripper by +d moves
-    // the block onto the target.  Offset the hover the measurement was taken
-    // at -- not the original plan -- so repeated measure/correct cycles
-    // accumulate instead of discarding the previous correction.
+    // the block onto the target. Offset the measured hover so repeated
+    // measure/correct cycles accumulate. Apply the same total hover delta to
+    // the final placement: this keeps the planned angled descent unchanged.
     double current_hover_x = 0.0;
     double current_hover_y = 0.0;
     if (getInput("current_hover_x", current_hover_x) &&
@@ -226,13 +263,23 @@ public:
           "Placement correction %.3f m exceeds max_correction_m %.3f, clamping",
           correction, max_correction_m);
       }
-      setOutput("corrected_hover_x", current_hover_x + applied_dx);
-      setOutput("corrected_hover_y", current_hover_y + applied_dy);
+      const double corrected_hover_x = current_hover_x + applied_dx;
+      const double corrected_hover_y = current_hover_y + applied_dy;
+      const double total_dx = corrected_hover_x - planned_hover_x_;
+      const double total_dy = corrected_hover_y - planned_hover_y_;
+      const double corrected_place_x = planned_place_x_ + total_dx;
+      const double corrected_place_y = planned_place_y_ + total_dy;
+      setOutput("corrected_hover_x", corrected_hover_x);
+      setOutput("corrected_hover_y", corrected_hover_y);
+      setOutput("corrected_place_x", corrected_place_x);
+      setOutput("corrected_place_y", corrected_place_y);
       RCLCPP_INFO(
         node_->get_logger(),
-        "Hover correction: (%.3f, %.3f) -> (%.3f, %.3f), d=(%.3f, %.3f) m",
+        "Placement correction: hover (%.3f, %.3f) -> (%.3f, %.3f), "
+        "place -> (%.3f, %.3f), d=(%.3f, %.3f) m",
         current_hover_x, current_hover_y,
-        current_hover_x + applied_dx, current_hover_y + applied_dy,
+        corrected_hover_x, corrected_hover_y,
+        corrected_place_x, corrected_place_y,
         applied_dx, applied_dy);
     }
     RCLCPP_INFO(node_->get_logger(), "%s", text.str().c_str());
@@ -349,7 +396,12 @@ private:
   std::string block_id_;
   std::string planning_frame_{"K0_mounting_base"};
   geometry_msgs::msg::PoseStamped expected_placement_pose_;
+  geometry_msgs::msg::PoseStamped expected_hover_pose_;
   bool compare_z_{false};
+  double planned_hover_x_{0.0};
+  double planned_hover_y_{0.0};
+  double planned_place_x_{0.0};
+  double planned_place_y_{0.0};
   double translation_tolerance_m_{0.04};
   double yaw_tolerance_rad_{0.0873};
   double block_length_m_{0.90};

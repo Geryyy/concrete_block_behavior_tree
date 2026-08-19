@@ -33,6 +33,11 @@
         disturbed_approach_x="{initial_hover_x}" disturbed_approach_y="{initial_hover_y}"
         disturbed_approach_z="{initial_hover_z}" disturbed_approach_yaw="{initial_hover_yaw}"/>
       <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
+      <!-- Keep the planned endpoints immutable: the refinement loop derives
+           its accumulated correction from these rather than reusing a prior
+           corrected descend target. -->
+      <SetBlackboard output_key="planned_place_x" value="{place_x}"/>
+      <SetBlackboard output_key="planned_place_y" value="{place_y}"/>
 
       <WaitForOperatorCommand expected="pick"/>
       <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
@@ -70,9 +75,12 @@
             <EvaluatePlacementResidual
               service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
               block_id="{grasp_object_contains}"
-              expected_placement_pose="{reference_block_pose_precise}" compare_z="false"
+              expected_placement_pose="{reference_block_pose_precise}"
+              expected_hover_pose="{placement_approach_pose}" compare_z="false"
               translation_tolerance_m="0.04" yaw_tolerance_rad="0.0873"
               current_hover_x="{mv_x}" current_hover_y="{mv_y}"
+              planned_hover_x="{place_approach_x}" planned_hover_y="{place_approach_y}"
+              planned_place_x="{planned_place_x}" planned_place_y="{planned_place_y}"
               max_correction_m="0.30"
               within_tolerance="{placement_within_tolerance}"
               translation_error_m="{placement_translation_error_m}"
@@ -81,6 +89,8 @@
               residual_dy_m="{placement_residual_dy_m}"
               corrected_hover_x="{corrected_hover_x}"
               corrected_hover_y="{corrected_hover_y}"
+              corrected_place_x="{corrected_place_x}"
+              corrected_place_y="{corrected_place_y}"
               message="{placement_residual_message}"/>
             <WaitForOperatorCommand expected="correct" failure_commands="place"
               exit_requested="{placement_exit_requested}"/>
@@ -93,6 +103,8 @@
             <Sequence name="correct_hover_by_residual">
               <SetBlackboard output_key="mv_x" value="{corrected_hover_x}"/>
               <SetBlackboard output_key="mv_y" value="{corrected_hover_y}"/>
+              <SetBlackboard output_key="place_x" value="{corrected_place_x}"/>
+              <SetBlackboard output_key="place_y" value="{corrected_place_y}"/>
               <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
               <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
               <SetBlackboard output_key="mv_carries" value="true"/>
