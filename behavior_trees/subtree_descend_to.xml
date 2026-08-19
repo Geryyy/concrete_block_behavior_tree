@@ -10,6 +10,7 @@
         yN.x="{dz_x}" yN.y="{dz_y}" yN.z="{dz_z}"
         phiN="{dz_yaw}"
         goal="{COG}" phi="{phi}"/>
+      <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
       <Action ID="CalcGripMovement" name="Plan descend"
         carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
         phiToolN="{phi}" service_name="grip_traj_movement"
