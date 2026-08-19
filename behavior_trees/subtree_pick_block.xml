@@ -14,12 +14,19 @@
       <SetBlackboard output_key="mv_carries" value="false"/>
       <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
 
-      <!-- 2. Open gripper -->
+      <SubTree ID="SubTreePickFromHover" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Pick after the caller has already reached the selected pickup hover. -->
+  <BehaviorTree ID="SubTreePickFromHover">
+    <Sequence name="pick_from_hover">
+      <!-- 1. Open gripper -->
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="false"/>
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
 
-      <!-- 3. Descend to pickup -->
+      <!-- 2. Descend to pickup -->
       <!-- Controller default: the grasp detector verifies this descent, not
            the goal tolerance, and the jaws close on whatever they reach. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
@@ -30,12 +37,12 @@
       <SetBlackboard output_key="dz_carries" value="false"/>
       <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
 
-      <!-- 4. Close gripper -->
+      <!-- 3. Close gripper -->
       <SetBlackboard output_key="gr_phase" value="2"/>
       <SetBlackboard output_key="gr_carries" value="false"/>
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
 
-      <!-- 5. Verify grasp signal + register block as in-hand -->
+      <!-- 4. Verify grasp signal + register block as in-hand -->
       <Action ID="WaitForGraspSignal" name="Wait for grasp detector"
         topic="/gripper/grasp_detected"
         timeout_ms="8000"/>
@@ -56,7 +63,7 @@
         task_status="2"
         grasp_offset="{grasp_offset}"/>
 
-      <!-- 6. Lift the grasped block -->
+      <!-- 5. Lift the grasped block -->
       <SetBlackboard output_key="lf_carries" value="true"/>
       <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
 

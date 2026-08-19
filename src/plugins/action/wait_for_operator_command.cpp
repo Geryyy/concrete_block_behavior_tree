@@ -153,9 +153,8 @@ private:
 
 // KeepRunningUntilFailure is useful for an operator-controlled refinement
 // loop, but an ordinary Sequence treats its FAILURE as an assembly failure.
-// This decorator converts that failure to SUCCESS only when the waiter
-// explicitly recorded a fresh operator "place" command.  Sensor, planning,
-// and motion failures therefore still abort the workflow normally.
+// This decorator converts that failure to SUCCESS only for the waiter's
+// explicit exit command. Sensor, planning, and motion failures still abort.
 class PlacementExitAsSuccess : public BT::DecoratorNode
 {
 public:
@@ -187,4 +186,6 @@ BT_REGISTER_NODES(factory)
     "WaitForOperatorCommand");
   factory.registerNodeType<concrete_block_behavior_tree::PlacementExitAsSuccess>(
     "PlacementExitAsSuccess");
+  factory.registerNodeType<concrete_block_behavior_tree::PlacementExitAsSuccess>(
+    "OperatorExitAsSuccess");
 }

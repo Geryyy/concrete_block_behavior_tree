@@ -58,4 +58,5 @@ lifecycle_manager:
       - BT_cb_wait_for_operator_command_action
       - BT_cb_run_pose_estimation_action
       - BT_cb_evaluate_placement_residual_action
+      - BT_cb_evaluate_pickup_residual_action
       - BT_cb_publish_gripper_state_action

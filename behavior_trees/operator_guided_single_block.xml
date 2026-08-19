@@ -33,14 +33,58 @@
         disturbed_approach_x="{initial_hover_x}" disturbed_approach_y="{initial_hover_y}"
         disturbed_approach_z="{initial_hover_z}" disturbed_approach_yaw="{initial_hover_yaw}"/>
       <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
+      <SetBlackboard output_key="planned_pickup_x" value="{pickup_x}"/>
+      <SetBlackboard output_key="planned_pickup_y" value="{pickup_y}"/>
       <!-- Keep the planned endpoints immutable: the refinement loop derives
            its accumulated correction from these rather than reusing a prior
            corrected descend target. -->
       <SetBlackboard output_key="planned_place_x" value="{place_x}"/>
       <SetBlackboard output_key="planned_place_y" value="{place_y}"/>
 
-      <WaitForOperatorCommand expected="pick"/>
-      <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
+      <!-- Pickup refinement happens before the gripper descends. The selected
+           ground block is observed directly, then both the empty A2B hover and
+           the grasp descent use the corrected pickup XY. -->
+      <WaitForOperatorCommand expected="pickup_hover"/>
+      <SetBlackboard output_key="mv_x" value="{pickup_x}"/>
+      <SetBlackboard output_key="mv_y" value="{pickup_y}"/>
+      <SetBlackboard output_key="mv_z" value="{approach_z}"/>
+      <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
+      <SetBlackboard output_key="mv_carries" value="false"/>
+      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+      <OperatorExitAsSuccess exit_requested="{pickup_exit_requested}">
+        <KeepRunningUntilFailure name="pickup_refinement_loop">
+          <Sequence>
+            <WaitForOperatorCommand expected="pickup_measure" failure_commands="pick"
+              exit_requested="{pickup_exit_requested}"/>
+            <RunPoseEstimation
+              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+              mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+              enable_debug="true" timeout_s="8.0" message="{pickup_measurement_message}"/>
+            <EvaluatePickupResidual
+              service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+              block_id="{grasp_object_contains}"
+              expected_pickup_pose="{target_block_pose_coarse}"
+              planned_pickup_x="{planned_pickup_x}" planned_pickup_y="{planned_pickup_y}"
+              translation_tolerance_m="0.04"
+              within_tolerance="{pickup_within_tolerance}"
+              translation_error_m="{pickup_translation_error_m}"
+              residual_dx_m="{pickup_residual_dx_m}" residual_dy_m="{pickup_residual_dy_m}"
+              corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"
+              message="{pickup_residual_message}"/>
+            <WaitForOperatorCommand expected="pickup_correct" failure_commands="pick"
+              exit_requested="{pickup_exit_requested}"/>
+            <SetBlackboard output_key="pickup_x" value="{corrected_pickup_x}"/>
+            <SetBlackboard output_key="pickup_y" value="{corrected_pickup_y}"/>
+            <SetBlackboard output_key="mv_x" value="{corrected_pickup_x}"/>
+            <SetBlackboard output_key="mv_y" value="{corrected_pickup_y}"/>
+            <SetBlackboard output_key="mv_z" value="{approach_z}"/>
+            <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
+            <SetBlackboard output_key="mv_carries" value="false"/>
+            <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+          </Sequence>
+        </KeepRunningUntilFailure>
+      </OperatorExitAsSuccess>
+      <SubTree ID="SubTreePickFromHover" __shared_blackboard="true"/>
 
       <WaitForOperatorCommand expected="hover"/>
       <SetBlackboard output_key="mv_x" value="{initial_hover_x}"/>
