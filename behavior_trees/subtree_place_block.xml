@@ -25,6 +25,10 @@
     <Sequence name="place_from_hover">
 
       <!-- 1. Descend to place (carrying) -->
+      <!-- Tight: this endpoint is the deliverable.  The gripper opens on the
+           next step, so a descent that stopped short must abort here rather
+           than release the block off-slot. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <SetBlackboard output_key="dz_x" value="{place_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_y}"/>
       <SetBlackboard output_key="dz_z" value="{place_z}"/>

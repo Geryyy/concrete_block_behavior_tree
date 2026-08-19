@@ -6,6 +6,8 @@
        Acts at the last CoG goal pose ({COG}). Produces: trajectory. -->
   <BehaviorTree ID="SubTreeGripper">
     <Sequence name="gripper">
+      <!-- Loose: only q9 moves here, the crane joints just hold station. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.20"/>
       <Action ID="CalcGripMovement" name="Plan gripper move"
         carriesLog="{gr_carries}" logShapeText="{log_shape_text}" phase="{gr_phase}"
         phiToolN="{phi}" service_name="grip_traj_movement"

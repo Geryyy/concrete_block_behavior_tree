@@ -9,10 +9,17 @@
             deactivate_controllers=""
             server_timeout="1000"
             service_name="/controller_manager/switch_controller"/>
+          <!-- ex_goal_tolerance is set by every caller right before it invokes
+               this subtree, so no motion inherits the previous one's value.
+               Only the actuated joints are listed: theta6/theta7 are the
+               passive sway pair and q9 is the gripper, and neither should abort
+               a crane motion. -->
           <Action ID="FollowJointTrajectory"
             server_name="/trajectory_controller_a2b/follow_joint_trajectory"
             server_timeout="500"
-            trajectory="{trajectory}"/>
+            trajectory="{trajectory}"
+            goal_tolerance="{ex_goal_tolerance}"
+            goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
           <Action name="Deactivate controller" ID="SwitchController"
             activate_controllers=""
             deactivate_controllers="trajectory_controller_a2b"

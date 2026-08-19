@@ -20,6 +20,9 @@
       <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
 
       <!-- 3. Descend to pickup -->
+      <!-- Controller default: the grasp detector verifies this descent, not
+           the goal tolerance, and the jaws close on whatever they reach. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
       <SetBlackboard output_key="dz_x" value="{pickup_x}"/>
       <SetBlackboard output_key="dz_y" value="{pickup_y}"/>
       <SetBlackboard output_key="dz_z" value="{pickup_z}"/>

@@ -15,6 +15,11 @@
          the correction rather than the crane moving again on its own. -->
     <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="replan_on_missed_goal">
     <Sequence name="move_above">
+      <!-- Matches constraints.<joint>.goal in the controller YAML on purpose:
+           replan_on_missed_goal above depends on the controller aborting when
+           the arm stalls short on the valve dead zone.  Loosening this here
+           would silence the abort and the retry would never fire. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
       <Action ID="SetGoalPose" name="Set approach pose"
         yN.x="{mv_x}" yN.y="{mv_y}" yN.z="{mv_z}"
         phiN="{mv_yaw}"

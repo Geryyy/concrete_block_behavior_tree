@@ -5,6 +5,9 @@
        Acts at the last CoG goal pose ({COG}). Produces: trajectory. -->
   <BehaviorTree ID="SubTreeLift">
     <Sequence name="lift">
+      <!-- Loose: a lift only needs clearance, and the pendulum swings as the
+           block leaves the ground, so a tight check would abort on physics. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.20"/>
       <Action ID="CalcGripMovement" name="Plan lift"
         carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
