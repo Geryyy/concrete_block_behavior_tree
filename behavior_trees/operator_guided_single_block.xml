@@ -41,9 +41,11 @@
       <SetBlackboard output_key="planned_place_x" value="{place_x}"/>
       <SetBlackboard output_key="planned_place_y" value="{place_y}"/>
 
-      <!-- Pickup refinement happens before the gripper descends. The selected
-           ground block is observed directly, then both the empty A2B hover and
-           the grasp descent use the corrected pickup XY. -->
+      <!-- Pickup refinement happens before the gripper descends. Until the
+           image-based REFINE_BLOCK path is replaced by the point-cloud
+           detector, use the persistent scene-discovery pose as the trusted
+           ground-block observation. A pickup correction still re-plans A2B
+           from the measured crane state, recovering a missed hover endpoint. -->
       <WaitForOperatorCommand expected="pickup_hover"/>
       <SetBlackboard output_key="mv_x" value="{pickup_x}"/>
       <SetBlackboard output_key="mv_y" value="{pickup_y}"/>
@@ -56,10 +58,6 @@
           <Sequence>
             <WaitForOperatorCommand expected="pickup_measure" failure_commands="pick"
               exit_requested="{pickup_exit_requested}"/>
-            <RunPoseEstimation
-              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
-              mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
-              enable_debug="true" timeout_s="8.0" message="{pickup_measurement_message}"/>
             <EvaluatePickupResidual
               service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
               block_id="{grasp_object_contains}"
