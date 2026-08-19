@@ -81,9 +81,21 @@ public:
       BT::InputPort<double>("block_length_m", 0.90, "Visualised block length"),
       BT::InputPort<double>("block_width_m", 0.60, "Visualised block width"),
       BT::InputPort<double>("block_height_m", 0.60, "Visualised block height"),
+      BT::InputPort<double>(
+        "current_hover_x", "Hover x the residual was measured at (planning frame)"),
+      BT::InputPort<double>(
+        "current_hover_y", "Hover y the residual was measured at (planning frame)"),
+      BT::InputPort<double>(
+        "max_correction_m", 0.30,
+        "Correction magnitude is clamped to this; a bad pose estimate must not "
+        "command a large lateral move on a loaded crane"),
       BT::OutputPort<bool>("within_tolerance"),
       BT::OutputPort<double>("translation_error_m"),
       BT::OutputPort<double>("yaw_error_rad"),
+      BT::OutputPort<double>("residual_dx_m"),
+      BT::OutputPort<double>("residual_dy_m"),
+      BT::OutputPort<double>("corrected_hover_x"),
+      BT::OutputPort<double>("corrected_hover_y"),
       BT::OutputPort<std::string>("message")});
   }
 
@@ -187,7 +199,42 @@ public:
     setOutput("within_tolerance", within);
     setOutput("translation_error_m", translation_error);
     setOutput("yaw_error_rad", yaw_error);
+    setOutput("residual_dx_m", dx);
+    setOutput("residual_dy_m", dy);
     setOutput("message", text.str());
+
+    // dx/dy are expected-minus-observed, so shifting the gripper by +d moves
+    // the block onto the target.  Offset the hover the measurement was taken
+    // at -- not the original plan -- so repeated measure/correct cycles
+    // accumulate instead of discarding the previous correction.
+    double current_hover_x = 0.0;
+    double current_hover_y = 0.0;
+    if (getInput("current_hover_x", current_hover_x) &&
+      getInput("current_hover_y", current_hover_y))
+    {
+      double max_correction_m = 0.30;
+      getInput("max_correction_m", max_correction_m);
+      double applied_dx = dx;
+      double applied_dy = dy;
+      const double correction = std::sqrt(dx * dx + dy * dy);
+      if (max_correction_m > 0.0 && correction > max_correction_m) {
+        const double scale = max_correction_m / correction;
+        applied_dx *= scale;
+        applied_dy *= scale;
+        RCLCPP_WARN(
+          node_->get_logger(),
+          "Placement correction %.3f m exceeds max_correction_m %.3f, clamping",
+          correction, max_correction_m);
+      }
+      setOutput("corrected_hover_x", current_hover_x + applied_dx);
+      setOutput("corrected_hover_y", current_hover_y + applied_dy);
+      RCLCPP_INFO(
+        node_->get_logger(),
+        "Hover correction: (%.3f, %.3f) -> (%.3f, %.3f), d=(%.3f, %.3f) m",
+        current_hover_x, current_hover_y,
+        current_hover_x + applied_dx, current_hover_y + applied_dy,
+        applied_dx, applied_dy);
+    }
     RCLCPP_INFO(node_->get_logger(), "%s", text.str().c_str());
     return BT::NodeStatus::SUCCESS;
   }

@@ -72,15 +72,27 @@
               block_id="{grasp_object_contains}"
               expected_placement_pose="{reference_block_pose_precise}" compare_z="false"
               translation_tolerance_m="0.04" yaw_tolerance_rad="0.0873"
+              current_hover_x="{mv_x}" current_hover_y="{mv_y}"
+              max_correction_m="0.30"
               within_tolerance="{placement_within_tolerance}"
               translation_error_m="{placement_translation_error_m}"
               yaw_error_rad="{placement_yaw_error_rad}"
+              residual_dx_m="{placement_residual_dx_m}"
+              residual_dy_m="{placement_residual_dy_m}"
+              corrected_hover_x="{corrected_hover_x}"
+              corrected_hover_y="{corrected_hover_y}"
               message="{placement_residual_message}"/>
             <WaitForOperatorCommand expected="correct" failure_commands="place"
               exit_requested="{placement_exit_requested}"/>
-            <Sequence name="correct_to_planned_hover">
-              <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
-              <SetBlackboard output_key="mv_y" value="{place_approach_y}"/>
+            <!-- Correct by the measured residual rather than re-commanding the
+                 planned hover.  The error is the block hanging off-centre in
+                 the jaws, so the same gripper pose reproduces the same block
+                 pose: only moving the gripper by the residual moves the block.
+                 x/y come from the residual; z stays planned because the grip
+                 descent owns the vertical coordinate. -->
+            <Sequence name="correct_hover_by_residual">
+              <SetBlackboard output_key="mv_x" value="{corrected_hover_x}"/>
+              <SetBlackboard output_key="mv_y" value="{corrected_hover_y}"/>
               <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
               <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
               <SetBlackboard output_key="mv_carries" value="true"/>
