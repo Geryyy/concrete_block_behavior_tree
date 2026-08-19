@@ -100,22 +100,28 @@ public:
       return fail("Cannot transform pickup pose to '" + planning_frame_ + "': " + ex.what());
     }
 
-    // Pickup follows the observed ground block, so its correction is observed-minus-planned.
-    const double dx = observed.pose.position.x - expected_.pose.position.x;
-    const double dy = observed.pose.position.y - expected_.pose.position.y;
-    const double error = std::hypot(dx, dy);
+    // Keep residual ports consistent with placement: expected minus observed.
+    // Pickup follows the observed ground block, so its command delta is the
+    // inverse of that residual.
+    const double residual_dx = expected_.pose.position.x - observed.pose.position.x;
+    const double residual_dy = expected_.pose.position.y - observed.pose.position.y;
+    const double correction_dx = -residual_dx;
+    const double correction_dy = -residual_dy;
+    const double error = std::hypot(residual_dx, residual_dy);
     const bool within = error <= tolerance_m_;
-    const double corrected_x = planned_x_ + dx;
-    const double corrected_y = planned_y_ + dy;
+    const double corrected_x = planned_x_ + correction_dx;
+    const double corrected_y = planned_y_ + correction_dy;
     std::ostringstream text;
     text << std::fixed << std::setprecision(3)
-         << "Pickup residual: dxy=[" << dx << ", " << dy << "] m, |d|=" << error
-         << " m; " << (within ? "within tolerance" : "correction recommended");
+         << "Pickup residual (expected-observed): dxy=[" << residual_dx << ", "
+         << residual_dy << "] m, |d|=" << error << " m; pickup command dxy=["
+         << correction_dx << ", " << correction_dy << "] m; "
+         << (within ? "within tolerance" : "correction recommended");
     publish(text.str(), within, error);
     setOutput("within_tolerance", within);
     setOutput("translation_error_m", error);
-    setOutput("residual_dx_m", dx);
-    setOutput("residual_dy_m", dy);
+    setOutput("residual_dx_m", residual_dx);
+    setOutput("residual_dy_m", residual_dy);
     setOutput("corrected_pickup_x", corrected_x);
     setOutput("corrected_pickup_y", corrected_y);
     setOutput("message", text.str());
