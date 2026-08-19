@@ -4,3 +4,5 @@ behavior_trees:
     path: "/behavior_trees/basic_pick_and_place.xml"
   - name: "Wall assembly"
     path: "/behavior_trees/wall_assembly.xml"
+  - name: "Move empty (A2B to RViz goal)"
+    path: "/behavior_trees/move_empty_pzs100.xml"
