@@ -56,8 +56,14 @@ public:
       "/assembly_operator/placement_indicator_threshold_m", rclcpp::QoS(1).transient_local());
     translation_error_pub_ = node_->create_publisher<std_msgs::msg::Float64>(
       "/assembly_operator/placement_translation_error_m", rclcpp::QoS(1).transient_local());
-    indicator_threshold_m_ = node_->declare_parameter<double>(
-      "placement_indicator_threshold_m", 0.10);
+    // node_ is the bt_action_server's shared rclcpp node and outlives the tree.
+    // Every tree (re)load constructs this plugin again, so declaring
+    // unconditionally throws ParameterAlreadyDeclared on the second load --
+    // the first goal succeeds and every later one fails with "File exists but
+    // can't be loaded".
+    indicator_threshold_m_ = node_->has_parameter("placement_indicator_threshold_m")
+      ? node_->get_parameter("placement_indicator_threshold_m").as_double()
+      : node_->declare_parameter<double>("placement_indicator_threshold_m", 0.10);
   }
 
   static BT::PortsList providedPorts()
