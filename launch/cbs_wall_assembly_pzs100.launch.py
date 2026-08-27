@@ -15,6 +15,13 @@ The seam is the `a2b_movement` service.  `crane_planning` serves the same
 `timber_crane_planning_interfaces/srv/CalcMovement` the BT's `CalcA2BMovement`
 node calls, so the tree needs no change to reach the new planner.
 
+`crane_mpc` is started but is not in the BT's execution path: the tree sends its
+trajectory to `/trajectory_controller_a2b/follow_joint_trajectory`, which is
+chained onto `crane_velocity_controller`. The MPC consumes `/crane/reference`
+from the planner and ships in `shadow` mode until the supervisor is asked for
+`mpc` through `/crane/set_mode`. There is therefore no `controller:=pid|mpc`
+argument here; the choice is made at runtime, not at launch.
+
 Two things do not line up on their own and are handled here:
 
 * `sim.launch.py` publishes the deadman on `/crane/remote_ctrl_states`, while
@@ -25,10 +32,31 @@ Two things do not line up on their own and are handled here:
   `cbs.rviz` -- which already carries an enabled display for the planner's
   `/crane_planner/planned_path`.
 
-Known gap, deliberately not papered over: the planner refuses a
-collision-checked request until something publishes
-`/crane/collision_scene`, and nothing in this workspace does.  See the
-`avoid_collisions` refusal in `crane_planning/src/planner_core.cpp`.
+Three things are known to be unfinished, and are left visible rather than
+papered over:
+
+* **No motion will plan yet.**  `CalcMovement.srv` defaults
+  `check_gripper_collision` to true and the BT's `CalcA2BMovement` never
+  overrides it, so `a2b_adapter.cpp` sets `avoid_collisions` and
+  `planner_core.cpp` refuses -- nothing in this workspace publishes
+  `/crane/collision_scene`.  Publishing an empty scene would clear the refusal,
+  but that refusal is deliberate: it exists so a trajectory never reads as
+  checked when no scene arrived.  A real producer is the fix.
+* **Two owners of `trajectory_controller_a2b`.**  `sim.launch.py` spawns it
+  active, `subtree_execute_trajectory.xml` activates and deactivates it around
+  every motion, and `crane_supervisor` treats itself as the only caller of
+  `/controller_manager/switch_controller` and polls `list_controllers` STRICT.
+  The timber chain avoided this by spawning the controller `--inactive`.
+* **Gripper TF is uncorrected.**  `pzs100_rviz_joint_state_adapter.py` inverted
+  the EPSCOPE actuator read on `q9_left_rail_joint` and synthesised
+  `q11_right_rail_joint`; it fed a second `robot_state_publisher` that owned
+  `/tf` while the raw one was remapped to `tf_gazebo`.  `sim.launch.py` runs a
+  single publisher on raw `/joint_states`, so re-adding the adapter here would
+  need that two-publisher split rather than one more node.
+
+`start_perception` is carried over for parity but is currently inert:
+`sim.launch.py` hard-codes `enable_livox_sim:=''`, so no simulated sensor
+publishes the cloud the detector subscribes to.
 """
 
 import os
@@ -90,9 +118,12 @@ def generate_launch_description():
                 description="Crane initial pose preset passed to crane_bringup/sim.",
             ),
             DeclareLaunchArgument(
-                "world",
+                "gazebo_world_file",
                 default_value="epsilon_crane.world",
-                description="Gazebo world, resolved inside testsite_description/worlds.",
+                description=(
+                    "Gazebo world, resolved inside testsite_description/worlds. "
+                    "Named as in the timber twin; sim.launch.py calls it `world`."
+                ),
             ),
             DeclareLaunchArgument(
                 "place_approach_angle_deg",
@@ -120,6 +151,10 @@ def generate_launch_description():
                 / "world_model_seed_pick_place.yaml",
             ),
             SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
+                value="concrete_block_behavior_tree",
+            ),
+            SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_CATALOG",
                 value=PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
                 / "config"
@@ -138,7 +173,7 @@ def generate_launch_description():
                 launch_arguments={
                     "gui": LaunchConfiguration("gui"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
-                    "world": LaunchConfiguration("world"),
+                    "world": LaunchConfiguration("gazebo_world_file"),
                 }.items(),
             ),
             # ── Deadman bridge ──────────────────────────────────────────
@@ -173,6 +208,11 @@ def generate_launch_description():
                     / "cbs.rviz",
                 ],
                 parameters=[{"use_sim_time": True}],
+                # cbs.rviz's RobotModel display subscribes to /robot_description,
+                # while sim.launch.py publishes the description on
+                # /robot_description_full (the name the gazebo_ros2_control
+                # plugin hard-codes). Without this the robot never appears.
+                remappings=[("/robot_description", "/robot_description_full")],
                 condition=IfCondition(LaunchConfiguration("gui")),
                 output="log",
             ),
