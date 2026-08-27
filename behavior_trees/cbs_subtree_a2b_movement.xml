@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!-- CBS copy of epsilon_crane_behavior_tree/behavior_trees/subtree_a2b_movement.xml,
+     with every SwitchController node removed.
+
+     On the new stack `trajectory_controller_a2b` has three would-be owners:
+     `crane_bringup/sim.launch.py` spawns it ACTIVE, this subtree used to activate and
+     deactivate it around every motion, and `crane_supervisor` treats itself as the only
+     caller of /controller_manager/switch_controller: it lists the controller in its
+     follow-mode set and polls list_controllers STRICT. A strict switch that finds the
+     world already changed under it faults the supervisor, which in a planner-tuning
+     harness reads as a planner failure. The controller is chained too: it commands
+     crane_velocity_controller's reference interfaces, not hardware, so its activation
+     state is not private between this tree and the machine.
+
+     So the tree only follows the trajectory; the supervisor keeps sole ownership of
+     activation. The epsilon original wrapped the sequence in a Fallback whose failure
+     branch was a ForceFailure around one more deactivation, and with nothing left to
+     deactivate that branch is empty, so the Fallback collapses and the approval
+     decorator is the whole subtree.
+
+     epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
+<root>
+  <BehaviorTree ID="SubTreeCbsA2BMovement">
+    <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+      wait_rising_edge="False">
+      <Action ID="FollowJointTrajectory"
+        server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+        server_timeout="500"
+        trajectory="{trajectory}"/>
+    </Decorator>
+  </BehaviorTree>
+</root>

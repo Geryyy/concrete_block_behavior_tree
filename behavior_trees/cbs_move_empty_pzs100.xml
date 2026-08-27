@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- A2B move to an RViz 2D goal pose, for the CBS-only PZS100 profile
+     (`cbs_wall_assembly_pzs100.launch.py`, issue 076).
+
+     Same flow as move_empty_pzs100.xml (goal wait, planning call, approval condition,
+     trajectory following) but it includes cbs_subtree_a2b_movement.xml instead of
+     epsilon_crane_behavior_tree's subtree_a2b_movement.xml. The difference is controller
+     ownership: on the new stack `crane_supervisor` is the only caller of
+     /controller_manager/switch_controller, so the tree must not activate or deactivate
+     `trajectory_controller_a2b` itself. See that subtree's header.
+
+     Like move_empty_pzs100.xml it also drops the two nodes that depend on
+     log_state_estimator (the SwitchController that activates it and CalcGripState); that
+     controller is not spawned on this profile either, and CalcGripState waits for its
+     service while the tree is being CONSTRUCTED, so its absence throws and the panel
+     reports the misleading "File exists but can't be loaded".
+
+     Use it to exercise the new planner and the A2B controller from the RViz
+     BehaviorTreePanel: load config/bt_panel_catalog.yaml, pick this entry, set a 2D goal
+     pose in RViz, confirm on the remote. -->
+<root main_tree_to_execute="CBS Move Empty PZS100">
+  <include
+    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/cbs_subtree_a2b_movement.xml"/>
+  <BehaviorTree ID="CBS Move Empty PZS100">
+    <Sequence>
+      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <Decorator ID="RetryUntilSuccessful" num_attempts="-1">
+        <Decorator ID="WaitGoalPose" goal="{yN}" phi="{phi}" topic="goal_pose" z_offset="3.5">
+          <Sequence>
+            <OptimizeTargetAngle phi="{phi}"/>
+            <CalcA2BMovement carriesLog="false"
+              name="Calc approach target" phiToolN="{phi}"
+              server_timeout="10000" service_name="a2b_movement" slowDown="{slow_down}" tEnd="0.0"
+              trajectory="{trajectory}" yN="{yN}"/>
+            <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+          </Sequence>
+        </Decorator>
+      </Decorator>
+      <SubTree ID="SubTreeCbsA2BMovement" __shared_blackboard="true"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
