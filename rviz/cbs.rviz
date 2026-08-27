@@ -899,42 +899,6 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /collision_objects
           Value: true
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: false
-          Name: Path markers
-          Namespaces:
-            {}
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /path_marker
-          Value: false
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
-          Name: Collision Bodies
-          Namespaces:
-            K0_mounting_base: true
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /collision_marker_array
-          Value: true
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
-          Name: Target
-          Namespaces:
-            K0_mounting_base: true
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /target_marker
-          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz_default_plugins/Path
@@ -989,7 +953,7 @@ Visualization Manager:
             Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /trajectory_controller_a2b/tcp_path_local
+            Value: /crane/mpc/tcp_horizon
           Value: true
         - Alpha: 1
           Buffer Length: 1
@@ -1001,7 +965,7 @@ Visualization Manager:
           Length: 0.30000001192092896
           Line Style: Lines
           Line Width: 0.03999999910593033
-          Name: CBMP planned path
+          Name: Crane planner planned path
           Offset:
             X: 0
             Y: 0
@@ -1017,7 +981,7 @@ Visualization Manager:
             Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /concrete_block_motion_planning_node/planned_path
+            Value: /crane_planner/planned_path
           Value: true
       Enabled: true
       Name: Planning and Control
@@ -1493,11 +1457,9 @@ Visualization Manager:
               Zed: true
             Planning and Control:
               CBMP planned path: true
-              Collision Bodies: true
               Collision Bodies Full: true
               MPC local path: true
               Path: true
-              Path markers: true
               Target: true
               Value: true
             PointCloud2: true
