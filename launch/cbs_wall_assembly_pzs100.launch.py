@@ -132,6 +132,14 @@ def generate_launch_description():
             DeclareLaunchArgument("lift_height", default_value="1.0"),
             DeclareLaunchArgument("start_perception", default_value="false"),
             DeclareLaunchArgument("start_grasp_detector", default_value="True"),
+            DeclareLaunchArgument(
+                "start_tui",
+                default_value="false",
+                description=(
+                    "Start timber_crane_tui's keyboard remote. Off by default: the "
+                    "package lives under src/legacy and is not built here."
+                ),
+            ),
             DeclareLaunchArgument("lidar_points_topic", default_value="/livox/points"),
             DeclareLaunchArgument(
                 "enable_placement_disturbance", default_value="false"
@@ -422,7 +430,7 @@ def generate_launch_description():
                     PythonExpression(
                         [
                             "'",
-                            LaunchConfiguration("start_tui", default="false"),
+                            LaunchConfiguration("start_tui"),
                             "'.lower() in ('true', '1', 'yes')",
                         ]
                     )
