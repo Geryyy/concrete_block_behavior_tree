@@ -168,6 +168,15 @@ def generate_launch_description():
                 / "config"
                 / "bt_panel_catalog.yaml",
             ),
+            # The panel's fixed "Move empty" button, which is hard-wired to one
+            # tree.  Its default is `move_empty.xml`, the epsilon name; this
+            # package has no such file, so without this the button would stay
+            # disabled and the CBS move-empty tree would only be reachable
+            # through the catalog drop-down.
+            SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_BT_MOVE_EMPTY",
+                value="/behavior_trees/cbs_move_empty_pzs100.xml",
+            ),
             # ── The new architecture, whole ──────────────────────────────
             # sim.launch.py brings Gazebo, the description (tool is wired to
             # pzs100_description inside it), the spawn, joint_state_broadcaster,

@@ -35,7 +35,7 @@ Panels:
     Name: TimberCranePanel
   - Class: mp_rviz_panel/MotionPlanningPanel
     Name: MotionPlanningPanel
-  - Class: behavior_tree_panel/BehaviorTreePanel
+  - Class: concrete_block_rviz_plugins/BehaviorTreePanel
     Name: BehaviorTreePanel
   - Class: concrete_block_rviz_plugins/PerceptionControlPanel
     ClearWorldService: /world_model_node/clear_world_model
