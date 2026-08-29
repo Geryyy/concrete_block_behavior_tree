@@ -983,6 +983,19 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /crane_planner/planned_path
           Value: true
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Crane planner plan
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /crane_planner/markers
+          Value: true
       Enabled: true
       Name: Planning and Control
     - Class: rviz_common/Group
