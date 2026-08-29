@@ -32,27 +32,32 @@ Two things do not line up on their own and are handled here:
   `cbs.rviz` -- which already carries an enabled display for the planner's
   `/crane_planner/planned_path`.
 
-Three things are known to be unfinished, and are left visible rather than
-papered over:
+The scene the plan is checked against comes from `world_model_node`, which is
+started below: it publishes `/crane/collision_scene` (transient-local, with a
+heartbeat) from the same seed YAML the block spawner reads, so the tree's
+`CalcA2BMovement` -- which never overrides the `.srv` defaults and therefore
+always asks for the collision check -- has a scene to be certified against.
 
-* **No motion will plan yet.**  `CalcMovement.srv` defaults
-  `check_gripper_collision` to true and the BT's `CalcA2BMovement` never
-  overrides it, so `a2b_adapter.cpp` sets `avoid_collisions` and
-  `planner_core.cpp` refuses -- nothing in this workspace publishes
-  `/crane/collision_scene`.  Publishing an empty scene would clear the refusal,
-  but that refusal is deliberate: it exists so a trajectory never reads as
-  checked when no scene arrived.  A real producer is the fix.
+The gripper coordinate is corrected before anything maps it onto the
+description.  `gripper_hydraulic.ros2_control.xacro` gives `q9_left_rail_joint`
+an EPSCOPE `state_factor` of 2, so `/joint_states` carries the *total* opening
+while the URDF joint is one rail; `pzs100_rviz_joint_state_adapter.py` inverts
+that onto `/joint_states_rviz`, and `sim.launch.py` is pointed at it through its
+`joint_states_topic` argument so the `/tf` publisher, the planner and the MPC
+all read one coordinate.  The raw topic is left alone for the grasp detector,
+whose `position_window` is written in the EPSCOPE opening.
+
+One thing is known to be unfinished, and is left visible rather than papered
+over:
+
 * **Two owners of `trajectory_controller_a2b`.**  `sim.launch.py` spawns it
   active, `subtree_execute_trajectory.xml` activates and deactivates it around
-  every motion, and `crane_supervisor` treats itself as the only caller of
-  `/controller_manager/switch_controller` and polls `list_controllers` STRICT.
-  The timber chain avoided this by spawning the controller `--inactive`.
-* **Gripper TF is uncorrected.**  `pzs100_rviz_joint_state_adapter.py` inverted
-  the EPSCOPE actuator read on `q9_left_rail_joint` and synthesised
-  `q11_right_rail_joint`; it fed a second `robot_state_publisher` that owned
-  `/tf` while the raw one was remapped to `tf_gazebo`.  `sim.launch.py` runs a
-  single publisher on raw `/joint_states`, so re-adding the adapter here would
-  need that two-publisher split rather than one more node.
+  every motion, and `crane_supervisor` is meant to be the only caller of
+  `/controller_manager/switch_controller`.  Nothing breaks -- the tree switches
+  `BEST_EFFORT`, and the supervisor only switches when `/crane/set_mode` is
+  called -- but between motions the supervisor reports the mode whose controller
+  set is "velocity controller alone", which is `MODE_MPC`, while the MPC is in
+  shadow.  It is a misreported mode, not a wrong command.
 
 `start_perception` is carried over for parity but is currently inert:
 `sim.launch.py` hard-codes `enable_livox_sim:=''`, so no simulated sensor
@@ -183,6 +188,20 @@ def generate_launch_description():
             # crane_velocity_controller + trajectory_controller_a2b,
             # pendulum_state_broadcaster, crane_supervisor, crane_planner and
             # crane_mpc.  Nothing from the timber motion-planning tree.
+            # ── The PZS100 gripper coordinate ───────────────────────────
+            # `q9_left_rail_joint` reaches /joint_states multiplied by the
+            # EPSCOPE `state_factor` of 2 -- the total opening, not the rail the
+            # URDF describes. This inverts it onto /joint_states_rviz, which is
+            # what every node that maps a joint state onto the description reads
+            # below. The raw topic stays as it is: the grasp detector's
+            # `position_window` is written in the EPSCOPE opening.
+            Node(
+                package="concrete_block_behavior_tree",
+                executable="pzs100_rviz_joint_state_adapter.py",
+                name="pzs100_rviz_joint_state_adapter",
+                parameters=[{"use_sim_time": True}],
+                arguments=["--ros-args", "--log-level", "WARN"],
+            ),
             IncludeLaunchDescription(
                 PathSubstitution(FindPackageShare("crane_bringup"))
                 / "launch"
@@ -191,6 +210,7 @@ def generate_launch_description():
                     "gui": LaunchConfiguration("gui"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
                     "world": LaunchConfiguration("gazebo_world_file"),
+                    "joint_states_topic": "joint_states_rviz",
                 }.items(),
             ),
             # ── Deadman bridge ──────────────────────────────────────────
