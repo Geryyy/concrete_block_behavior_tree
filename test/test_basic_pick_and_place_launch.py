@@ -1,6 +1,7 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
+import yaml
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch_ros.actions import Node
 
@@ -304,3 +305,55 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
         and node.node_executable == "gripper_grasp_detector"
         for node in nodes
     ), "Real launch should start the grasp detector"
+
+
+# ── Every plugin cbs.rviz names has to exist on the CBS profile ──────────────
+#
+# `cbs.rviz` is shared: `pzs100_bringup.launch.py` hands it to the timber-backed
+# twin, and `cbs_wall_assembly_pzs100.launch.py` to the CBS-only profile. The
+# timber stack has `wood_log_rviz_plugins`, `timber_crane_rviz_panel` and
+# `mp_rviz_panel` on the RViz plugin path; the CBS profile does not, so a class
+# from one of those loads there and fails here. A failed *Tool* is the one that
+# bites: RViz builds its toolbar from this list, and the 2D Goal Pose tool
+# stopped being usable when `wood_log_rviz_plugins/LogPicker` failed beside it.
+RVIZ_CONFIG = Path(__file__).resolve().parents[1] / "rviz" / "cbs.rviz"
+# Shipped with RViz itself, so available wherever rviz2 runs.
+RVIZ_BUILTIN_NAMESPACES = ("rviz_common", "rviz_default_plugins")
+
+
+def _rviz_plugin_classes():
+    """Return every `Class` cbs.rviz names, displays nested in groups included."""
+    document = yaml.safe_load(RVIZ_CONFIG.read_text(encoding="utf-8"))
+
+    def walk(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("Class"), str):
+                yield node["Class"]
+            for value in node.values():
+                yield from walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                yield from walk(item)
+
+    return set(walk(document))
+
+
+def test_cbs_rviz_names_no_plugin_this_workspace_cannot_provide():
+    """A class whose package does not resolve is a plugin RViz will fail to load."""
+    from ament_index_python.packages import PackageNotFoundError, get_package_prefix
+
+    offenders = {}
+    for name in _rviz_plugin_classes():
+        package = name.split("/")[0]
+        if not package or package in RVIZ_BUILTIN_NAMESPACES:
+            continue
+        try:
+            get_package_prefix(package)
+        except PackageNotFoundError:
+            offenders[name] = package
+    assert not offenders, (
+        f"cbs.rviz names {offenders}, which this workspace does not provide, so "
+        "RViz logs a PluginlibFactory error and carries on without them. A "
+        "failed Tool takes the toolbar with it -- that is how the 2D Goal Pose "
+        "tool stopped working on the CBS profile."
+    )

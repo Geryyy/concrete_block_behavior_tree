@@ -237,7 +237,6 @@ def generate_launch_description():
             Node(
                 package="rviz2",
                 executable="rviz2",
-                name="rviz2",
                 arguments=[
                     "-d",
                     PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
@@ -245,15 +244,14 @@ def generate_launch_description():
                     / "cbs.rviz",
                 ],
                 parameters=[{"use_sim_time": True}],
-                # cbs.rviz's RobotModel display subscribes to
-                # /robot_description, which sim.launch.py publishes from its
-                # model-side robot_state_publisher -- the description whose
-                # joint origins are zeroed, so it pairs with the absolute
-                # /joint_states. /robot_description_full is the Gazebo twin,
-                # with the initial_pose preset baked into every joint origin;
-                # pointing RViz at it draws every joint at twice its angle.
+                # Started exactly as the timber twin starts it, which is the
+                # arrangement the RViz 2D Goal Pose tool is known to work under.
+                # No `name=`: that puts `-r __node:=rviz2` on the command line and
+                # renames the node RViz builds its tool and panel plugins against.
+                # No `output="log"` either -- a plugin that fails to load says so
+                # on stderr, and this config lost its goal-pose tool to exactly
+                # that, silently, for as long as the errors went to a file.
                 condition=IfCondition(LaunchConfiguration("gui")),
-                output="log",
             ),
             # ── Perception (off by default, as in the timber twin) ───────
             Node(
