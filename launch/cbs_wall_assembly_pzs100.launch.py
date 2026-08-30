@@ -245,11 +245,13 @@ def generate_launch_description():
                     / "cbs.rviz",
                 ],
                 parameters=[{"use_sim_time": True}],
-                # cbs.rviz's RobotModel display subscribes to /robot_description,
-                # while sim.launch.py publishes the description on
-                # /robot_description_full (the name the gazebo_ros2_control
-                # plugin hard-codes). Without this the robot never appears.
-                remappings=[("/robot_description", "/robot_description_full")],
+                # cbs.rviz's RobotModel display subscribes to
+                # /robot_description, which sim.launch.py publishes from its
+                # model-side robot_state_publisher -- the description whose
+                # joint origins are zeroed, so it pairs with the absolute
+                # /joint_states. /robot_description_full is the Gazebo twin,
+                # with the initial_pose preset baked into every joint origin;
+                # pointing RViz at it draws every joint at twice its angle.
                 condition=IfCondition(LaunchConfiguration("gui")),
                 output="log",
             ),

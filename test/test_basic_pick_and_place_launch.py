@@ -186,8 +186,11 @@ def test_cbs_wall_assembly_launch_runs_only_the_new_stack():
         )
         for src, dst in getattr(rviz_node, "_Node__remappings")
     ]
-    assert ("/robot_description", "/robot_description_full") in remaps, (
-        "RViz needs the description remap; sim.launch.py publishes on the _full topic"
+    assert ("/robot_description", "/robot_description_full") not in remaps, (
+        "RViz must read /robot_description, the model-side description whose "
+        "joint origins are zeroed. /robot_description_full is the Gazebo twin, "
+        "with the initial_pose preset baked into every origin; /joint_states "
+        "carries that preset too, so the remap draws every joint twice-bent"
     )
 
     bridge = next(
