@@ -1,10 +1,14 @@
+from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PathSubstitution, PythonExpression
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PathSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from launch import LaunchDescription
 
 
 def generate_launch_description():
@@ -20,6 +24,10 @@ def generate_launch_description():
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
     )
+    # 'cbs' takes the mp_esdf route purely to get its no-A2B-server branch: with
+    # this backend neither legacy server nor the ESDF mapping starts, and the
+    # crane_planner included below is the sole owner of /a2b_movement.
+    mp_backend = PythonExpression(["'cbs' if '", planner, "' == 'cbs' else 'timber'"])
     # PZS100 PID and MPC controller configs both live in CBS.
     ctrl_package = "concrete_block_behavior_tree"
     ctrl_config = PythonExpression(
@@ -35,7 +43,12 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "planner",
                 default_value="ilqr",
-                description="Planner: 'ilqr' or 'vpsto'",
+                choices=["ilqr", "vpsto", "cbs"],
+                description=(
+                    "A2B planner: 'ilqr'/'vpsto' are the legacy timber servers, "
+                    "'cbs' is crane_planning's crane_planner on the same "
+                    "/a2b_movement service"
+                ),
             ),
             DeclareLaunchArgument(
                 "controller",
@@ -104,6 +117,7 @@ def generate_launch_description():
                     "controller_a2b_config_package": ctrl_package,
                     "controller_a2b_config": ctrl_config,
                     "mp_launch_file": mp_launch_file,
+                    "mp_backend": mp_backend,
                     "mp_param_file": "mp_parameter_pzs100.yaml",
                     "mp_param_path": PathSubstitution(
                         FindPackageShare("concrete_block_behavior_tree")
@@ -168,6 +182,21 @@ def generate_launch_description():
                 ("block_goal_markers", "/cbp/block_goal_markers"),
             ],
             output="screen",
+        )
+    )
+
+    # The native planner, when it is the one selected. It serves the same
+    # /a2b_movement the legacy server did, so nothing above the planner changes.
+    ld.add_action(
+        IncludeLaunchDescription(
+            PathSubstitution(FindPackageShare("crane_planning"))
+            / "launch"
+            / "crane_planner.launch.py",
+            launch_arguments={
+                "tool": "pzs100",
+                "use_sim_time": "true",
+            }.items(),
+            condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
         )
     )
 

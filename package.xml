@@ -23,6 +23,7 @@
   <depend>concrete_block_assembly_interfaces</depend>
   <exec_depend>concrete_block_assembly_planning</exec_depend>
   <exec_depend>concrete_block_motion_planning</exec_depend>
+  <exec_depend>crane_planning</exec_depend>
   <depend>gazebo_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>

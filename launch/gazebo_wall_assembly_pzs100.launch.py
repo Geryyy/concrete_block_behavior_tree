@@ -10,14 +10,14 @@ import os
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    SetEnvironmentVariable,
     IncludeLaunchDescription,
+    SetEnvironmentVariable,
     TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
-    LaunchConfiguration,
     EnvironmentVariable,
+    LaunchConfiguration,
     PathJoinSubstitution,
     PathSubstitution,
     PythonExpression,
@@ -74,6 +74,15 @@ def generate_launch_description():
                 description="Low-level A2B controller: 'pid' or 'mpc'",
             ),
             DeclareLaunchArgument(
+                "planner",
+                default_value="ilqr",
+                choices=["ilqr", "vpsto", "cbs"],
+                description=(
+                    "A2B planner: 'ilqr'/'vpsto' are the legacy timber servers, "
+                    "'cbs' is crane_planning's crane_planner"
+                ),
+            ),
+            DeclareLaunchArgument(
                 "place_approach_angle_deg",
                 default_value="4.0",
                 description="Pre-place lateral approach angle in degrees.",
@@ -109,7 +118,9 @@ def generate_launch_description():
             DeclareLaunchArgument("placement_disturbance_x_m", default_value="0.06"),
             DeclareLaunchArgument("placement_disturbance_y_m", default_value="-0.04"),
             DeclareLaunchArgument("placement_disturbance_z_m", default_value="0.00"),
-            DeclareLaunchArgument("placement_disturbance_yaw_rad", default_value="0.035"),
+            DeclareLaunchArgument(
+                "placement_disturbance_yaw_rad", default_value="0.035"
+            ),
             DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
@@ -153,6 +164,7 @@ def generate_launch_description():
                     "start_bt_action_server": "False",
                     "start_grip_traj_server": "False",
                     "controller": LaunchConfiguration("controller"),
+                    "planner": LaunchConfiguration("planner"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
                     "seed_file": seed_file,
                     "gui": LaunchConfiguration("gui"),
@@ -221,7 +233,9 @@ def generate_launch_description():
                 name="concrete_block_wall_plan_server",
                 output="screen",
                 parameters=[
-                    PathSubstitution(FindPackageShare("concrete_block_assembly_planning"))
+                    PathSubstitution(
+                        FindPackageShare("concrete_block_assembly_planning")
+                    )
                     / "config"
                     / "wall_plan_server.yaml",
                     {
@@ -234,8 +248,10 @@ def generate_launch_description():
                             value_type=float,
                         ),
                         "wall_plans_file": PathSubstitution(
-                            FindPackageShare("concrete_block_assembly_planning"))
-                        / "config" / "wall_plans.yaml",
+                            FindPackageShare("concrete_block_assembly_planning")
+                        )
+                        / "config"
+                        / "wall_plans.yaml",
                     },
                 ],
             ),
@@ -252,15 +268,25 @@ def generate_launch_description():
                     {"use_sim_time": True},
                     {
                         "simulated_placement_disturbance.enabled": ParameterValue(
-                            LaunchConfiguration("enable_placement_disturbance"), value_type=bool),
+                            LaunchConfiguration("enable_placement_disturbance"),
+                            value_type=bool,
+                        ),
                         "simulated_placement_disturbance.x_m": ParameterValue(
-                            LaunchConfiguration("placement_disturbance_x_m"), value_type=float),
+                            LaunchConfiguration("placement_disturbance_x_m"),
+                            value_type=float,
+                        ),
                         "simulated_placement_disturbance.y_m": ParameterValue(
-                            LaunchConfiguration("placement_disturbance_y_m"), value_type=float),
+                            LaunchConfiguration("placement_disturbance_y_m"),
+                            value_type=float,
+                        ),
                         "simulated_placement_disturbance.z_m": ParameterValue(
-                            LaunchConfiguration("placement_disturbance_z_m"), value_type=float),
+                            LaunchConfiguration("placement_disturbance_z_m"),
+                            value_type=float,
+                        ),
                         "simulated_placement_disturbance.yaw_rad": ParameterValue(
-                            LaunchConfiguration("placement_disturbance_yaw_rad"), value_type=float),
+                            LaunchConfiguration("placement_disturbance_yaw_rad"),
+                            value_type=float,
+                        ),
                     },
                     {
                         "behaviortree": PathSubstitution(

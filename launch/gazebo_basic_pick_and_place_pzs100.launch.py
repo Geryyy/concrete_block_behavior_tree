@@ -3,9 +3,19 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+    TimerAction,
+)
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PathSubstitution, PythonExpression
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PathSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -24,16 +34,18 @@ def generate_launch_description():
     seed_file = LaunchConfiguration("seed_file")
 
     if os.path.exists("/usr/bin/xterm"):
-      spawn_terminal_prefix = "xterm -e "
+        spawn_terminal_prefix = "xterm -e "
     elif os.path.exists("/usr/bin/gnome-terminal"):
-      spawn_terminal_prefix = "gnome-terminal -- "
+        spawn_terminal_prefix = "gnome-terminal -- "
     else:
-      spawn_terminal_prefix = ""
+        spawn_terminal_prefix = ""
 
     return LaunchDescription(
         [
             DeclareLaunchArgument("gui", default_value="True"),
-            DeclareLaunchArgument("gazebo_world_file", default_value="epsilon_crane.world"),
+            DeclareLaunchArgument(
+                "gazebo_world_file", default_value="epsilon_crane.world"
+            ),
             DeclareLaunchArgument("initial_pose", default_value="1"),
             DeclareLaunchArgument("controller", default_value="pid"),
             DeclareLaunchArgument(
@@ -97,7 +109,9 @@ def generate_launch_description():
                 name="concrete_block_wall_plan_server",
                 output="screen",
                 parameters=[
-                    PathSubstitution(FindPackageShare("concrete_block_assembly_planning"))
+                    PathSubstitution(
+                        FindPackageShare("concrete_block_assembly_planning")
+                    )
                     / "config"
                     / "wall_plan_server.yaml",
                     {
@@ -106,8 +120,10 @@ def generate_launch_description():
                         "world_model_timeout_s": 2.0,
                         "output_frame": "world",
                         "wall_plans_file": PathSubstitution(
-                            FindPackageShare("concrete_block_assembly_planning"))
-                        / "config" / "wall_plans.yaml",
+                            FindPackageShare("concrete_block_assembly_planning")
+                        )
+                        / "config"
+                        / "wall_plans.yaml",
                     },
                 ],
             ),
