@@ -73,6 +73,15 @@ def generate_launch_description():
                     ]
                 ),
             ),
+            # The panel's "Move empty" button is fixed to one tree per profile.
+            # Its default is epsilon's `move_empty.xml`, which this package does
+            # not have, so without this the button stays greyed out and the only
+            # way to an A2B move is the dropdown -- where the neighbouring CBS
+            # entry needs a launch profile this one is not.
+            SetEnvironmentVariable(
+                name="BEHAVIOR_TREE_PANEL_BT_MOVE_EMPTY",
+                value="/behavior_trees/move_empty_pzs100.xml",
+            ),
             # PZS100 crane bringup -- common PZS arguments are encoded in
             # pzs100_bringup.launch.py (this same package). Only override the
             # things that differ from its defaults.
