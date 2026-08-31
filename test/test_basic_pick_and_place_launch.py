@@ -2,6 +2,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 import yaml
+from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch_ros.actions import Node
 
@@ -25,6 +26,24 @@ def _walk_entities(entities):
         timed = getattr(entity, "_TimerAction__actions", None)
         if timed:
             yield from _walk_entities(timed)
+
+
+def _started_packages(ld, **configurations):
+    """Node packages the profile starts with these launch configurations set."""
+    context = LaunchContext()
+    # Seed every declared default first: the conditions of the other optional
+    # nodes (`gui`, `start_perception`, ...) read configurations too, and an
+    # unset one is a SubstitutionFailure rather than a false.
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+    context.launch_configurations.update(configurations)
+    return {
+        entity.node_package
+        for entity in _walk_entities(ld.entities)
+        if isinstance(entity, Node)
+        and (entity.condition is None or entity.condition.evaluate(context))
+    }
 
 
 def test_basic_pick_and_place_launch_uses_only_cbs_grip_server():
@@ -171,9 +190,18 @@ def test_cbs_wall_assembly_launch_runs_only_the_new_stack():
         "collision_body_handler",
         "timber_crane_mapping",
     }
-    assert not any(node.node_package in forbidden for node in nodes), (
+    # The timber motion-planning tree is reachable from this profile, but only
+    # down the `a2b_planner:=legacy` branch, which exists because the native
+    # planner refuses reachable goals and a field run cannot wait for that.
+    # `native` is still the whole point of the file: nothing timber may be in it.
+    assert not (forbidden & _started_packages(ld, a2b_planner="native")), (
         "CBS profile must not start any timber motion-planning node"
     )
+    # And the branch has to actually reach the legacy server, or the argument is
+    # a switch that silently leaves /a2b_movement unserved.
+    assert "timber_crane_motion_planning" in _started_packages(
+        ld, a2b_planner="legacy"
+    ), "a2b_planner:=legacy must start the retained a2b_ilqr_server"
 
     rviz_node = next(
         node
@@ -217,7 +245,15 @@ def test_cbs_wall_assembly_launch_runs_only_the_new_stack():
         if isinstance(entity, DeclareLaunchArgument)
     }
     assert "start_tui" in declares
-    assert getattr(declares["start_tui"].default_value[0], "text", None) == "false"
+    tui_default = declares["start_tui"].default_value[0]
+    assert getattr(tui_default, "variable_name", None) is not None, (
+        "start_tui must default to the `gui` argument so a GUI run brings up the "
+        "operator approval terminal, as the timber twin does"
+    )
+    assert (
+        "".join(getattr(part, "text", str(part)) for part in tui_default.variable_name)
+        == "gui"
+    )
 
     spawner = next(
         node for node in nodes if node.node_executable == "gazebo_block_spawner.py"

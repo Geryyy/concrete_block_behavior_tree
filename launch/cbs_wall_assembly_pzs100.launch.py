@@ -7,27 +7,48 @@ server, block spawner, grip trajectory server and `cbs.rviz`.  What changes is
 underneath: instead of routing through `epsilon_crane_bringup_sim`'s
 `gazebo_model_bt.launch.py` (which pulls in `epsilon_crane_bringup_mp`'s
 `a2b_ilqr_server` unconditionally), this includes `crane_bringup/sim.launch.py`
-and gets the new architecture -- `crane_planner`, `crane_mpc`,
-`crane_supervisor`, and `crane_velocity_controller` with
-`trajectory_controller_a2b` chained onto it.
+and gets the new architecture -- `crane_mpc` and `crane_velocity_controller`
+with `trajectory_controller_a2b` chained onto it.
 
-The seam is the `a2b_movement` service.  `crane_planning` serves the same
-`timber_crane_planning_interfaces/srv/CalcMovement` the BT's `CalcA2BMovement`
-node calls, so the tree needs no change to reach the new planner.
+The seam is the `a2b_movement` service, and it is the retained
+`a2b_ilqr_server` that sits in it here: see `a2b_planner` below. `crane_planner`
+serves the same `timber_crane_planning_interfaces/srv/CalcMovement`, so the tree
+reaches either without knowing which, but it refuses reachable goals today and
+`a2b_planner` therefore defaults to `legacy`.
+
+`crane_supervisor` is **not** started by this profile -- `start_supervisor` is
+handed down as `false`. It does not come up at all: it throws in its own
+constructor on `tool_controllers: []`, an untyped empty list its shipped config
+cannot give a type to. Nothing here needs it -- the tree follows a trajectory on
+a controller that is already active and switches nothing -- so what is lost is
+`/crane/set_mode`, the mode arbitration and the deadman fault path, none of
+which is on this profile's command path.
+
+`initial_pose` defaults to `2` (`initialization_outside.yaml`) and not to the
+`1` the timber twin uses. Preset `1` is `initialization_horizontal.yaml`, whose
+`theta2_0` is exactly `0.000000` -- the boom's own lower limit. Gazebo sag puts
+the measured joint a hair under it and `a2b_ilqr_server` refuses every request
+at its start-state check, `q0[1] is not feasible: 0.00 < -0.00 < 1.56`, before
+it plans anything. Preset `2` starts the boom at 0.52 rad, well inside.
 
 `crane_mpc` is started but is not in the BT's execution path: the tree sends its
 trajectory to `/trajectory_controller_a2b/follow_joint_trajectory`, which is
-chained onto `crane_velocity_controller`. The MPC consumes `/crane/reference`
-from the planner and ships in `shadow` mode until the supervisor is asked for
-`mpc` through `/crane/set_mode`. There is therefore no `controller:=pid|mpc`
-argument here; the choice is made at runtime, not at launch.
+chained onto `crane_velocity_controller`. The MPC consumes `/crane/reference`,
+which nothing publishes while `a2b_planner` is `legacy`, and ships in `shadow`
+mode -- and with no supervisor there is nothing to ask for `mpc` anyway. There
+is therefore no `controller:=pid|mpc` argument here.
 
 Two things do not line up on their own and are handled here:
 
 * `sim.launch.py` publishes the deadman on `/crane/remote_ctrl_states`, while
   the BT's `CheckUserApproval` / `GetUserApproval` listen on
   `/gpio_controller/remote_ctrl_states`.  A second `sim_remote` is started with
-  a remap rather than editing either side.
+  a remap rather than editing either side -- but only when `start_tui` is
+  false.  The TUI publishes the operator's button on that same topic, and its
+  message is all-false between keypresses, so running both put a held-true and
+  a released-false stream on one topic and every trajectory was cancelled
+  ~100 ms in by `GetUserApproval`.  The two are now mutually exclusive: TUI for
+  an operated run, `sim_remote` for a headless one.
 * `crane_bringup/sim.launch.py` starts no RViz, so it is started here with
   `cbs.rviz` -- which already carries an enabled display for the planner's
   `/crane_planner/planned_path`.
@@ -50,14 +71,13 @@ whose `position_window` is written in the EPSCOPE opening.
 One thing is known to be unfinished, and is left visible rather than papered
 over:
 
-* **Two owners of `trajectory_controller_a2b`.**  `sim.launch.py` spawns it
-  active, `subtree_execute_trajectory.xml` activates and deactivates it around
-  every motion, and `crane_supervisor` is meant to be the only caller of
-  `/controller_manager/switch_controller`.  Nothing breaks -- the tree switches
-  `BEST_EFFORT`, and the supervisor only switches when `/crane/set_mode` is
-  called -- but between motions the supervisor reports the mode whose controller
-  set is "velocity controller alone", which is `MODE_MPC`, while the MPC is in
-  shadow.  It is a misreported mode, not a wrong command.
+* **Nobody arbitrates `trajectory_controller_a2b`.**  `sim.launch.py` spawns it
+  active and `subtree_execute_trajectory.xml` activates and deactivates it
+  around every motion.  `crane_supervisor` is meant to be the only caller of
+  `/controller_manager/switch_controller` and is not running here, so the tree
+  is the only caller and nothing contends with it -- but nothing checks it
+  either, and the misreported mode this note used to describe is simply absent
+  along with the node that reported it.
 
 `start_perception` is carried over for parity but is currently inert:
 `sim.launch.py` hard-codes `enable_livox_sim:=''`, so no simulated sensor
@@ -73,7 +93,7 @@ from launch.actions import (
     SetEnvironmentVariable,
     TimerAction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     LaunchConfiguration,
     PathSubstitution,
@@ -100,12 +120,42 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
+    # Read by the BT action server only, and by no other launch: it tells the
+    # `FollowJointTrajectory` plugin the six joints this stack's chained
+    # `trajectory_controller_a2b` declares, so the eight-joint answer both A2B
+    # planners give is trimmed instead of rejected.
+    cbs_stack_bt_config = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "bt_server_cbs_stack.yaml"
+    )
     grasp_detector_config = (
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
         / "gripper_grasp_detector_sim.yaml"
     )
     seed_file = LaunchConfiguration("seed_file")
+    a2b_planner = LaunchConfiguration("a2b_planner")
+    use_legacy_a2b = PythonExpression(["'", a2b_planner, "' == 'legacy'"])
+    use_native_a2b = PythonExpression(["'", a2b_planner, "' != 'legacy'"])
+    mp_param_path = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "motion_planning"
+        / "mp_parameter_pzs100.yaml"
+    )
+    a2b_param_path = (
+        PathSubstitution(FindPackageShare("epsilon_crane_bringup_mp"))
+        / "config"
+        / "motion_planning"
+        / "a2b_parameter.yaml"
+    )
+    collision_objects_path = (
+        PathSubstitution(FindPackageShare("epsilon_crane_bringup_mp"))
+        / "config"
+        / "motion_planning"
+        / "collision_objects.yaml"
+    )
 
     if os.path.exists("/usr/bin/xterm"):
         spawn_terminal_prefix = "xterm -e "
@@ -119,7 +169,7 @@ def generate_launch_description():
             DeclareLaunchArgument("gui", default_value="True"),
             DeclareLaunchArgument(
                 "initial_pose",
-                default_value="1",
+                default_value="2",
                 description="Crane initial pose preset passed to crane_bringup/sim.",
             ),
             DeclareLaunchArgument(
@@ -139,10 +189,11 @@ def generate_launch_description():
             DeclareLaunchArgument("start_grasp_detector", default_value="True"),
             DeclareLaunchArgument(
                 "start_tui",
-                default_value="false",
+                default_value=LaunchConfiguration("gui"),
                 description=(
-                    "Start timber_crane_tui's keyboard remote. Off by default: the "
-                    "package lives under src/legacy and is not built here."
+                    "Start timber_crane_tui's keyboard remote in its own terminal "
+                    "(the operator approval prompt). Follows `gui` as in the timber "
+                    "twin; set false for a headless run."
                 ),
             ),
             DeclareLaunchArgument("lidar_points_topic", default_value="/livox/points"),
@@ -162,6 +213,31 @@ def generate_launch_description():
                 )
                 / "config"
                 / "world_model_seed_pick_place.yaml",
+            ),
+            # Which node sits in the single `/a2b_movement` seat.
+            #
+            # `legacy` -- the default -- is `timber_crane_motion_planning`'s
+            # `a2b_ilqr_server`, the planner the timber twin has always run,
+            # started here with the PZS100 configuration
+            # `pzs100_bringup.launch.py` hands it. `crane_planning`'s native
+            # planner refuses reachable RViz goals on this profile
+            # ("no admissible timing exists for this path:
+            # Infeasible_Problem_Detected"), and the tree fails the whole
+            # sequence when it does. Everything else about this launch is
+            # unchanged: the seam is the service, the BT's `CalcA2BMovement`
+            # calls the same name either way, and the trajectory lands on the
+            # same `trajectory_controller_a2b` -- the two stacks' controller
+            # configs name the same six joints in the same order.
+            #
+            # `native` restores `crane_planner` and with it `/crane/reference`,
+            # the MPC's shadow horizon and `/crane_planner/planned_path`.
+            DeclareLaunchArgument(
+                "a2b_planner",
+                default_value="legacy",
+                description=(
+                    "Server of /a2b_movement: 'legacy' (a2b_ilqr_server) or "
+                    "'native' (crane_planner)."
+                ),
             ),
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
@@ -211,13 +287,80 @@ def generate_launch_description():
                     "initial_pose": LaunchConfiguration("initial_pose"),
                     "world": LaunchConfiguration("gazebo_world_file"),
                     "joint_states_topic": "joint_states_rviz",
+                    # One server per service: crane_planner stands down when
+                    # the legacy one is started below.
+                    "start_planner": use_native_a2b,
+                    "start_supervisor": "false",
                 }.items(),
             ),
-            # ── Deadman bridge ──────────────────────────────────────────
+            # ── The retained A2B planner ────────────────────────────────
+            # `a2b_ilqr_server` reads the crane out of two latched
+            # descriptions and refuses to answer until it has both:
+            # `robot_description_full` -- which `sim.launch.py`'s
+            # `robot_state_publisher` already publishes, the same Gazebo-baked
+            # variant the timber twin feeds it -- and `crane_tools_description`,
+            # which nothing in the new stack publishes. Hence the publisher
+            # below; it is the tool half of the same pair, and it is started
+            # only on this path.
+            #
+            # It subscribes to the raw `/joint_states` and not to the corrected
+            # `/joint_states_rviz`, exactly as the timber twin does: the q9
+            # EPSCOPE `state_factor` is in both the planner's start state and
+            # the trajectory the controller follows, so the two agree.
+            Node(
+                package="crane_tools_description",
+                executable="crane_tools_description_publisher",
+                name="crane_tools_description_publisher",
+                parameters=[
+                    PathSubstitution(FindPackageShare("pzs100_description"))
+                    / "config"
+                    / "gripper_parameter.yaml",
+                    {"use_sim_time": True},
+                ],
+                condition=IfCondition(use_legacy_a2b),
+            ),
+            Node(
+                package="timber_crane_motion_planning",
+                executable="a2b_ilqr_server",
+                output="both",
+                parameters=[
+                    mp_param_path,
+                    a2b_param_path,
+                    {"use_sim_time": True},
+                    # The rate `trajectory_controller_a2b` is fed at, as
+                    # `mp.launch.py` sets it. Left off, the server upsamples to
+                    # its own default.
+                    {"a2bOptions": {"dtTarget": 0.01}},
+                ],
+                condition=IfCondition(use_legacy_a2b),
+            ),
+            # Publishes /collision_objects, the static site geometry the planner
+            # avoids. Without it the server plans against the config's obstacles
+            # alone -- the same arrangement, and the same file, as mp.launch.py.
+            Node(
+                package="collision_body_handler",
+                executable="collision_body_handler",
+                output="both",
+                parameters=[
+                    {"collision_objects_file": collision_objects_path},
+                    {"use_sim_time": True},
+                ],
+                condition=IfCondition(use_legacy_a2b),
+            ),
+            # ── Deadman bridge (headless only) ──────────────────────────
             # sim.launch.py's own sim_remote publishes /crane/remote_ctrl_states
             # for crane_supervisor.  The BT reads the epsilon name instead, so a
             # second publisher is remapped onto it.  Two independent publishers
             # on two topics -- no relay, no edit to either stack.
+            #
+            # It runs only when the TUI does not.  sim_remote holds button12
+            # true forever; the TUI below publishes the operator's real button
+            # on the same topic, all-false whenever no key is held.  Both at
+            # once and the BT's subscriber sees the two interleaved: the rising
+            # edge CheckUserApproval waits for always arrives from sim_remote,
+            # so every step self-approves, and GetUserApproval -- a deadman that
+            # re-evaluates the latest message on every tick -- aborts the
+            # trajectory on the first false, roughly 100 ms in.
             Node(
                 package="crane_bringup",
                 executable="sim_remote",
@@ -230,6 +373,15 @@ def generate_launch_description():
                     )
                 ],
                 output="log",
+                condition=UnlessCondition(
+                    PythonExpression(
+                        [
+                            "'",
+                            LaunchConfiguration("start_tui"),
+                            "'.lower() in ('true', '1', 'yes')",
+                        ]
+                    )
+                ),
             ),
             # ── RViz ────────────────────────────────────────────────────
             # cbs.rviz already has an enabled Path display on
@@ -372,6 +524,7 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
+                    cbs_stack_bt_config,
                     {"use_sim_time": True},
                     {
                         "simulated_placement_disturbance.enabled": ParameterValue(
@@ -447,8 +600,7 @@ def generate_launch_description():
                 ],
             ),
             # ── Keyboard TUI ────────────────────────────────────────────
-            # timber_crane_tui lives under src/legacy and is not built here, so
-            # unlike the timber twin this is off unless asked for.
+            # Own terminal window: this is where the operator approves a step.
             Node(
                 package="timber_crane_tui",
                 executable="remote_ctrl",

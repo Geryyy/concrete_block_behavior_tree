@@ -43,7 +43,9 @@
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>timber_crane_mapping</exec_depend>
+  <exec_depend>timber_crane_motion_planning</exec_depend>
   <exec_depend>timber_crane_motion_planning_cpp</exec_depend>
+  <exec_depend>crane_tools_description</exec_depend>
   <exec_depend>timber_crane_tui</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
