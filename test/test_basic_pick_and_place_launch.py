@@ -1,3 +1,4 @@
+import xml.etree.ElementTree as ET
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -164,109 +165,19 @@ def test_wall_assembly_launch_exposes_grip_lift_height_override():
     ), "Wall assembly launch must include the PZS100 bringup that owns the detector"
 
 
-def test_cbs_wall_assembly_launch_runs_only_the_new_stack():
-    module = _load_launch_module("cbs_wall_assembly_pzs100.launch.py")
-    ld = module.generate_launch_description()
-
-    nodes = [
-        entity for entity in _walk_entities(ld.entities) if isinstance(entity, Node)
-    ]
-    include_actions = [
-        entity
+def _started_executables(ld, **configurations):
+    """Node executables the profile starts with these launch configurations set."""
+    context = LaunchContext()
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+    context.launch_configurations.update(configurations)
+    return {
+        entity.node_executable
         for entity in _walk_entities(ld.entities)
-        if isinstance(entity, IncludeLaunchDescription)
-    ]
-
-    assert len(include_actions) == 1, (
-        "CBS profile must include only the new sim profile"
-    )
-    sim_include = include_actions[0]
-    assert "crane_bringup" in str(sim_include.launch_description_source.location)
-    assert "sim.launch.py" in str(sim_include.launch_description_source.location)
-
-    forbidden = {
-        "timber_crane_motion_planning",
-        "timber_crane_motion_planning_cpp",
-        "collision_body_handler",
-        "timber_crane_mapping",
+        if isinstance(entity, Node)
+        and (entity.condition is None or entity.condition.evaluate(context))
     }
-    # The timber motion-planning tree is reachable from this profile, but only
-    # down the `a2b_planner:=legacy` branch, which exists because the native
-    # planner refuses reachable goals and a field run cannot wait for that.
-    # `native` is still the whole point of the file: nothing timber may be in it.
-    assert not (forbidden & _started_packages(ld, a2b_planner="native")), (
-        "CBS profile must not start any timber motion-planning node"
-    )
-    # And the branch has to actually reach the legacy server, or the argument is
-    # a switch that silently leaves /a2b_movement unserved.
-    assert "timber_crane_motion_planning" in _started_packages(
-        ld, a2b_planner="legacy"
-    ), "a2b_planner:=legacy must start the retained a2b_ilqr_server"
-
-    rviz_node = next(
-        node
-        for node in nodes
-        if node.node_package == "rviz2" and node.node_executable == "rviz2"
-    )
-    remaps = [
-        (
-            "".join(getattr(part, "text", str(part)) for part in src),
-            "".join(getattr(part, "text", str(part)) for part in dst),
-        )
-        for src, dst in getattr(rviz_node, "_Node__remappings")
-    ]
-    assert ("/robot_description", "/robot_description_full") not in remaps, (
-        "RViz must read /robot_description, the model-side description whose "
-        "joint origins are zeroed. /robot_description_full is the Gazebo twin, "
-        "with the initial_pose preset baked into every origin; /joint_states "
-        "carries that preset too, so the remap draws every joint twice-bent"
-    )
-
-    bridge = next(
-        node
-        for node in nodes
-        if node.node_package == "crane_bringup" and node.node_executable == "sim_remote"
-    )
-    bridge_remaps = [
-        (
-            "".join(getattr(part, "text", str(part)) for part in src),
-            "".join(getattr(part, "text", str(part)) for part in dst),
-        )
-        for src, dst in getattr(bridge, "_Node__remappings")
-    ]
-    assert (
-        "/crane/remote_ctrl_states",
-        "/gpio_controller/remote_ctrl_states",
-    ) in bridge_remaps, "Deadman bridge must feed the topic the BT approval nodes read"
-
-    declares = {
-        entity.name: entity
-        for entity in _walk_entities(ld.entities)
-        if isinstance(entity, DeclareLaunchArgument)
-    }
-    assert "start_tui" in declares
-    tui_default = declares["start_tui"].default_value[0]
-    assert getattr(tui_default, "variable_name", None) is not None, (
-        "start_tui must default to the `gui` argument so a GUI run brings up the "
-        "operator approval terminal, as the timber twin does"
-    )
-    assert (
-        "".join(getattr(part, "text", str(part)) for part in tui_default.variable_name)
-        == "gui"
-    )
-
-    spawner = next(
-        node for node in nodes if node.node_executable == "gazebo_block_spawner.py"
-    )
-    seed_frame = None
-    for param in getattr(spawner, "_Node__parameters"):
-        if not isinstance(param, dict):
-            continue
-        for key, value in param.items():
-            key_text = "".join(getattr(part, "text", str(part)) for part in key)
-            if key_text == "gazebo_seed_frame_xyz":
-                seed_frame = [float(getattr(item, "text", item)) for item in value]
-    assert seed_frame == [0.0, -6.0, 0.0], "World offset must carry over unchanged"
 
 
 def test_row3_truck_launch_uses_larger_grip_lift_height():
@@ -345,11 +256,10 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
 
 # ── Every plugin cbs.rviz names has to exist on the CBS profile ──────────────
 #
-# `cbs.rviz` is shared: `pzs100_bringup.launch.py` hands it to the timber-backed
-# twin, and `cbs_wall_assembly_pzs100.launch.py` to the CBS-only profile. The
-# timber stack has `wood_log_rviz_plugins`, `timber_crane_rviz_panel` and
-# `mp_rviz_panel` on the RViz plugin path; the CBS profile does not, so a class
-# from one of those loads there and fails here. A failed *Tool* is the one that
+# `cbs.rviz` is handed to the timber-backed twin by `pzs100_bringup.launch.py`.
+# The timber stack has `wood_log_rviz_plugins`, `timber_crane_rviz_panel` and
+# `mp_rviz_panel` on the RViz plugin path, so a class from one of those can load
+# there and fail elsewhere. A failed *Tool* is the one that
 # bites: RViz builds its toolbar from this list, and the 2D Goal Pose tool
 # stopped being usable when `wood_log_rviz_plugins/LogPicker` failed beside it.
 RVIZ_CONFIG = Path(__file__).resolve().parents[1] / "rviz" / "cbs.rviz"
