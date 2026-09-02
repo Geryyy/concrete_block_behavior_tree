@@ -5,9 +5,16 @@ gripper_grasp_detector:
     q9_joint_name: q9_left_rail_joint
 
     # q9 position must be inside this inclusive window.
+    # Converted from the old Gazebo coordinate, where q9 reported the total
+    # opening as (rail + 0.21) * 2 and this window was 0.4 to 1.0. The sim now
+    # reports rail travel like the hardware does, so the same physical bracket
+    # is rail = window/2 - 0.21, i.e. -0.01 to 0.29; the lower end clamps to the
+    # closed stop. Behaviour is unchanged, only the coordinate.
+    # gripper_grasp_detector_real.yaml brackets 0.05 to 0.2 on the machine; the
+    # two should converge once a sim grasp is re-measured against a real one.
     position_window:
-      min: 0.4
-      max: 1.0
+      min: 0.0
+      max: 0.29
 
     # abs(q9 effort) must stay above this threshold for hold_time_s.
     effort_threshold: 100.0
