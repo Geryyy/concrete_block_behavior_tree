@@ -132,6 +132,11 @@ mp_node:
         ]
       b_gripper: 0.4500000
     parMp:
+      # index 7 is q9_left_rail_joint, the rail travel in m. Limits are the
+      # hardware ones (0 .. 0.538, URDF). Velocity is gripper_max_velocity_mps
+      # from the grip trajectory config, below the 0.12 URDF limit. Acceleration
+      # and jerk are the old values halved: q9 was (rail + 0.21) * 2 until
+      # crane_tools_description c93b78a, so every rate ran at twice the rail's.
       qMinCtrl:
         [
           -3.710000,
@@ -141,7 +146,7 @@ mp_node:
           -1.570000,
           0.000000,
           -12.566371,
-          0.4,
+          0.0,
         ]
       qMaxCtrl:
         [
@@ -152,7 +157,7 @@ mp_node:
           1.570000,
           3.141593,
           12.566371,
-          1.42,
+          0.538,
         ]
       qLimSafetyBuffer:
         [0.087266, 0.087266, 0.087266, 0.050000, 0.087266, 0.087266, 0.087266]
@@ -165,7 +170,7 @@ mp_node:
           -1.000000,
           -0.500000,
           -2.121947,
-          -0.30000,
+          -0.10000,
         ]
       qDotMaxCtrl:
         [
@@ -176,7 +181,7 @@ mp_node:
           1.000000,
           0.500000,
           2.121947,
-          0.30000,
+          0.10000,
         ]
       qDDotMinCtrl:
         [
@@ -187,7 +192,7 @@ mp_node:
           -10.000000,
           -10.000000,
           -6.000000,
-          -2.000000,
+          -1.000000,
         ]
       qDDotMaxCtrl:
         [
@@ -198,7 +203,7 @@ mp_node:
           10.000000,
           10.000000,
           6.000000,
-          2.000000,
+          1.000000,
         ]
       qDDDotMinCtrl:
         [
@@ -209,7 +214,7 @@ mp_node:
           -10.000000,
           -10.000000,
           -6.000000,
-          -2.000000,
+          -1.000000,
         ]
       qDDDotMaxCtrl:
         [
@@ -220,7 +225,7 @@ mp_node:
           10.000000,
           10.000000,
           6.000000,
-          2.000000,
+          1.000000,
         ]
       q_pump_max: 1.33e-3
       elasticityModel:
