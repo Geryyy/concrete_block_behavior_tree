@@ -70,7 +70,6 @@ install(DIRECTORY
 
 install(PROGRAMS
   scripts/gazebo_block_spawner.py
-  scripts/pzs100_rviz_joint_state_adapter.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

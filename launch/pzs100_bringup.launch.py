@@ -89,15 +89,6 @@ def generate_launch_description():
                 default_value="True",
                 description="Start the q9 gripper grasp detector for PZS100 Gazebo runs.",
             ),
-            # Spawn the PZS100 joint-state adapter that publishes
-            # /joint_states_rviz with the per-rail-corrected EPSCOPE q9.
-            Node(
-                package="concrete_block_behavior_tree",
-                executable="pzs100_rviz_joint_state_adapter.py",
-                name="pzs100_rviz_joint_state_adapter",
-                parameters=[{"use_sim_time": True}],
-                arguments=["--ros-args", "--log-level", "WARN"],
-            ),
             Node(
                 package="concrete_block_behavior_tree",
                 executable="gripper_grasp_detector",
@@ -141,7 +132,6 @@ def generate_launch_description():
                     )
                     / "rviz"
                     / "cbs.rviz",
-                    "joint_states_topic": "joint_states_rviz",
                     "gui": LaunchConfiguration("gui"),
                     "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
                     "enable_livox_sim": LaunchConfiguration("enable_livox_sim"),
@@ -193,7 +183,6 @@ def generate_launch_description():
             / "launch"
             / "crane_planner.launch.py",
             launch_arguments={
-                "tool": "pzs100",
                 "use_sim_time": "true",
             }.items(),
             condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
