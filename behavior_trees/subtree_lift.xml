@@ -19,6 +19,13 @@
         carries="{lf_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+      <!-- Fill the effort field with C3's dynamic feedforward before the JTC gets the
+           trajectory. Same payload the MPC is handed above; off unless the BT server
+           sets c3_feedforward.enabled. -->
+      <Action ID="AddC3Feedforward" name="C3 feedforward"
+        trajectory="{trajectory}"
+        carries="{lf_carries}" mass="{payload_mass}"
+        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
     </Sequence>
   </BehaviorTree>

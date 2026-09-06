@@ -1,23 +1,90 @@
 trajectory_controller_a2b:
   ros__parameters:
     type: joint_trajectory_controller/JointTrajectoryController
+
+    # The effort field of the trajectory is a feed-forward *velocity* command, not a torque:
+    # u_i(t + 0.06 s) - qdot_d,i(t), i.e. C3's inversion previewed by the dead time, written by the
+    # AddC3Feedforward BT node. Without this parameter the JTC rejects any trajectory that carries
+    # the field, so the motion does not start rather than losing the feedforward. A trajectory
+    # that does not carry it is unaffected, so this is bit-identical to before until the producer
+    # runs. See wiki/controller_design.md 2.4 and wiki/implementation/jtc_fork.md delta 3.
+    effort_field_is_feedforward: true
+
+    # These are a velocity PI, despite the names. No controller_plugin is set, so the JTC runs
+    # PidTrajectoryPlugin, whose law is
+    #   u = ff_velocity_scale*qd_dot + effort + p*e_pos + i*int(e_pos) + d*e_qdot
+    # and on a *velocity* command interface int(e_qdot) dt == e_pos. Matching terms against
+    # K_p*e_qdot + K_i*int(e_qdot) gives
+    #   p == K_I   and   d == K_P
+    # so `i` must stay 0 - it would integrate the position error a second time.
+    # Numbers are the design of record of wiki/controller_design.md 4.1 - one fixed pair per axis,
+    # margins held over the whole M_ii range and over the worst-case reading of the lag/dead-time
+    # split. Not the fitted-pose pairs: a pose-blind tuning is unstable on slewing (max|z| 1.0047)
+    # and, since the dead time was pinned common, on the arm (1.0044).
+    #
+    # u_clamp_* is Psi's own identified domain, from the fit itself
+    # (src/_archive/crane_control/calibration/velocity_characteristic.yaml, min_x/max_x per axis);
+    # wiki/compensator_map.md 3 tabulates only slewing, rotator and telescope. Commanding outside
+    # it extrapolates a monotone spline past its data.
+    #
+    # TWO KNOWN DEVIATIONS from wiki/control_architecture.md 2.1, both needing a plugin change:
+    # - Back-calculation there bounds the *total* command; control_toolbox clamps only the PI's
+    #   own output, and the feedforward and the effort term are added outside it. The feedforward
+    #   branch is bounded at its source instead (c3_feedforward.u_min/u_max in
+    #   bt_server_override.yaml), so each branch is bounded but their sum is not.
+    # - No `antiwindup_strategy` is set, because none would do anything: with `i: 0` the integral
+    #   term of control_toolbox::Pid is identically zero, and this loop's integral action is
+    #   `p * e_pos`. e_pos is a plant state, so it cannot be reset, clamped or back-calculated
+    #   from here. An axis held against a stall (2.1's own failure mode) therefore accumulates
+    #   e_pos at qdot_d and comes off the stall with the P term at its clamp.
     gains:
       theta1_slewing_joint:
+        # A trim integrator, not a velocity loop - dominant time constant 28 s. Deliberate: Psi
+        # fixes the DC gain so the feedforward alone has no steady-state velocity error, and the
+        # axis is owned dynamically by the 25 Hz level. Slewing pays x17 in crossover for one fixed
+        # pair, and what buys the tracking back is feedforward (x27-x44), not gain. Do not hand-tune
+        # upward and do not add the M_11 schedule - a wrong gain can destabilize, a wrong
+        # feedforward cannot, so the pose dependence belongs on the open-loop branch.
         ff_velocity_scale: 1.0
-        p: 1.0
+        p: 0.07
+        i: 0.0
+        d: 0.0038
+        u_clamp_min: -0.9635
+        u_clamp_max: 0.9357
       theta2_boom_joint:
         ff_velocity_scale: 1.0
-        p: 1.0
+        p: 1.30
+        i: 0.0
+        d: 0.0945
+        u_clamp_min: -0.3134
+        u_clamp_max: 0.2977
       theta3_arm_joint:
+        # Pays x3.5 in crossover, the second-largest bill after slewing, because pinning the dead
+        # time common gave this axis a delay its own fit put at zero.
         ff_velocity_scale: 1.0
-        p: 1.0
+        p: 1.00
+        i: 0.0
+        d: 0.1131
+        u_clamp_min: -0.3342
+        u_clamp_max: 0.3059
       q4_big_telescope:
         ff_velocity_scale: 1.0
-        p: 1.0
+        p: 5.14
+        i: 0.0
+        d: 0.3302
+        u_clamp_min: -0.5551
+        u_clamp_max: 0.5849
       theta8_rotator_joint:
         ff_velocity_scale: 1.0
-        p: 1.0
+        p: 2.35
+        i: 0.0
+        d: 0.1176
+        u_clamp_min: -2.3969
+        u_clamp_max: 2.4636
       q9_left_rail_joint:
+        # The tool is deliberately not tuned - wiki/controller_design.md 1 skips it, and no campaign
+        # has covered this axis, so Psi forwards it unchanged. Keep today's value: with i and d at 0
+        # this stays the position-error P it has always been.
         ff_velocity_scale: 1.0
         p: 1.0
     constraints:
