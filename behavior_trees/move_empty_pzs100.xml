@@ -27,7 +27,7 @@
             <OptimizeTargetAngle phi="{phi}"/>
             <CalcA2BMovement carriesLog="false"
               name="Calc approach target" phiToolN="{phi}"
-              server_timeout="10000" service_name="a2b_movement" slowDown="{slow_down}" tEnd="0.0"
+              server_timeout="30000" service_name="a2b_movement" slowDown="{slow_down}" tEnd="0.0"
               trajectory="{trajectory}" yN="{yN}"/>
             <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
           </Sequence>

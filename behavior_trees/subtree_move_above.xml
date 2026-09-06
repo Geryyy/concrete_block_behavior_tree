@@ -29,7 +29,7 @@
         carriesLog="{mv_carries}" logCarryingText="{log_shape_text}" logsScene="{logsScene}"
         m_log="{payload_mass}" phiToolN="{phi}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"
-        service_name="a2b_movement" server_timeout="10000"
+        service_name="a2b_movement" server_timeout="30000"
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>
       <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
