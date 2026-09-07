@@ -1091,6 +1091,18 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /crane_planner/markers
           Value: true
+        - Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: A2B target (panel)
+          Namespaces:
+            {}
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /target_marker
+          Value: true
       Enabled: true
       Name: Planning and Control
     - Class: rviz_common/Group
