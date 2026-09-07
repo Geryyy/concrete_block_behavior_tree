@@ -49,6 +49,8 @@ Panels:
     Name: AssemblyWorkflowPanel
   - Class: mp_rviz_panel/MotionPlanningPanel
     Name: MotionPlanningPanel
+  - Class: timber_crane_rviz_panel/TimberCranePanel
+    Name: TimberCranePanel
 Visualization Manager:
   Class: ""
   Displays:
@@ -1777,6 +1779,8 @@ Window Geometry:
   Scene discovery pose overlay:
     collapsed: false
   Selection:
+    collapsed: false
+  TimberCranePanel:
     collapsed: false
   Tool Properties:
     collapsed: false
