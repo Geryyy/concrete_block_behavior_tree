@@ -23,16 +23,10 @@
   <BehaviorTree ID="SubTreeCbsA2BMovement">
     <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
       wait_rising_edge="False">
-      <Sequence>
-        <!-- Fill the effort field with C3's dynamic feedforward before the JTC gets the
-             trajectory. No payload port: this tree is the empty-crane move (carriesLog false).
-             Off unless the BT server sets c3_feedforward.enabled. -->
-        <Action ID="AddC3Feedforward" name="C3 feedforward" trajectory="{trajectory}"/>
-        <Action ID="FollowJointTrajectory"
-          server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-          server_timeout="500"
-          trajectory="{trajectory}"/>
-      </Sequence>
+      <Action ID="FollowJointTrajectory"
+        server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+        server_timeout="500"
+        trajectory="{trajectory}"/>
     </Decorator>
   </BehaviorTree>
 </root>

@@ -50,10 +50,6 @@ add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estim
 add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_pickup_residual_action src/plugins/action/evaluate_pickup_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_publish_gripper_state_action src/plugins/action/publish_gripper_state.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
-add_bt_plugin(BT_cb_add_c3_feedforward_action src/plugins/action/add_c3_feedforward.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
-# crane_model exports a CMake target, not an ament dependency the helper can forward
-find_package(crane_model REQUIRED)
-target_link_libraries(BT_cb_add_c3_feedforward_action crane_model::crane_model)
 
 add_executable(gripper_grasp_detector
   src/nodes/gripper_grasp_detector.cpp
@@ -87,10 +83,6 @@ install(TARGETS
 )
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_c3_feedforward_math test/test_c3_feedforward_math.cpp)
-  target_include_directories(test_c3_feedforward_math PRIVATE include)
-
   find_package(ament_cmake_pytest REQUIRED)
   ament_add_pytest_test(
     test_basic_pick_and_place_launch
@@ -99,10 +91,6 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_cbs_a2b_tree
     test/test_cbs_a2b_tree.py
-  )
-  ament_add_pytest_test(
-    test_c3_feedforward_wiring
-    test/test_c3_feedforward_wiring.py
   )
 endif()
 

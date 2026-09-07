@@ -3,8 +3,8 @@ trajectory_controller_a2b:
     type: joint_trajectory_controller/JointTrajectoryController
 
     # The effort field of the trajectory is a feed-forward *velocity* command, not a torque:
-    # u_i(t + 0.06 s) - qdot_d,i(t), i.e. C3's inversion previewed by the dead time, written by the
-    # AddC3Feedforward BT node. Without this parameter the JTC rejects any trajectory that carries
+    # u_i(t + 0.06 s) - qdot_d,i(t), i.e. C3's inversion previewed by the dead time, written by
+    # crane_planning. Without this parameter the JTC rejects any trajectory that carries
     # the field, so the motion does not start rather than losing the feedforward. A trajectory
     # that does not carry it is unaffected, so this is bit-identical to before until the producer
     # runs. See wiki/controller_design.md 2.4 and wiki/implementation/jtc_fork.md delta 3.
@@ -30,8 +30,8 @@ trajectory_controller_a2b:
     # TWO KNOWN DEVIATIONS from wiki/control_architecture.md 2.1, both needing a plugin change:
     # - Back-calculation there bounds the *total* command; control_toolbox clamps only the PI's
     #   own output, and the feedforward and the effort term are added outside it. The feedforward
-    #   branch is bounded at its source instead (c3_feedforward.u_min/u_max in
-    #   bt_server_override.yaml), so each branch is bounded but their sum is not.
+    #   branch is bounded at its source instead, in crane_planning, so each branch is bounded but
+    #   their sum is not.
     # - No `antiwindup_strategy` is set, because none would do anything: with `i: 0` the integral
     #   term of control_toolbox::Pid is identically zero, and this loop's integral action is
     #   `p * e_pos`. e_pos is a plant state, so it cannot be reset, clamped or back-calculated
