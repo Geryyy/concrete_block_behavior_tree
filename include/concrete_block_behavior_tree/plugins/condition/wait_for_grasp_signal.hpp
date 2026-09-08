@@ -4,7 +4,7 @@
 #include <mutex>
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp/action_node.h"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 
@@ -14,7 +14,7 @@ namespace concrete_block_behavior_tree
 class WaitForGraspSignal : public BT::StatefulActionNode
 {
 public:
-  WaitForGraspSignal(const std::string & name, const BT::NodeConfiguration & conf);
+  WaitForGraspSignal(const std::string & name, const BT::NodeConfig & conf);
 
   static BT::PortsList providedPorts()
   {

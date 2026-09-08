@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "behaviortree_cpp_v3/condition_node.h"
+#include "behaviortree_cpp/condition_node.h"
 
 namespace concrete_block_behavior_tree
 {
@@ -20,7 +20,7 @@ namespace concrete_block_behavior_tree
 class PlanComplete : public BT::ConditionNode
 {
 public:
-  PlanComplete(const std::string & name, const BT::NodeConfiguration & conf);
+  PlanComplete(const std::string & name, const BT::NodeConfig & conf);
 
   static BT::PortsList providedPorts()
   {

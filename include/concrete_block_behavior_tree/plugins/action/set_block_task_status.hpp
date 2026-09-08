@@ -17,7 +17,7 @@ public:
   using ServiceT = concrete_block_world_model_interfaces::srv::SetBlockTaskStatus;
   using ResponseT = concrete_block_world_model_interfaces::srv::SetBlockTaskStatus_Response;
 
-  SetBlockTaskStatusService(const std::string & service_name, const BT::NodeConfiguration & conf)
+  SetBlockTaskStatusService(const std::string & service_name, const BT::NodeConfig & conf)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(service_name, conf) {}
 
   void on_tick() override;

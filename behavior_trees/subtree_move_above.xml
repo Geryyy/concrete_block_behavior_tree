@@ -1,4 +1,4 @@
-<root>
+<root BTCPP_format="4">
   <!-- Collision-aware A2B move to an approach pose above a target.
        Caller sets on the (shared) blackboard before invoking:
          mv_x, mv_y, mv_z, mv_yaw  - approach pose (world)
@@ -37,7 +37,7 @@
         carries="{mv_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
     </Sequence>
     </Decorator>
   </BehaviorTree>

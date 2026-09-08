@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<root main_tree_to_execute="OperatorGuidedSingleBlock">
+<root main_tree_to_execute="OperatorGuidedSingleBlock" BTCPP_format="4">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
@@ -52,7 +52,7 @@
       <SetBlackboard output_key="mv_z" value="{approach_z}"/>
       <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="false"/>
-      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
       <OperatorExitAsSuccess exit_requested="{pickup_exit_requested}">
         <KeepRunningUntilFailure name="pickup_refinement_loop">
           <Sequence>
@@ -78,11 +78,11 @@
             <SetBlackboard output_key="mv_z" value="{approach_z}"/>
             <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
             <SetBlackboard output_key="mv_carries" value="false"/>
-            <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+            <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
           </Sequence>
         </KeepRunningUntilFailure>
       </OperatorExitAsSuccess>
-      <SubTree ID="SubTreePickFromHover" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePickFromHover" _autoremap="true"/>
 
       <WaitForOperatorCommand expected="hover"/>
       <SetBlackboard output_key="mv_x" value="{initial_hover_x}"/>
@@ -90,7 +90,7 @@
       <SetBlackboard output_key="mv_z" value="{initial_hover_z}"/>
       <SetBlackboard output_key="mv_yaw" value="{initial_hover_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="true"/>
-      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
 
       <!-- Closed-loop placement refinement.  Prefer a direct REFINE_GRASPED
            observation of the TASK_MOVE block, with its FK-tracked pose as the
@@ -150,14 +150,14 @@
               <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
               <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
               <SetBlackboard output_key="mv_carries" value="true"/>
-              <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+              <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
             </Sequence>
           </Sequence>
         </KeepRunningUntilFailure>
       </PlacementExitAsSuccess>
       <!-- The operator workflow has already reached and optionally corrected
            the placement hover.  Do not re-plan a redundant A2B approach. -->
-      <SubTree ID="SubTreePlaceFromHover" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePlaceFromHover" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

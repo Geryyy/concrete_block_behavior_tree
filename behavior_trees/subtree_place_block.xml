@@ -1,4 +1,4 @@
-<root>
+<root BTCPP_format="4">
   <!-- Place the in-hand block ({grasp_object_contains}) at place_{x,y,z,yaw},
        approaching via place_approach_{x,y}. Approach above (carrying) ->
        descend (carrying) -> write final pose to world model -> detach + open
@@ -12,9 +12,9 @@
       <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
       <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="true"/>
-      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
 
-      <SubTree ID="SubTreePlaceFromHover" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePlaceFromHover" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 
@@ -34,7 +34,7 @@
       <SetBlackboard output_key="dz_z" value="{place_z}"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
-      <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- 2. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
@@ -47,11 +47,11 @@
         pose_status="2"/>
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="true"/>
-      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeGripper" _autoremap="true"/>
 
       <!-- 3. Lift away empty -->
       <SetBlackboard output_key="lf_carries" value="false"/>
-      <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeLift" _autoremap="true"/>
 
     </Sequence>
   </BehaviorTree>

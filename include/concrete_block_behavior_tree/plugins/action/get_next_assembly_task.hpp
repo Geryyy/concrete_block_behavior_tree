@@ -20,7 +20,7 @@ public:
   using ServiceT = concrete_block_assembly_interfaces::srv::GetNextAssemblyTask;
   using ResponseT = concrete_block_assembly_interfaces::srv::GetNextAssemblyTask_Response;
 
-  GetNextAssemblyTaskService(const std::string & service_name, const BT::NodeConfiguration & conf)
+  GetNextAssemblyTaskService(const std::string & service_name, const BT::NodeConfig & conf)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(service_name, conf)
   {
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());

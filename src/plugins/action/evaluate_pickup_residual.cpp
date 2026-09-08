@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "concrete_block_world_model_interfaces/srv/get_coarse_blocks.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_behavior_tree/bt_service_node.hpp"
@@ -28,7 +28,7 @@ public:
   using ServiceT = concrete_block_world_model_interfaces::srv::GetCoarseBlocks;
   using ResponseT = ServiceT::Response;
 
-  EvaluatePickupResidual(const std::string & name, const BT::NodeConfiguration & config)
+  EvaluatePickupResidual(const std::string & name, const BT::NodeConfig & config)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(name, config)
   {
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());

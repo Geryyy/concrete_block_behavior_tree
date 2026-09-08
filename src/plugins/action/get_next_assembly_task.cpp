@@ -1,6 +1,6 @@
 #include "concrete_block_behavior_tree/plugins/action/get_next_assembly_task.hpp"
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 

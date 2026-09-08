@@ -1,4 +1,4 @@
-<root>
+<root BTCPP_format="4">
   <!-- Grip-trajectory descent to a block CoG target (phase 1).
        Caller sets on the (shared) blackboard before invoking:
          dz_x, dz_y, dz_z, dz_yaw  - target CoG pose (world)
@@ -22,7 +22,7 @@
         carries="{dz_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 
 namespace concrete_block_behavior_tree
 {
@@ -66,7 +66,7 @@ bool parse_log_shape(
 
 PublishGripperState::PublishGripperState(
   const std::string & name,
-  const BT::NodeConfiguration & conf)
+  const BT::NodeConfig & conf)
 : BT::SyncActionNode(name, conf)
 {
   node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");

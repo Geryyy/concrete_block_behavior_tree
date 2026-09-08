@@ -1,11 +1,11 @@
 #include "concrete_block_behavior_tree/plugins/condition/plan_complete.hpp"
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 
 namespace concrete_block_behavior_tree
 {
 
-PlanComplete::PlanComplete(const std::string & name, const BT::NodeConfiguration & conf)
+PlanComplete::PlanComplete(const std::string & name, const BT::NodeConfig & conf)
 : BT::ConditionNode(name, conf)
 {
 }

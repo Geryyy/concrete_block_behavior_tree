@@ -1,12 +1,12 @@
-<root>
+<root BTCPP_format="4">
   <!-- One full pick-and-place cycle for the block named by
        {grasp_object_contains}, using pickup_* and place_* set by the caller
        (e.g. GetNextAssemblyTask). Composed from SubTreePickBlock +
        SubTreePlaceBlock; see those files for the per-step breakdown. -->
   <BehaviorTree ID="SubTreePickAndPlaceBlock">
     <Sequence name="pick_and_place_block">
-      <SubTree ID="SubTreePickBlock" __shared_blackboard="true"/>
-      <SubTree ID="SubTreePlaceBlock" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePickBlock" _autoremap="true"/>
+      <SubTree ID="SubTreePlaceBlock" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

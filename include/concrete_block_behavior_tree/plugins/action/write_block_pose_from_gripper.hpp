@@ -27,7 +27,7 @@ public:
 
   WriteBlockPoseFromGripper(
     const std::string & service_node_name,
-    const BT::NodeConfiguration & conf);
+    const BT::NodeConfig & conf);
 
   void on_tick() override;
   BT::NodeStatus on_completion(std::shared_ptr<ResponseT> response) override;

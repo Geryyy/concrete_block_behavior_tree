@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "behaviortree_cpp_v3/action_node.h"
-#include "behaviortree_cpp_v3/bt_factory.h"
-#include "behaviortree_cpp_v3/decorator_node.h"
+#include "behaviortree_cpp/action_node.h"
+#include "behaviortree_cpp/bt_factory.h"
+#include "behaviortree_cpp/decorator_node.h"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -17,7 +17,7 @@ namespace concrete_block_behavior_tree
 class WaitForOperatorCommand : public BT::StatefulActionNode
 {
 public:
-  WaitForOperatorCommand(const std::string & name, const BT::NodeConfiguration & config)
+  WaitForOperatorCommand(const std::string & name, const BT::NodeConfig & config)
   : BT::StatefulActionNode(name, config), node_(config.blackboard->get<rclcpp::Node::SharedPtr>("node"))
   {
     getInput("command_topic", command_topic_);
@@ -158,7 +158,7 @@ private:
 class PlacementExitAsSuccess : public BT::DecoratorNode
 {
 public:
-  PlacementExitAsSuccess(const std::string & name, const BT::NodeConfiguration & config)
+  PlacementExitAsSuccess(const std::string & name, const BT::NodeConfig & config)
   : BT::DecoratorNode(name, config) {}
 
   static BT::PortsList providedPorts()

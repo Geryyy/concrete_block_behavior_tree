@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<root main_tree_to_execute="BasicPickAndPlace">
+<root main_tree_to_execute="BasicPickAndPlace" BTCPP_format="4">
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_execute_trajectory.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_move_above.xml"/>
   <include path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/subtree_descend_to.xml"/>
@@ -50,7 +50,7 @@
 
       <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
-      <SubTree ID="SubTreePickAndPlaceBlock" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePickAndPlaceBlock" _autoremap="true"/>
 
       <SetBlockTaskStatus
         service_name="/world_model_node/set_block_task_status"

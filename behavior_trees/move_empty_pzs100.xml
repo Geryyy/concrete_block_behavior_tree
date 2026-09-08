@@ -15,7 +15,7 @@
      Use it to exercise the A2B controller (MPC or PID) from the RViz BehaviorTreePanel: load
      config/bt_panel_catalog.yaml, pick this entry, set a 2D goal pose in RViz, confirm on the
      remote. -->
-<root main_tree_to_execute="Move Empty PZS100">
+<root main_tree_to_execute="Move Empty PZS100" BTCPP_format="4">
   <include
     path="install/epsilon_crane_behavior_tree/share/epsilon_crane_behavior_tree/behavior_trees/subtree_a2b_movement.xml"/>
   <BehaviorTree ID="Move Empty PZS100">
@@ -33,7 +33,7 @@
           </Sequence>
         </Decorator>
       </Decorator>
-      <SubTree ID="SubTreeA2BMovement" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeA2BMovement" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

@@ -19,7 +19,7 @@
      decorator is the whole subtree.
 
      epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
-<root>
+<root BTCPP_format="4">
   <BehaviorTree ID="SubTreeCbsA2BMovement">
     <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
       wait_rising_edge="False">

@@ -6,7 +6,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
-  behaviortree_cpp_v3
+  behaviortree_cpp
   concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
   epsilon_crane_control_interfaces

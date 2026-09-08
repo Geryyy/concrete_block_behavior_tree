@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp/action_node.h"
 #include "epsilon_crane_control_interfaces/msg/gripper_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -26,7 +26,7 @@ class PublishGripperState : public BT::SyncActionNode
 public:
   using GripperState = epsilon_crane_control_interfaces::msg::GripperState;
 
-  PublishGripperState(const std::string & name, const BT::NodeConfiguration & conf);
+  PublishGripperState(const std::string & name, const BT::NodeConfig & conf);
 
   BT::NodeStatus tick() override;
 

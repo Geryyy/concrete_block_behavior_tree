@@ -1,4 +1,4 @@
-<root>
+<root BTCPP_format="4">
   <!-- Pick the block identified by {grasp_object_contains} at pickup_{x,y,z,yaw}.
        Approach above -> open -> descend -> close -> verify grasp ->
        capture grasp offset / mark MOVING -> lift. Carries nothing on the way
@@ -12,9 +12,9 @@
       <SetBlackboard output_key="mv_z" value="{approach_z}"/>
       <SetBlackboard output_key="mv_yaw" value="{pickup_yaw}"/>
       <SetBlackboard output_key="mv_carries" value="false"/>
-      <SubTree ID="SubTreeMoveAbove" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
 
-      <SubTree ID="SubTreePickFromHover" __shared_blackboard="true"/>
+      <SubTree ID="SubTreePickFromHover" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 
@@ -24,7 +24,7 @@
       <!-- 1. Open gripper -->
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="false"/>
-      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeGripper" _autoremap="true"/>
 
       <!-- 2. Descend to pickup -->
       <!-- Controller default: the grasp detector verifies this descent, not
@@ -35,12 +35,12 @@
       <SetBlackboard output_key="dz_z" value="{pickup_z}"/>
       <SetBlackboard output_key="dz_yaw" value="{pickup_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="false"/>
-      <SubTree ID="SubTreeDescendTo" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- 3. Close gripper -->
       <SetBlackboard output_key="gr_phase" value="2"/>
       <SetBlackboard output_key="gr_carries" value="false"/>
-      <SubTree ID="SubTreeGripper" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeGripper" _autoremap="true"/>
 
       <!-- 4. Verify grasp signal + register block as in-hand -->
       <Action ID="WaitForGraspSignal" name="Wait for grasp detector"
@@ -65,7 +65,7 @@
 
       <!-- 5. Lift the grasped block -->
       <SetBlackboard output_key="lf_carries" value="true"/>
-      <SubTree ID="SubTreeLift" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeLift" _autoremap="true"/>
 
     </Sequence>
   </BehaviorTree>

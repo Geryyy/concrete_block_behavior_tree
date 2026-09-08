@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "tf2/exceptions.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Transform.h"
@@ -15,7 +15,7 @@ namespace concrete_block_behavior_tree
 
 CaptureBlockGraspOffset::CaptureBlockGraspOffset(
   const std::string & service_node_name,
-  const BT::NodeConfiguration & conf)
+  const BT::NodeConfig & conf)
 : nav2_behavior_tree::BtServiceNode<ServiceT>(service_node_name, conf)
 {
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());

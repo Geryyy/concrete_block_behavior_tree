@@ -1,4 +1,4 @@
-<root>
+<root BTCPP_format="4">
   <!-- Lift away from the current CoG pose (grip-trajectory phase 4).
        Caller sets on the (shared) blackboard before invoking:
          lf_carries  - "true"/"false": carrying a block?
@@ -19,7 +19,7 @@
         carries="{lf_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" __shared_blackboard="true"/>
+      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>

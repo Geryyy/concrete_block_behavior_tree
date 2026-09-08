@@ -1,4 +1,4 @@
-#include "behaviortree_cpp_v3/bt_factory.h"
+#include "behaviortree_cpp/bt_factory.h"
 #include "concrete_block_world_model_interfaces/srv/run_pose_estimation.hpp"
 #include "nav2_behavior_tree/bt_service_node.hpp"
 
@@ -13,7 +13,7 @@ public:
   using ServiceT = concrete_block_world_model_interfaces::srv::RunPoseEstimation;
   using ResponseT = ServiceT::Response;
 
-  RunPoseEstimationService(const std::string & name, const BT::NodeConfiguration & config)
+  RunPoseEstimationService(const std::string & name, const BT::NodeConfig & config)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(name, config) {}
 
   static BT::PortsList providedPorts()
