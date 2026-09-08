@@ -49,6 +49,10 @@ def generate_launch_description():
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
     )
+    # 'cbs' rides the mp_esdf route only to get its no-A2B-server branch: that
+    # backend starts neither legacy server nor ESDF mapping, leaving the
+    # crane_planner included below sole owner of /a2b_movement.
+    mp_backend = PythonExpression(["'cbs' if '", planner, "' == 'cbs' else 'timber'"])
     world_model_seed_block_0 = PathJoinSubstitution(
         [
             FindPackageShare("concrete_block_world_model"),
@@ -77,9 +81,11 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "planner",
                 default_value="ilqr",
+                choices=["ilqr", "vpsto", "cbs"],
                 description=(
-                    "Planner: 'ilqr' uses mp.launch.py; anything else uses "
-                    "mp_esdf.launch.py."
+                    "Planner: 'ilqr' uses mp.launch.py, 'vpsto' uses "
+                    "mp_esdf.launch.py; 'cbs' is crane_planning's crane_planner "
+                    "on the same /a2b_movement service."
                 ),
             ),
             DeclareLaunchArgument("start_description", default_value="true"),
@@ -106,6 +112,14 @@ def generate_launch_description():
             DeclareLaunchArgument("start_wall_plan_server", default_value="true"),
             DeclareLaunchArgument("start_bt_action_server", default_value="true"),
             DeclareLaunchArgument("start_rviz", default_value="true"),
+            DeclareLaunchArgument(
+                "allow_missing_scene",
+                default_value="true",
+                description=(
+                    "Testing helper: let crane_planner plan against an empty "
+                    "world when no collision scene is published (perception off)."
+                ),
+            ),
             DeclareLaunchArgument("points_topic", default_value="/seyond/points"),
             DeclareLaunchArgument(
                 "world_model_overlay_params_file",
@@ -223,6 +237,7 @@ def generate_launch_description():
                 / mp_launch_file,
                 launch_arguments={
                     "use_sim_time": use_sim_time,
+                    "mp_backend": mp_backend,
                     "mp_param_file": "mp_parameter_pzs100.yaml",
                     "mp_param_path": PathSubstitution(
                         FindPackageShare("concrete_block_behavior_tree")
@@ -240,6 +255,20 @@ def generate_launch_description():
                     "start_grip_traj_server": "false",
                 }.items(),
                 condition=IfCondition(LaunchConfiguration("start_motion_planning")),
+            ),
+            # Native planner, when selected. Serves the same /a2b_movement the
+            # legacy server did, so nothing above the planner changes.
+            # Deliberately not gated on start_motion_planning: that flag governs
+            # the legacy timber mp stack, which the crane_planner replaces.
+            IncludeLaunchDescription(
+                PathSubstitution(FindPackageShare("crane_planning"))
+                / "launch"
+                / "crane_planner.launch.py",
+                launch_arguments={
+                    "use_sim_time": use_sim_time,
+                    "allow_missing_scene": LaunchConfiguration("allow_missing_scene"),
+                }.items(),
+                condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
             ),
             Node(
                 package="concrete_block_motion_planning",
