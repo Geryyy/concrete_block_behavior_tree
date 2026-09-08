@@ -24,7 +24,7 @@
   <exec_depend>concrete_block_assembly_planning</exec_depend>
   <exec_depend>concrete_block_motion_planning</exec_depend>
   <exec_depend>crane_planning</exec_depend>
-  <depend>gazebo_msgs</depend>
+  <depend>ros_gz_interfaces</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
@@ -40,7 +40,8 @@
   <exec_depend>pzs100_description</exec_depend>
   <exec_depend>epsilon_crane_bringup_mp</exec_depend>
   <exec_depend>collision_body_handler</exec_depend>
-  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>rviz2</exec_depend>

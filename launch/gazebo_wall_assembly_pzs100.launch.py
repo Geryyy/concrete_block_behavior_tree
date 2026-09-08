@@ -16,7 +16,6 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.substitutions import (
-    EnvironmentVariable,
     LaunchConfiguration,
     PathJoinSubstitution,
     PathSubstitution,
@@ -24,7 +23,7 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-from launch_ros.substitutions import FindPackagePrefix, FindPackageShare
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -155,14 +154,6 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_MOVE_EMPTY",
                 value="/behavior_trees/move_empty_pzs100.xml",
-            ),
-            SetEnvironmentVariable(
-                name="GAZEBO_PLUGIN_PATH",
-                value=[
-                    EnvironmentVariable("GAZEBO_PLUGIN_PATH", default_value=""),
-                    ":",
-                    PathSubstitution(FindPackagePrefix("livox_simulation")) / "lib",
-                ],
             ),
             # ── PZS100 crane simulation (without epsilon_crane BT) ───────
             IncludeLaunchDescription(
@@ -324,6 +315,18 @@ def generate_launch_description():
             TimerAction(
                 period=8.0,
                 actions=[
+                    # gz has no ROS-side entity-creation service of its own;
+                    # bridge /world/default/create so the spawner can call it.
+                    Node(
+                        package="ros_gz_bridge",
+                        executable="parameter_bridge",
+                        name="block_spawn_bridge",
+                        output="screen",
+                        arguments=[
+                            "/world/default/create@ros_gz_interfaces/srv/SpawnEntity",
+                        ],
+                        parameters=[{"use_sim_time": True}],
+                    ),
                     Node(
                         package="concrete_block_behavior_tree",
                         executable="gazebo_block_spawner.py",
@@ -333,7 +336,6 @@ def generate_launch_description():
                             {
                                 "use_sim_time": True,
                                 "seed_config_file": seed_file,
-                                "gazebo_world_frame": "world",
                                 "use_precomputed_gazebo_pose": False,
                                 # Seed is in `world` (same frame as wall_spec / plan).
                                 "seed_frame_id": "world",
@@ -345,10 +347,6 @@ def generate_launch_description():
                                 "gazebo_seed_frame_xyz": [0.0, -6.0, 0.0],
                                 "gazebo_seed_frame_rpy_deg": [0.0, 0.0, 180.0],
                                 "spawn_height_offset": 0.15,
-                                "sync_world_model_from_gazebo": False,
-                                "settle_time_sec": 3.0,
-                                "service_wait_timeout_sec": 60.0,
-                                "gazebo_get_entity_state_service": "/gazebo/get_entity_state",
                             },
                         ],
                     ),

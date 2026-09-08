@@ -193,7 +193,9 @@ after Gazebo has started. The spawner:
 1. reads the same `concrete_block_world_model/config/world_model_seed_pick_place.yaml`
 2. parses `world_model.initial_blocks`
 3. loads the Gazebo model from `models/concrete_block/model.sdf`
-4. calls Gazebo `/spawn_entity` once per block
+4. calls the gz entity-creation service `/world/default/create` once per block,
+   bridged to ROS as `ros_gz_interfaces/srv/SpawnEntity` by the
+   `block_spawn_bridge` node the same launch file starts
 
 For PZS100, precomputed `gazebo_pose` entries are not used. Instead, the
 spawner transforms each block from the CBS `world` frame into Gazebo `world`
@@ -205,7 +207,6 @@ seed_frame_id: world
 gazebo_seed_frame_xyz: [0.0, -6.0, 0.0]
 gazebo_seed_frame_rpy_deg: [0.0, 0.0, 180.0]
 spawn_height_offset: 0.15
-sync_world_model_from_gazebo: False
 ```
 
 `gazebo_seed_frame_xyz` and `gazebo_seed_frame_rpy_deg` describe the CBS
@@ -287,7 +288,7 @@ server stay unchanged.
 /world_model_node/get_coarse_blocks
 /world_model_node/set_block_task_status
 /concrete_block_motion_planning_node/get_next_assembly_task
-/spawn_entity
+/world/default/create
 ```
 
 ## Developer Notes
