@@ -46,6 +46,10 @@ controller_manager:
 
 trajectory_controller_grasping:
   ros__parameters:
+    # The spawner passes this file to load_controller, which reads the type from
+    # the controller's own namespace -- the controller_manager block above only
+    # applies when a file is loaded by controller_manager itself.
+    type: joint_trajectory_controller/JointTrajectoryController
     gains:
       theta1_slewing_joint:
         ff_velocity_scale: 1.0

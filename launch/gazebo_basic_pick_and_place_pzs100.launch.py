@@ -162,18 +162,6 @@ def generate_launch_description():
             TimerAction(
                 period=8.0,
                 actions=[
-                    # gz has no ROS-side entity-creation service of its own;
-                    # bridge /world/default/create so the spawner can call it.
-                    Node(
-                        package="ros_gz_bridge",
-                        executable="parameter_bridge",
-                        name="block_spawn_bridge",
-                        output="screen",
-                        arguments=[
-                            "/world/default/create@ros_gz_interfaces/srv/SpawnEntity",
-                        ],
-                        parameters=[{"use_sim_time": True}],
-                    ),
                     Node(
                         package="concrete_block_behavior_tree",
                         executable="gazebo_block_spawner.py",

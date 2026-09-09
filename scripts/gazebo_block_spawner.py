@@ -4,10 +4,11 @@
 Reads ``world_model.initial_blocks`` from the same YAML that seeds
 ``world_model_node`` and calls the gz entity-creation service once per block.
 
-That service is gz-side ``/world/<world>/create``, reached through a
-``ros_gz_bridge`` service bridge as ``ros_gz_interfaces/srv/SpawnEntity``; the
-launch file that starts this node starts the bridge. Classic Gazebo's
-``/spawn_entity`` does not exist on jazzy.
+That service is gz-side ``/world/<world>/create``, called with the ``gz
+service`` CLI. Classic Gazebo's ``/spawn_entity`` does not exist on jazzy, and
+the ``ros_gz_bridge`` service bridge re-sends a request that gz already
+answered -- one ROS call reaches UserCommands four times, so every spawn logs
+three "entity already exists" warnings. Talking to gz directly avoids that.
 
 The block ``position``/``yaw_deg`` fields are expressed in the world-model
 frame, usually ``K0_mounting_base``.  Gazebo's world frame can differ from the
@@ -17,15 +18,16 @@ world-model frame pose in Gazebo coordinates so both RViz markers and Gazebo
 blocks stay aligned relative to the crane.
 """
 
+import json
 import math
 import os
+import subprocess
+import time
 
 import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Pose
 from rclpy.node import Node
-from ros_gz_interfaces.srv import SpawnEntity
 
 
 def _load_sdf() -> str:
@@ -121,8 +123,8 @@ class GazeboBlockSpawner(Node):
         self.declare_parameter("gazebo_seed_frame_xyz", [0.0, 0.0, 0.0])
         self.declare_parameter("gazebo_seed_frame_rpy_deg", [0.0, 0.0, 0.0])
         self.declare_parameter("spawn_height_offset", 0.3)
-        # gz-side entity creation, bridged to ROS by ros_gz_bridge. The world
-        # name is `default` in epsilon_crane.world and empty.world.
+        # gz-side entity creation. The world name is `default` in
+        # epsilon_crane.world and empty.world.
         self.declare_parameter("gazebo_spawn_service", "/world/default/create")
 
         self._seed_file = self.get_parameter("seed_config_file").value
@@ -146,8 +148,6 @@ class GazeboBlockSpawner(Node):
         )
         self._spawn_service_name = self.get_parameter("gazebo_spawn_service").value
 
-        self._spawn_client = self.create_client(SpawnEntity, self._spawn_service_name)
-
     def run(self):
         """Spawn all blocks. Call from main(), NOT from a callback."""
         blocks = _parse_initial_blocks(self._seed_file)
@@ -157,10 +157,10 @@ class GazeboBlockSpawner(Node):
 
         self.get_logger().info(f"Parsed {len(blocks)} block(s) from {self._seed_file}")
 
-        if not self._spawn_client.wait_for_service(timeout_sec=30.0):
+        if not self._wait_for_gz_service(timeout_s=30.0):
             self.get_logger().error(
-                f"{self._spawn_service_name} service not available; aborting spawn. "
-                "Is the ros_gz_bridge service bridge running?"
+                f"{self._spawn_service_name} not advertised; aborting spawn. "
+                "Is gz sim running?"
             )
             return
 
@@ -210,35 +210,56 @@ class GazeboBlockSpawner(Node):
                 self._gazebo_seed_frame_quat, block_quat
             )
 
-        pose = Pose()
-        pose.position.x = float(x)
-        pose.position.y = float(y)
-        pose.position.z = float(z)
-        pose.orientation.x = qx
-        pose.orientation.y = qy
-        pose.orientation.z = qz
-        pose.orientation.w = qw
+        # gz.msgs.EntityFactory in protobuf text format. json.dumps gives the
+        # C-style escaping protobuf text expects for the SDF payload.
+        req = (
+            f"name: {json.dumps(block_id)}, sdf: {json.dumps(sdf_xml)}, "
+            f'relative_to: "world", allow_renaming: false, '
+            f"pose: {{position: {{x: {x:.6f}, y: {y:.6f}, z: {z:.6f}}}, "
+            f"orientation: {{x: {qx:.9f}, y: {qy:.9f}, "
+            f"z: {qz:.9f}, w: {qw:.9f}}}}}"
+        )
 
-        req = SpawnEntity.Request()
-        req.entity_factory.name = block_id
-        req.entity_factory.sdf = sdf_xml
-        req.entity_factory.pose = pose
-        req.entity_factory.relative_to = "world"
-        req.entity_factory.allow_renaming = False
-
-        future = self._spawn_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future, timeout_sec=10.0)
-
-        # ros_gz_interfaces/srv/SpawnEntity carries `success` only -- there is no
-        # status_message to report on rejection.
-        if future.result() is None:
-            self.get_logger().error(f"SpawnEntity call timed out for {block_id}.")
-        elif not future.result().success:
-            self.get_logger().error(f"SpawnEntity rejected {block_id}.")
-        else:
+        if self._gz_create(req):
             self.get_logger().info(
                 f"Spawned {block_id} at world ({x:.3f}, {y:.3f}, {z:.3f})"
             )
+        else:
+            self.get_logger().error(f"Spawning {block_id} failed.")
+
+    def _wait_for_gz_service(self, timeout_s: float) -> bool:
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            listed = subprocess.run(
+                ["gz", "service", "-l"], capture_output=True, text=True, timeout=10.0
+            )
+            if self._spawn_service_name in listed.stdout.split():
+                return True
+            time.sleep(1.0)
+        return False
+
+    def _gz_create(self, req: str) -> bool:
+        """Call the gz entity-creation service. True on `data: true`."""
+        result = subprocess.run(
+            [
+                "gz",
+                "service",
+                "-s",
+                self._spawn_service_name,
+                "--reqtype",
+                "gz.msgs.EntityFactory",
+                "--reptype",
+                "gz.msgs.Boolean",
+                "--timeout",
+                "5000",
+                "--req",
+                req,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20.0,
+        )
+        return "data: true" in result.stdout
 
 
 def main():
