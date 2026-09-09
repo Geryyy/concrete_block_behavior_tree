@@ -107,6 +107,11 @@ def generate_launch_description():
                     "controller_common_config": "crane_controller_hydraulic_common_pzs100.ros2_control.yaml",
                     "controller_a2b_config_package": ctrl_package,
                     "controller_a2b_config": ctrl_config,
+                    # gazebo_model_bt.launch.py declares no default for `mpc`;
+                    # it gates its own trajectory_controller_a2b spawner on it.
+                    "mpc": PythonExpression(
+                        ["'True' if '", controller, "' == 'mpc' else 'False'"]
+                    ),
                     "mp_launch_file": mp_launch_file,
                     "mp_backend": mp_backend,
                     "mp_param_file": "mp_parameter_pzs100.yaml",
