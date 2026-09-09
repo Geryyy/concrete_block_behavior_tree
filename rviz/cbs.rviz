@@ -16,7 +16,7 @@ Panels:
         - /PointCloud21
         - /PointCloud22
       Splitter Ratio: 0.762273907661438
-    Tree Height: 640
+    Tree Height: 788
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -74,27 +74,47 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/TF
       Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
+        A_ortho_frame_facing_back:
+          Value: true
+        A_ortho_frame_facing_front:
+          Value: true
+        A_ortho_frame_facing_left:
+          Value: true
+        A_ortho_frame_facing_right:
+          Value: true
         All Enabled: false
         K0_mounting_base:
           Value: false
-        K10_left_rail:
-          Value: false
+        K10_outer_jaw:
+          Value: true
         K11:
           Value: false
-        K12_right_rail:
-          Value: false
-        K1_boom_cylinder_suspension:
-          Value: false
+        K12_inner_jaw:
+          Value: true
+        K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+          Value: true
+        K1_boom_cylinder_mounting_on_slewing_column:
+          Value: true
         K1_slewing_column:
           Value: false
-        K2_arm_cylinder_suspension:
-          Value: false
+        K2_arm_cylinder_left_suspension:
+          Value: true
+        K2_arm_cylinder_right_suspension:
+          Value: true
         K2_boom:
           Value: false
+        K2_boom_cylinder_linkage_small_mounting_on_boom:
+          Value: true
         K3_arm:
           Value: false
+        K3_arm_cylinder_piston_left_suspension:
+          Value: true
+        K3_arm_cylinder_piston_right_suspension:
+          Value: true
         K3_hook:
           Value: false
         K3_light_box:
@@ -113,10 +133,6 @@ Visualization Manager:
           Value: true
         K9:
           Value: false
-        before_q11:
-          Value: false
-        before_q9:
-          Value: false
         blackfly:
           Value: true
         blackfly_rotated:
@@ -129,21 +145,31 @@ Visualization Manager:
           Value: false
         desired/K0_mounting_base:
           Value: false
-        desired/K10_left_rail:
+        desired/K10_outer_jaw:
           Value: true
         desired/K11:
           Value: true
-        desired/K12_right_rail:
+        desired/K12_inner_jaw:
           Value: true
-        desired/K1_boom_cylinder_suspension:
+        desired/K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+          Value: true
+        desired/K1_boom_cylinder_mounting_on_slewing_column:
           Value: true
         desired/K1_slewing_column:
           Value: true
-        desired/K2_arm_cylinder_suspension:
+        desired/K2_arm_cylinder_left_suspension:
+          Value: true
+        desired/K2_arm_cylinder_right_suspension:
           Value: true
         desired/K2_boom:
           Value: true
+        desired/K2_boom_cylinder_linkage_small_mounting_on_boom:
+          Value: true
         desired/K3_arm:
+          Value: true
+        desired/K3_arm_cylinder_piston_left_suspension:
+          Value: true
+        desired/K3_arm_cylinder_piston_right_suspension:
           Value: true
         desired/K3_hook:
           Value: true
@@ -162,10 +188,6 @@ Visualization Manager:
         desired/K8_tool_center_point:
           Value: true
         desired/K9:
-          Value: true
-        desired/before_q11:
-          Value: true
-        desired/before_q9:
           Value: true
         desired/blackfly:
           Value: true
@@ -205,6 +227,10 @@ Visualization Manager:
           Value: true
         desired/moved_with_q1:
           Value: true
+        desired/moved_with_q10:
+          Value: true
+        desired/moved_with_q12:
+          Value: true
         desired/moved_with_q2:
           Value: true
         desired/moved_with_q3:
@@ -224,6 +250,154 @@ Visualization Manager:
         desired/seyond:
           Value: true
         desired/telescope_bended:
+          Value: true
+        desired/tool_contact_point:
+          Value: true
+        desired/tool_side_view:
+          Value: true
+        elastic/K0_mounting_base:
+          Value: true
+        elastic/K10_outer_jaw:
+          Value: true
+        elastic/K11:
+          Value: true
+        elastic/K12_inner_jaw:
+          Value: true
+        elastic/K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+          Value: true
+        elastic/K1_boom_cylinder_mounting_on_slewing_column:
+          Value: true
+        elastic/K1_slewing_column:
+          Value: true
+        elastic/K2_arm_cylinder_left_suspension:
+          Value: true
+        elastic/K2_arm_cylinder_right_suspension:
+          Value: true
+        elastic/K2_boom:
+          Value: true
+        elastic/K2_boom_cylinder_linkage_small_mounting_on_boom:
+          Value: true
+        elastic/K3_arm:
+          Value: true
+        elastic/K3_arm_cylinder_piston_left_suspension:
+          Value: true
+        elastic/K3_arm_cylinder_piston_right_suspension:
+          Value: true
+        elastic/K3_hook:
+          Value: true
+        elastic/K3_light_box:
+          Value: true
+        elastic/K4_outer_telescope:
+          Value: true
+        elastic/K5_inner_telescope:
+          Value: true
+        elastic/K6_double_joint_link:
+          Value: true
+        elastic/K7_rotator_upper_part:
+          Value: true
+        elastic/K8_rotator_lower_part:
+          Value: true
+        elastic/K8_tool_center_point:
+          Value: true
+        elastic/K9:
+          Value: true
+        elastic/blackfly:
+          Value: true
+        elastic/blackfly_rotated:
+          Value: true
+        elastic/cab_fender:
+          Value: true
+        elastic/control_box:
+          Value: true
+        elastic/control_box_sensor_mount:
+          Value: true
+        elastic/hesai_frame:
+          Value: true
+        elastic/hydraulic_block:
+          Value: true
+        elastic/imu11_origin:
+          Value: true
+        elastic/imu12_origin:
+          Value: true
+        elastic/imu13_origin:
+          Value: true
+        elastic/imu14_origin:
+          Value: true
+        elastic/imu15:
+          Value: true
+        elastic/imu15_origin:
+          Value: true
+        elastic/imu16:
+          Value: true
+        elastic/imu16_origin:
+          Value: true
+        elastic/imu17:
+          Value: true
+        elastic/imu17_origin:
+          Value: true
+        elastic/livox_frame:
+          Value: true
+        elastic/livox_frame_up:
+          Value: true
+        elastic/moved_with_q1:
+          Value: true
+        elastic/moved_with_q10:
+          Value: true
+        elastic/moved_with_q12:
+          Value: true
+        elastic/moved_with_q2:
+          Value: true
+        elastic/moved_with_q3:
+          Value: true
+        elastic/moved_with_q4:
+          Value: true
+        elastic/moved_with_q5:
+          Value: true
+        elastic/moved_with_q6:
+          Value: true
+        elastic/moved_with_q7:
+          Value: true
+        elastic/moved_with_q8:
+          Value: true
+        elastic/sensor_konsole:
+          Value: true
+        elastic/seyond:
+          Value: true
+        elastic/telescope_bended:
+          Value: true
+        elastic/tool_contact_point:
+          Value: true
+        elastic/tool_side_view:
+          Value: true
+        elastic/tr_bed:
+          Value: true
+        elastic/tr_black:
+          Value: true
+        elastic/tr_crane_frameplate:
+          Value: true
+        elastic/tr_grey:
+          Value: true
+        elastic/tr_rr_fender:
+          Value: true
+        elastic/tr_rr_rims:
+          Value: true
+        elastic/tr_rr_wheels:
+          Value: true
+        elastic/tr_rungen:
+          Value: true
+        elastic/tr_tank:
+          Value: true
+        elastic/tr_white:
+          Value: true
+        elastic/truck_cab:
+          Value: true
+        elastic/truck_origin:
+          Value: true
+        elastic/truck_rotated_pitch:
+          Value: true
+        elastic/truck_rotated_roll:
+          Value: true
+        elastic/world:
           Value: true
         floor:
           Value: true
@@ -255,12 +429,14 @@ Visualization Manager:
           Value: false
         livox_frame_up:
           Value: true
-        livox_sim:
-          Value: true
         load_bed_reference:
           Value: false
         moved_with_q1:
           Value: false
+        moved_with_q10:
+          Value: true
+        moved_with_q12:
+          Value: true
         moved_with_q2:
           Value: false
         moved_with_q3:
@@ -281,6 +457,10 @@ Visualization Manager:
           Value: false
         telescope_bended:
           Value: false
+        tool_contact_point:
+          Value: true
+        tool_side_view:
+          Value: true
         tr_bed:
           Value: false
         tr_black:
@@ -309,8 +489,6 @@ Visualization Manager:
           Value: false
         truck_rotated_roll:
           Value: false
-        virtual_tcp:
-          Value: true
         world:
           Value: false
       Marker Scale: 1
@@ -320,12 +498,128 @@ Visualization Manager:
       Show Names: false
       Tree:
         world:
+          elastic/world:
+            elastic/truck_origin:
+              elastic/truck_rotated_pitch:
+                elastic/truck_rotated_roll:
+                  elastic/K0_mounting_base:
+                    elastic/imu11_origin:
+                      {}
+                    elastic/moved_with_q1:
+                      elastic/K1_slewing_column:
+                        elastic/K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+                          {}
+                        elastic/K1_boom_cylinder_mounting_on_slewing_column:
+                          {}
+                        elastic/control_box:
+                          elastic/control_box_sensor_mount:
+                            {}
+                        elastic/hydraulic_block:
+                          {}
+                        elastic/moved_with_q2:
+                          elastic/K2_boom:
+                            elastic/K2_arm_cylinder_left_suspension:
+                              {}
+                            elastic/K2_arm_cylinder_right_suspension:
+                              {}
+                            elastic/K2_boom_cylinder_linkage_small_mounting_on_boom:
+                              {}
+                            elastic/imu12_origin:
+                              {}
+                            elastic/imu13_origin:
+                              {}
+                            elastic/moved_with_q3:
+                              elastic/K3_arm:
+                                elastic/K3_arm_cylinder_piston_left_suspension:
+                                  {}
+                                elastic/K3_arm_cylinder_piston_right_suspension:
+                                  {}
+                                elastic/K3_hook:
+                                  {}
+                                elastic/K3_light_box:
+                                  {}
+                                elastic/imu14_origin:
+                                  {}
+                                elastic/telescope_bended:
+                                  elastic/moved_with_q4:
+                                    elastic/K4_outer_telescope:
+                                      elastic/moved_with_q5:
+                                        elastic/K5_inner_telescope:
+                                          elastic/imu15:
+                                            elastic/imu15_origin:
+                                              {}
+                                          elastic/moved_with_q6:
+                                            elastic/K6_double_joint_link:
+                                              elastic/moved_with_q7:
+                                                elastic/K7_rotator_upper_part:
+                                                  elastic/imu16:
+                                                    elastic/imu16_origin:
+                                                      {}
+                                                  elastic/moved_with_q8:
+                                                    elastic/K8_rotator_lower_part:
+                                                      elastic/K8_tool_center_point:
+                                                        elastic/K11:
+                                                          elastic/moved_with_q12:
+                                                            elastic/K12_inner_jaw:
+                                                              {}
+                                                        elastic/K9:
+                                                          elastic/moved_with_q10:
+                                                            elastic/K10_outer_jaw:
+                                                              {}
+                                                        elastic/tool_contact_point:
+                                                          elastic/tool_side_view:
+                                                            {}
+                                                    elastic/imu17:
+                                                      elastic/imu17_origin:
+                                                        {}
+                      elastic/sensor_konsole:
+                        elastic/blackfly:
+                          elastic/blackfly_rotated:
+                            {}
+                        elastic/hesai_frame:
+                          {}
+                        elastic/livox_frame:
+                          elastic/livox_frame_up:
+                            {}
+                        elastic/seyond:
+                          {}
+                  elastic/truck_cab:
+                    elastic/cab_fender:
+                      {}
+                    elastic/tr_bed:
+                      {}
+                    elastic/tr_black:
+                      {}
+                    elastic/tr_crane_frameplate:
+                      {}
+                    elastic/tr_grey:
+                      {}
+                    elastic/tr_rr_fender:
+                      {}
+                    elastic/tr_rr_rims:
+                      {}
+                    elastic/tr_rr_wheels:
+                      {}
+                    elastic/tr_rungen:
+                      {}
+                    elastic/tr_tank:
+                      {}
+                    elastic/tr_white:
+                      {}
           floor:
             {}
           truck_origin:
             truck_rotated_pitch:
               truck_rotated_roll:
                 K0_mounting_base:
+                  A_ortho_frame_facing_back:
+                    {}
+                  A_ortho_frame_facing_front:
+                    {}
+                  A_ortho_frame_facing_left:
+                    {}
+                  A_ortho_frame_facing_right:
+                    {}
                   desired/K0_mounting_base:
                     desired/imu11_origin:
                       {}
@@ -333,7 +627,9 @@ Visualization Manager:
                     {}
                   moved_with_q1:
                     K1_slewing_column:
-                      K1_boom_cylinder_suspension:
+                      K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+                        {}
+                      K1_boom_cylinder_mounting_on_slewing_column:
                         {}
                       control_box:
                         control_box_sensor_mount:
@@ -342,7 +638,11 @@ Visualization Manager:
                         {}
                       moved_with_q2:
                         K2_boom:
-                          K2_arm_cylinder_suspension:
+                          K2_arm_cylinder_left_suspension:
+                            {}
+                          K2_arm_cylinder_right_suspension:
+                            {}
+                          K2_boom_cylinder_linkage_small_mounting_on_boom:
                             {}
                           imu12_origin:
                             {}
@@ -350,6 +650,10 @@ Visualization Manager:
                             {}
                           moved_with_q3:
                             K3_arm:
+                              K3_arm_cylinder_piston_left_suspension:
+                                {}
+                              K3_arm_cylinder_piston_right_suspension:
+                                {}
                               K3_hook:
                                 {}
                               K3_light_box:
@@ -374,16 +678,17 @@ Visualization Manager:
                                                 moved_with_q8:
                                                   K8_rotator_lower_part:
                                                     K8_tool_center_point:
-                                                      before_q11:
-                                                        K11:
-                                                          K12_right_rail:
+                                                      K11:
+                                                        moved_with_q12:
+                                                          K12_inner_jaw:
                                                             {}
-                                                      before_q9:
-                                                        K9:
-                                                          K10_left_rail:
+                                                      K9:
+                                                        moved_with_q10:
+                                                          K10_outer_jaw:
                                                             {}
-                                                      virtual_tcp:
-                                                        {}
+                                                      tool_contact_point:
+                                                        tool_side_view:
+                                                          {}
                                                   imu17:
                                                     imu17_origin:
                                                       {}
@@ -395,8 +700,6 @@ Visualization Manager:
                         {}
                       livox_frame:
                         livox_frame_up:
-                          {}
-                        livox_sim:
                           {}
                       seyond:
                         {}
@@ -448,7 +751,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        K10_left_rail:
+        K10_outer_jaw:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -457,12 +760,16 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        K12_right_rail:
+        K12_inner_jaw:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        K1_boom_cylinder_suspension:
+        K1_boom_cylinder_linkage_big_mounting_on_slewing_column:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        K1_boom_cylinder_mounting_on_slewing_column:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -471,7 +778,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        K2_arm_cylinder_suspension:
+        K2_arm_cylinder_left_suspension:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        K2_arm_cylinder_right_suspension:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -480,11 +791,23 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        K2_boom_cylinder_linkage_small_mounting_on_boom:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         K3_arm:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        K3_arm_cylinder_piston_left_suspension:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        K3_arm_cylinder_piston_right_suspension:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         K3_hook:
           Alpha: 1
           Show Axes: false
@@ -530,14 +853,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         Link Tree Style: Links in Alphabetic Order
-        before_q11:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        before_q9:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         blackfly:
           Alpha: 1
           Show Axes: false
@@ -632,6 +947,14 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        moved_with_q10:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        moved_with_q12:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         moved_with_q2:
           Alpha: 1
           Show Axes: false
@@ -671,6 +994,14 @@ Visualization Manager:
           Show Trail: false
           Value: true
         telescope_bended:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool_contact_point:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool_side_view:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -1180,7 +1511,6 @@ Visualization Manager:
           Topic:
             Depth: 5
             Durability Policy: Volatile
-            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /hesai_points
@@ -1214,7 +1544,6 @@ Visualization Manager:
           Topic:
             Depth: 5
             Durability Policy: Volatile
-            Filter size: 1
             History Policy: Keep Last
             Reliability Policy: Best Effort
             Value: /livox/lidar
@@ -1248,7 +1577,6 @@ Visualization Manager:
           Topic:
             Depth: 5
             Durability Policy: Volatile
-            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /seyond_points
@@ -1297,24 +1625,18 @@ Visualization Manager:
             Reliability Policy: Reliable
             Value: /livox/lidar/gripper/ortho_image
           Value: false
-        - Camera Info Topic: ""
-          Class: rviz_default_plugins/Camera
+        - Class: rviz_default_plugins/Camera
           Enabled: false
           Far Plane Distance: 100
           Image Rendering: background and overlay
           Name: ZedCamera
           Overlay Alpha: 0.5
-          Publish Height: 480
-          Publish Rendered Image: false
-          Publish Topic: /camera_display/image_raw
-          Publish Width: 640
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Best Effort
             Value: /zed2i/left/image_rect_color/compressed
-          Use Input Resolution: true
           Value: false
           Visibility:
             Decision Making:
@@ -1322,7 +1644,14 @@ Visualization Manager:
               Value: true
             Detector blocks (accepted): true
             Detector debug:
-              "": true
+              0 Terrain (fitted ground cells): true
+              0 Workspace bounds (crop): true
+              1 Input cloud (scene-bounded): true
+              2 After gripper self-filter: true
+              3 Above ground (clustered): true
+              Candidates (incl. rejected): true
+              Detector RGB input: true
+              Scene discovery pose overlay: true
               Value: true
             Grid: true
             IMUs:
@@ -1349,11 +1678,11 @@ Visualization Manager:
             Placement refinement residual: true
             Planning and Control:
               A2B target (panel): true
-              Timber MP collision bodies: true
               Crane planner plan: true
               Crane planner planned path: true
               MPC local path: true
               Path: true
+              Timber MP collision bodies: true
               Value: true
             PointCloud2: true
             RobotModel Desired: true
@@ -1434,7 +1763,7 @@ Visualization Manager:
           Enabled: true
           Name: 0 Workspace bounds (crop)
           Namespaces:
-            {}
+            scene_bounds: true
           Topic:
             Depth: 1
             Durability Policy: Transient Local
@@ -1494,7 +1823,6 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
-            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /cbp/debug/scene_discovery/detector/input_cloud
@@ -1528,7 +1856,6 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
-            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /cbp/debug/scene_discovery/detector/geometry_cloud
@@ -1562,7 +1889,6 @@ Visualization Manager:
           Topic:
             Depth: 1
             Durability Policy: Transient Local
-            Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /cbp/debug/scene_discovery/detector/above_ground_cloud
@@ -1638,7 +1964,6 @@ Visualization Manager:
       Topic:
         Depth: 5
         Durability Policy: Volatile
-        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /cbp/debug/registration/cleaned_cutout
@@ -1672,7 +1997,6 @@ Visualization Manager:
       Topic:
         Depth: 5
         Durability Policy: Volatile
-        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /livox/points
@@ -1754,10 +2078,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3126732110977173
+      Pitch: 0.25267326831817627
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.778322219848633
+      Yaw: 3.7383229732513428
     Saved: ~
 Window Geometry:
   AssemblyWorkflowPanel:
@@ -1768,7 +2092,7 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 1403
+  Height: 1011
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
@@ -1781,7 +2105,7 @@ Window Geometry:
     collapsed: false
   PlanControlPanel:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000015600000525fc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000006c2000005a000000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b00000309000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000014005a00650064002000430061006d0065007200610000000000ffffffff0000000000000000fb00000012005a0065006400430061006d00650072006102000006c2000005a0000002fd00000243fb00000022004c00690076006f00780020006f007200740068006f00200069006d006100670065000000032c000000cc0000002800fffffffc0000034a000002160000020200fffffffa000000010100000002fb0000000a0049006d0061006700650000000000ffffffff0000005a00fffffffb0000002c00500065007200630065007000740069006f006e0043006f006e00740072006f006c00500061006e0065006c010000000000000188000000fb00fffffffb00000038005300630065006e006500200064006900730063006f007600650072007900200070006f007300650020006f007600650072006c00610079000000051a000000460000002800fffffffb00000024004400650074006500630074006f0072002000520047004200200069006e0070007500740000000000ffffffff0000002800ffffff000000010000024c00000525fc0200000006fb000000200050006c0061006e0043006f006e00740072006f006c00500061006e0065006c010000003b00000108000000d500fffffffc00000149000004170000034d0100001afa000000030100000005fb00000026004d006f00740069006f006e0050006c0061006e006e0069006e006700500061006e0065006c0100000000ffffffff0000018800fffffffb0000002a0041007300730065006d0062006c00790057006f0072006b0066006c006f007700500061006e0065006c0100000000ffffffff0000013600fffffffb00000022004200650068006100760069006f0072005400720065006500500061006e0065006c0100000000ffffffff000000a300fffffffb0000002000540069006d006200650072004300720061006e006500500061006e0065006c0100000000ffffffff0000021000fffffffb00000052007200760069007a005f006c006900660065006300790063006c0065005f0070006c007500670069006e0020005200760069007a004c006900660065006300790063006c00650050006c007500670069006e02000007c60000013b0000021900000247fb0000000a0049006d0061006700650000000386000000570000002800fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000031a000000c3000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000057fc0100000002fb00000006005a0065006402000006c2000005a00000044400000336fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000006520000052500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001560000039dfc020000000efb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000005fb000004fd00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000039d000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000014005a00650064002000430061006d0065007200610000000000ffffffff0000000000000000fb00000012005a0065006400430061006d00650072006102000004830000035d000002fd00000243fb00000022004c00690076006f00780020006f007200740068006f00200069006d006100670065000000032c000000cc0000001600fffffffb0000000a0049006d00610067006500000002e30000027d0000001600fffffffb00000038005300630065006e006500200064006900730063006f007600650072007900200070006f007300650020006f007600650072006c00610079000000051a000000460000001600fffffffb00000024004400650074006500630074006f0072002000520047004200200069006e0070007500740000000000ffffffff0000001600ffffff000000010000024c0000039dfc0200000005fc0000003b0000039d0000034d0100001afa000000000100000007fb000000200050006c0061006e0043006f006e00740072006f006c00500061006e0065006c0100000000ffffffff0000011800fffffffb0000002c00500065007200630065007000740069006f006e0043006f006e00740072006f006c00500061006e0065006c0100000000ffffffff000000fb00fffffffb00000026004d006f00740069006f006e0050006c0061006e006e0069006e006700500061006e0065006c0100000000ffffffff0000018800fffffffb0000002a0041007300730065006d0062006c00790057006f0072006b0066006c006f007700500061006e0065006c0100000000ffffffff0000013700fffffffb00000022004200650068006100760069006f0072005400720065006500500061006e0065006c0100000000ffffffff000000a300fffffffb0000002000540069006d006200650072004300720061006e006500500061006e0065006c0100000000ffffffff0000021000fffffffb00000052007200760069007a005f006c006900660065006300790063006c0065005f0070006c007500670069006e0020005200760069007a004c006900660065006300790063006c00650050006c007500670069006e02000007c60000013b0000021900000247fb0000000a0049006d0061006700650000000386000000570000001600fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000031a000000c3000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073800000057fc0100000002fb00000006005a00650064020000033c0000026a0000044400000336fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000003900000039d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Scene discovery pose overlay:
     collapsed: false
   Selection:
@@ -1792,9 +2116,9 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 2560
-  X: 0
-  Y: 0
+  Width: 1854
+  X: 66
+  Y: 392
   Zed:
     collapsed: false
   ZedCamera:

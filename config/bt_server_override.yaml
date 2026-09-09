@@ -25,7 +25,6 @@ lifecycle_manager:
     simulated_placement_disturbance.yaw_rad: 0.035
     plugin_lib_names:
       # epsilon_crane_behavior_tree
-      - BT_wait_log_msg_decorator
       - BT_wait_grip_msg_decorator
       - BT_consume_log_array_decorator
       - BT_consume_pose_array_decorator
@@ -36,7 +35,7 @@ lifecycle_manager:
       - BT_get_laydown_pose_bt_node
       - BT_calc_grip_state_bt_node
       - BT_get_user_approval_decorator
-      - BT_check_user_approval_condition
+      - BT_check_user_approval_action
       - BT_wait_goal_pose_decorator
       - BT_wait_goal_pose_array_decorator
       - BT_set_goal_pose_bt_node
