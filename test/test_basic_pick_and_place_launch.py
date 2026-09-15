@@ -158,6 +158,98 @@ def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
         assert expected_yaml in resolve("controller_a2b_config")
 
 
+def _includes_launch_file(ld, name, **configurations):
+    """Does the profile include this launch file with these configurations set?
+
+    `location` on an unresolved source is its `describe()` text, not a path, so
+    match the file name inside it rather than taking a basename.
+    """
+    context = LaunchContext()
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+    context.launch_configurations.update(configurations)
+    return any(
+        name in str(entity.launch_description_source.location)
+        and (entity.condition is None or entity.condition.evaluate(context))
+        for entity in _walk_entities(ld.entities)
+        if isinstance(entity, IncludeLaunchDescription)
+    )
+
+
+def test_cbs_mpc_controller_refuses_a_planner_that_publishes_no_reference():
+    """The launch-time error path no sim run reaches by accident.
+
+    `crane_mpc` tracks `/crane/reference`, which only `planner:=cbs` publishes.
+    Any other planner leaves the node started, silent and looking mistuned.
+    """
+    import pytest
+
+    module = _load_launch_module("pzs100_bringup.launch.py")
+
+    context = LaunchContext()
+    context.launch_configurations.update(controller="cbs_mpc", planner="ilqr")
+    with pytest.raises(RuntimeError) as excinfo:
+        module.reject_cbs_mpc_without_cbs_planner(context)
+    assert "cbs_mpc" in str(excinfo.value)
+    assert "planner:=cbs" in str(excinfo.value)
+
+    for controller, planner in (
+        ("cbs_mpc", "cbs"),
+        ("pid", "ilqr"),
+        ("mpc", "ilqr"),
+        ("pid", "cbs"),
+    ):
+        context.launch_configurations.update(controller=controller, planner=planner)
+        module.reject_cbs_mpc_without_cbs_planner(context)
+
+
+def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
+    """`cbs_mpc` is the third value; `pid` and `mpc` keep their node/config sets."""
+    from launch.utilities import (
+        normalize_to_list_of_substitutions,
+        perform_substitutions,
+    )
+
+    module = _load_launch_module("pzs100_bringup.launch.py")
+    ld = module.generate_launch_description()
+
+    gazebo_include = next(
+        action
+        for action in _walk_entities(ld.entities)
+        if isinstance(action, IncludeLaunchDescription)
+        and "gazebo_model_bt.launch.py"
+        in str(action.launch_description_source.location)
+    )
+    launch_arguments = dict(gazebo_include.launch_arguments)
+
+    for controller, planner, starts_mpc, expected_yaml in (
+        ("cbs_mpc", "cbs", True, "jtc_pid"),
+        ("pid", "ilqr", False, "jtc_pid"),
+        ("mpc", "ilqr", False, "jtc_mpc"),
+    ):
+        assert (
+            _includes_launch_file(
+                ld, "crane_mpc.launch.py", controller=controller, planner=planner
+            )
+            is starts_mpc
+        )
+
+        context = LaunchContext()
+        for entity in _walk_entities(ld.entities):
+            if isinstance(entity, DeclareLaunchArgument):
+                entity.execute(context)
+        context.launch_configurations["controller"] = controller
+        # The JtcMpcPlugin config is 'mpc' alone: crane_mpc must never run
+        # beside a second MPC inside the JTC.
+        assert expected_yaml in perform_substitutions(
+            context,
+            normalize_to_list_of_substitutions(
+                launch_arguments["controller_a2b_config"]
+            ),
+        )
+
+
 def _node_parameter_names(node):
     names = []
     for param in getattr(node, "_Node__parameters"):

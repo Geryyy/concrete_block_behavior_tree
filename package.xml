@@ -24,6 +24,7 @@
   <exec_depend>concrete_block_assembly_planning</exec_depend>
   <exec_depend>concrete_block_motion_planning</exec_depend>
   <exec_depend>crane_planning</exec_depend>
+  <exec_depend>crane_mpc</exec_depend>
   <depend>ros_gz_interfaces</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>

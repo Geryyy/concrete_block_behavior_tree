@@ -1,5 +1,9 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition
 from launch.substitutions import (
     LaunchConfiguration,
@@ -9,6 +13,26 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+
+
+def reject_cbs_mpc_without_cbs_planner(context, *_args, **_kwargs):
+    """
+    Refuse the one controller/planner pair that would run without a reference.
+
+    `crane_mpc` tracks `/crane/reference`, which only `crane_planning`'s
+    `crane_planner` publishes. With a legacy A2B server upstream the node would
+    start, configure on nothing and stay silent -- a failure that looks like a
+    tuning problem. Raised here, before any other action runs, so nothing starts.
+    """
+    controller = context.launch_configurations["controller"]
+    planner = context.launch_configurations["planner"]
+    if controller == "cbs_mpc" and planner != "cbs":
+        raise RuntimeError(
+            f"controller:=cbs_mpc requires planner:=cbs, got planner:={planner}. "
+            "The standalone crane_mpc tracks /crane/reference, which only the "
+            "cbs planner publishes; the legacy A2B servers publish none."
+        )
+    return None
 
 
 def generate_launch_description():
@@ -28,13 +52,15 @@ def generate_launch_description():
     # this backend neither legacy server nor the ESDF mapping starts, and the
     # crane_planner included below is the sole owner of /a2b_movement.
     mp_backend = PythonExpression(["'cbs' if '", planner, "' == 'cbs' else 'timber'"])
-    # PZS100 PID and MPC controller configs both live in CBS.
+    # PZS100 PID and MPC controller configs both live in CBS. Only 'mpc' selects
+    # the in-JTC JtcMpcPlugin: 'cbs_mpc' runs the PID JTC and puts the standalone
+    # crane_mpc beside it, and two MPCs in one launch is the failure 107 names.
     ctrl_package = "concrete_block_behavior_tree"
     ctrl_config = PythonExpression(
         [
-            "'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml' if '",
+            "'ros2_control/crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml' if '",
             controller,
-            "' == 'pid' else 'ros2_control/crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml'",
+            "' == 'mpc' else 'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml'",
         ]
     )
 
@@ -53,7 +79,14 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="pid",
-                description="Controller: 'pid' or 'mpc'",
+                choices=["pid", "mpc", "cbs_mpc"],
+                description=(
+                    "Low-level A2B controller: 'pid' is the JTC with the PID "
+                    "plugin; 'mpc' is the same JTC with the in-process "
+                    "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
+                    "standalone crane_mpc node beside it, in shadow mode, and "
+                    "requires planner:=cbs"
+                ),
             ),
             DeclareLaunchArgument(
                 "seed_file",
@@ -89,6 +122,9 @@ def generate_launch_description():
                 default_value="True",
                 description="Start the q9 gripper grasp detector for PZS100 Gazebo runs.",
             ),
+            # First action after the declarations, so an unusable combination
+            # stops the launch before anything is spawned.
+            OpaqueFunction(function=reject_cbs_mpc_without_cbs_planner),
             Node(
                 package="concrete_block_behavior_tree",
                 executable="gripper_grasp_detector",
@@ -192,6 +228,26 @@ def generate_launch_description():
                 "use_sim_time": "true",
             }.items(),
             condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
+        )
+    )
+
+    # The standalone MPC, on 'cbs_mpc' only. It stays in shadow mode (124): the
+    # chain is wired and judged on /crane/mpc/solver_health, it does not drive --
+    # nothing remaps the JTC's ~/joint_trajectory onto its horizon.
+    # joint_states_topic is left at its default: this profile runs the
+    # broadcaster's /joint_states uncorrected, so there is no corrected topic to
+    # point the node at.
+    ld.add_action(
+        IncludeLaunchDescription(
+            PathSubstitution(FindPackageShare("crane_mpc"))
+            / "launch"
+            / "crane_mpc.launch.py",
+            launch_arguments={
+                "use_sim_time": "true",
+            }.items(),
+            condition=IfCondition(
+                PythonExpression(["'", controller, "' == 'cbs_mpc'"])
+            ),
         )
     )
 

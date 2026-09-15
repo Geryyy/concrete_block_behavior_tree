@@ -1,4 +1,5 @@
-"""PZS100 Gazebo simulation with CBS wall assembly behavior tree.
+"""
+PZS100 Gazebo simulation with CBS wall assembly behavior tree.
 
 Launches the full PZS100 crane simulation (without the epsilon_crane BT)
 and adds the CBS wall assembly pipeline: wall_plan_server, world_model,
@@ -70,7 +71,14 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="pid",
-                description="Low-level A2B controller: 'pid' or 'mpc'",
+                choices=["pid", "mpc", "cbs_mpc"],
+                description=(
+                    "Low-level A2B controller: 'pid' is the JTC with the PID "
+                    "plugin; 'mpc' is the same JTC with the in-process "
+                    "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
+                    "standalone crane_mpc node beside it, in shadow mode, and "
+                    "requires planner:=cbs"
+                ),
             ),
             DeclareLaunchArgument(
                 "planner",
