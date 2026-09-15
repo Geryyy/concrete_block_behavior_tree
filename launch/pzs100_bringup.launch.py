@@ -226,6 +226,11 @@ def generate_launch_description():
             / "crane_planner.launch.py",
             launch_arguments={
                 "use_sim_time": "true",
+                # JtcMpcPlugin never reads desired.effort -- it feeds forward from
+                # its own actuator model -- and the mpc JTC config does not set
+                # `effort_field_is_feedforward`, so a plan carrying C3's inversion
+                # is rejected at goal acceptance. Drop it on that profile only.
+                "c3_feedforward": PythonExpression(["'", controller, "' != 'mpc'"]),
             }.items(),
             condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
         )
