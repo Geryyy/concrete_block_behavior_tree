@@ -42,7 +42,13 @@ controller_manager:
     allow_partial_joints_goal: false
     open_loop_control: false
     allow_integration_in_goal_trajectories: true
-    allow_nonzero_velocity_at_trajectory_end: false
+    # A horizon truncates mid-motion: crane_mpc re-goals the controller every
+    # 40 ms with the next N knots, whose last point is still moving. With this
+    # false the JTC rejects such a trajectory whole, so the MPC could never
+    # drive. A planned A2B trajectory ends at rest either way, so this only
+    # widens what is accepted -- it does not change any trajectory that is
+    # already accepted today.
+    allow_nonzero_velocity_at_trajectory_end: true
 
 trajectory_controller_grasping:
   ros__parameters:

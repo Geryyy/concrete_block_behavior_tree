@@ -18,7 +18,19 @@
      deactivate that branch is empty, so the Fallback collapses and the approval
      decorator is the whole subtree.
 
-     epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
+     epsilon_crane_behavior_tree is a shared reference package and is not edited.
+
+     ONE COMMANDER PER MOVE (issue 107). `trajectory_controller_a2b` takes a trajectory two
+     ways: this action goal, and `~/joint_trajectory`, whose documented behaviour is "always
+     replace old msg with new one". A live goal does not close the topic path, because JTC
+     sets `subscriber_is_active_` in on_activate/on_deactivate only, so an MPC re-goaling by
+     topic every 40 ms would run against this goal's `goal_time` and per-joint tolerances.
+     Today the commander is this action, and `crane_mpc` is not wired to the controller:
+     nothing remaps `~/joint_trajectory` onto /crane/mpc/horizon and the node's default
+     `mode: shadow` publishes to `~/shadow_horizon`. Whoever lands that remap must take the
+     goal out of this subtree in the same change, and bring a completion oracle with it: a
+     topic driven trajectory carries no goal tolerance check at all, and that check was
+     `crane_supervisor`'s job, which is archived. -->
 <root BTCPP_format="4">
   <BehaviorTree ID="SubTreeCbsA2BMovement">
     <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
