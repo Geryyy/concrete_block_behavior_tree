@@ -194,8 +194,14 @@ def test_cbs_mpc_controller_refuses_a_planner_that_publishes_no_reference():
     assert "cbs_mpc" in str(excinfo.value)
     assert "planner:=cbs" in str(excinfo.value)
 
+    context.launch_configurations.update(controller="cbs_mpc_active", planner="vpsto")
+    with pytest.raises(RuntimeError) as excinfo:
+        module.reject_cbs_mpc_without_cbs_planner(context)
+    assert "cbs_mpc_active" in str(excinfo.value)
+
     for controller, planner in (
         ("cbs_mpc", "cbs"),
+        ("cbs_mpc_active", "cbs"),
         ("pid", "ilqr"),
         ("mpc", "ilqr"),
         ("pid", "cbs"),
@@ -205,7 +211,12 @@ def test_cbs_mpc_controller_refuses_a_planner_that_publishes_no_reference():
 
 
 def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
-    """`cbs_mpc` is the third value; `pid` and `mpc` keep their node/config sets."""
+    """`cbs_mpc*` are the third and fourth values; `pid`/`mpc` keep their sets.
+
+    `cbs_mpc_active` composes exactly as `cbs_mpc` -- same PID JTC, same
+    standalone node -- and differs in the node's `mode` alone, which is the one
+    thing that decides whether the horizon reaches the JTC (issue 146).
+    """
     from launch.utilities import (
         normalize_to_list_of_substitutions,
         perform_substitutions,
@@ -222,11 +233,20 @@ def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
         in str(action.launch_description_source.location)
     )
     launch_arguments = dict(gazebo_include.launch_arguments)
+    mpc_arguments = dict(
+        next(
+            action
+            for action in _walk_entities(ld.entities)
+            if isinstance(action, IncludeLaunchDescription)
+            and "crane_mpc.launch.py" in str(action.launch_description_source.location)
+        ).launch_arguments
+    )
 
-    for controller, planner, starts_mpc, expected_yaml in (
-        ("cbs_mpc", "cbs", True, "jtc_pid"),
-        ("pid", "ilqr", False, "jtc_pid"),
-        ("mpc", "ilqr", False, "jtc_mpc"),
+    for controller, planner, starts_mpc, expected_yaml, expected_mode in (
+        ("cbs_mpc", "cbs", True, "jtc_pid", "shadow"),
+        ("cbs_mpc_active", "cbs", True, "jtc_pid", "active"),
+        ("pid", "ilqr", False, "jtc_pid", None),
+        ("mpc", "ilqr", False, "jtc_mpc", None),
     ):
         assert (
             _includes_launch_file(
@@ -240,14 +260,17 @@ def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
             if isinstance(entity, DeclareLaunchArgument):
                 entity.execute(context)
         context.launch_configurations["controller"] = controller
+
+        def resolve(value):
+            return perform_substitutions(
+                context, normalize_to_list_of_substitutions(value)
+            )
+
         # The JtcMpcPlugin config is 'mpc' alone: crane_mpc must never run
         # beside a second MPC inside the JTC.
-        assert expected_yaml in perform_substitutions(
-            context,
-            normalize_to_list_of_substitutions(
-                launch_arguments["controller_a2b_config"]
-            ),
-        )
+        assert expected_yaml in resolve(launch_arguments["controller_a2b_config"])
+        if starts_mpc:
+            assert resolve(mpc_arguments["mode"]) == expected_mode
 
 
 def _node_parameter_names(node):

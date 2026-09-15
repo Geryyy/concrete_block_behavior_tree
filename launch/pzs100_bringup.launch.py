@@ -14,6 +14,10 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+# The two values that start the standalone crane_mpc. They compose identically;
+# they differ only in the node's `mode`.
+CBS_MPC_CONTROLLERS = ("cbs_mpc", "cbs_mpc_active")
+
 
 def reject_cbs_mpc_without_cbs_planner(context, *_args, **_kwargs):
     """
@@ -26,11 +30,12 @@ def reject_cbs_mpc_without_cbs_planner(context, *_args, **_kwargs):
     """
     controller = context.launch_configurations["controller"]
     planner = context.launch_configurations["planner"]
-    if controller == "cbs_mpc" and planner != "cbs":
+    if controller in CBS_MPC_CONTROLLERS and planner != "cbs":
         raise RuntimeError(
-            f"controller:=cbs_mpc requires planner:=cbs, got planner:={planner}. "
-            "The standalone crane_mpc tracks /crane/reference, which only the "
-            "cbs planner publishes; the legacy A2B servers publish none."
+            f"controller:={controller} requires planner:=cbs, got "
+            f"planner:={planner}. The standalone crane_mpc tracks "
+            "/crane/reference, which only the cbs planner publishes; the legacy "
+            "A2B servers publish none."
         )
     return None
 
@@ -53,8 +58,9 @@ def generate_launch_description():
     # crane_planner included below is the sole owner of /a2b_movement.
     mp_backend = PythonExpression(["'cbs' if '", planner, "' == 'cbs' else 'timber'"])
     # PZS100 PID and MPC controller configs both live in CBS. Only 'mpc' selects
-    # the in-JTC JtcMpcPlugin: 'cbs_mpc' runs the PID JTC and puts the standalone
-    # crane_mpc beside it, and two MPCs in one launch is the failure 107 names.
+    # the in-JTC JtcMpcPlugin: the two 'cbs_mpc*' values run the PID JTC and put
+    # the standalone crane_mpc beside it, and two MPCs in one launch is the
+    # failure 107 names.
     ctrl_package = "concrete_block_behavior_tree"
     ctrl_config = PythonExpression(
         [
@@ -79,13 +85,15 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="pid",
-                choices=["pid", "mpc", "cbs_mpc"],
+                choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
                 description=(
                     "Low-level A2B controller: 'pid' is the JTC with the PID "
                     "plugin; 'mpc' is the same JTC with the in-process "
                     "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
-                    "standalone crane_mpc node beside it, in shadow mode, and "
-                    "requires planner:=cbs"
+                    "standalone crane_mpc node beside it, in shadow mode; "
+                    "'cbs_mpc_active' composes identically but puts that node "
+                    "in active mode, so its horizon drives the JTC. Both "
+                    "cbs_mpc values require planner:=cbs"
                 ),
             ),
             DeclareLaunchArgument(
@@ -236,12 +244,19 @@ def generate_launch_description():
         )
     )
 
-    # The standalone MPC, on 'cbs_mpc' only. It stays in shadow mode (124): the
-    # chain is wired and judged on /crane/mpc/solver_health, it does not drive --
-    # nothing remaps the JTC's ~/joint_trajectory onto its horizon.
+    # The standalone MPC, on the two 'cbs_mpc*' values. On 'cbs_mpc' it stays in
+    # shadow (124): the chain is wired and judged on /crane/mpc/solver_health and
+    # the contract topic is silent. On 'cbs_mpc_active' the same composition puts
+    # it in active mode, and the a2b spawner's remap of the JTC's
+    # ~/joint_trajectory onto /crane/mpc/horizon is what makes the horizon drive.
+    # Until issue 148 takes the action goal out of the tree, that profile has
+    # *two* commanders live -- bench configuration, not a deployment.
     # joint_states_topic is left at its default: this profile runs the
     # broadcaster's /joint_states uncorrected, so there is no corrected topic to
     # point the node at.
+    starts_standalone_mpc = PythonExpression(
+        ["'", controller, "' in ", str(CBS_MPC_CONTROLLERS)]
+    )
     ld.add_action(
         IncludeLaunchDescription(
             PathSubstitution(FindPackageShare("crane_mpc"))
@@ -249,10 +264,11 @@ def generate_launch_description():
             / "crane_mpc.launch.py",
             launch_arguments={
                 "use_sim_time": "true",
+                "mode": PythonExpression(
+                    ["'active' if '", controller, "' == 'cbs_mpc_active' else 'shadow'"]
+                ),
             }.items(),
-            condition=IfCondition(
-                PythonExpression(["'", controller, "' == 'cbs_mpc'"])
-            ),
+            condition=IfCondition(starts_standalone_mpc),
         )
     )
 

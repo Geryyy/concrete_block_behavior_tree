@@ -71,13 +71,15 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="pid",
-                choices=["pid", "mpc", "cbs_mpc"],
+                choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
                 description=(
                     "Low-level A2B controller: 'pid' is the JTC with the PID "
                     "plugin; 'mpc' is the same JTC with the in-process "
                     "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
-                    "standalone crane_mpc node beside it, in shadow mode, and "
-                    "requires planner:=cbs"
+                    "standalone crane_mpc node beside it, in shadow mode; "
+                    "'cbs_mpc_active' composes identically but puts that node "
+                    "in active mode, so its horizon drives the JTC. Both "
+                    "cbs_mpc values require planner:=cbs"
                 ),
             ),
             DeclareLaunchArgument(
