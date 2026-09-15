@@ -1,4 +1,3 @@
-import xml.etree.ElementTree as ET
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -118,6 +117,45 @@ def test_basic_pick_and_place_launch_loads_single_block_tree():
                 assert "basic_pick_and_place.xml" in str(value)
                 return
     assert False, "bt_action_server does not set a behaviortree parameter"
+
+
+def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
+    """`mpc` gates the only trajectory_controller_a2b spawner -- it must stay False.
+
+    The controller switch is the selected yaml, not the flag: passing mpc:=True
+    left `controller:=mpc` with no A2B server behind /follow_joint_trajectory.
+    """
+    from launch.utilities import (
+        normalize_to_list_of_substitutions,
+        perform_substitutions,
+    )
+
+    module = _load_launch_module("pzs100_bringup.launch.py")
+    ld = module.generate_launch_description()
+
+    include = next(
+        action
+        for action in _walk_entities(ld.entities)
+        if isinstance(action, IncludeLaunchDescription)
+        and "gazebo_model_bt.launch.py"
+        in str(action.launch_description_source.location)
+    )
+    launch_arguments = dict(include.launch_arguments)
+
+    for controller, expected_yaml in (("pid", "jtc_pid"), ("mpc", "jtc_mpc")):
+        context = LaunchContext()
+        for entity in _walk_entities(ld.entities):
+            if isinstance(entity, DeclareLaunchArgument):
+                entity.execute(context)
+        context.launch_configurations["controller"] = controller
+
+        def resolve(name):
+            return perform_substitutions(
+                context, normalize_to_list_of_substitutions(launch_arguments[name])
+            )
+
+        assert resolve("mpc") == "False"
+        assert expected_yaml in resolve("controller_a2b_config")
 
 
 def _node_parameter_names(node):
