@@ -9,6 +9,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   behaviortree_cpp
   concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
+  crane_msgs
   epsilon_crane_control_interfaces
   geometry_msgs
   lsrl_behavior_tree
@@ -45,6 +46,8 @@ add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action
   src/plugins/action/write_block_pose_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_wait_for_move_complete_condition
+  src/plugins/condition/wait_for_move_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_wait_for_operator_command_action src/plugins/action/wait_for_operator_command.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
@@ -84,6 +87,10 @@ install(TARGETS
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_wait_for_move_complete test/test_wait_for_move_complete.cpp)
+  target_link_libraries(test_wait_for_move_complete BT_cb_wait_for_move_complete_condition)
+  ament_target_dependencies(test_wait_for_move_complete ${THIS_PACKAGE_INCLUDE_DEPENDS})
   ament_add_pytest_test(
     test_basic_pick_and_place_launch
     test/test_basic_pick_and_place_launch.py

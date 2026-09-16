@@ -16,6 +16,13 @@ lifecycle_manager:
     # residual, red above.  This is deliberately looser than the 4 cm
     # correction tolerance used by the tree.
     placement_indicator_threshold_m: 0.10
+    # Who commands an A2B move. False: the tree holds the
+    # FollowJointTrajectory goal, as it always has. True: crane_mpc is in
+    # active mode and re-goals the JTC by topic, so the tree must hold no
+    # goal and WaitForMoveComplete is the arrival test instead. Set from
+    # `controller` by gazebo_wall_assembly_pzs100.launch.py; false everywhere
+    # else, including the real-crane launch.
+    a2b_mpc_drives: false
     # Simulation test hook.  Gazebo launch arguments override these values;
     # disabled by default and never enabled by the real-crane launch.
     simulated_placement_disturbance.enabled: false
@@ -54,6 +61,7 @@ lifecycle_manager:
       - BT_cb_capture_block_grasp_offset_action
       - BT_cb_write_block_pose_from_gripper_action
       - BT_cb_plan_complete_condition
+      - BT_cb_wait_for_move_complete_condition
       - BT_cb_wait_for_operator_command_action
       - BT_cb_run_pose_estimation_action
       - BT_cb_evaluate_placement_residual_action

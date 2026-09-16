@@ -25,20 +25,38 @@
      replace old msg with new one". A live goal does not close the topic path, because JTC
      sets `subscriber_is_active_` in on_activate/on_deactivate only, so an MPC re-goaling by
      topic every 40 ms would run against this goal's `goal_time` and per-joint tolerances.
-     Today the commander is this action, and `crane_mpc` is not wired to the controller:
-     nothing remaps `~/joint_trajectory` onto /crane/mpc/horizon and the node's default
-     `mode: shadow` publishes to `~/shadow_horizon`. Whoever lands that remap must take the
-     goal out of this subtree in the same change, and bring a completion oracle with it: a
-     topic driven trajectory carries no goal tolerance check at all, and that check was
-     `crane_supervisor`'s job, which is archived. -->
+     146 landed that remap, so issue 148 closes this: exactly one of the two children below
+     runs per move, and which one is bound at launch, not in this file. WaitForMoveComplete
+     reads the `a2b_mpc_drives` ROS parameter (true only on controller:=cbs_mpc_active),
+     writes it to `mpc_drives`, and returns SKIPPED when it is false, so on `pid`, `mpc` and
+     `cbs_mpc` the Sequence falls through to the unchanged action. On `cbs_mpc_active` the
+     action is skipped and nothing else is sent: the planner already publishes
+     /crane/reference on every plan, so the tree hands the move over by planning it.
+
+     WaitForMoveComplete is the completion oracle the action goal used to be. It is not a
+     like-for-like replacement: it also requires /crane/sway_settled to read SETTLED_YES,
+     which no goal ever checked. See the node's header. -->
 <root BTCPP_format="4">
   <BehaviorTree ID="SubTreeCbsA2BMovement">
     <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
       wait_rising_edge="False">
-      <Action ID="FollowJointTrajectory"
-        server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-        server_timeout="500"
-        trajectory="{trajectory}"/>
+      <Sequence>
+        <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal, and
+             0.05 is that number. Not every joint {trajectory} names: the /a2b_movement answer
+             is the canonical eight and carries theta6_tip_joint / theta7_tilt_joint, which
+             the plan does not aim and /crane/reference does not track; q9_left_rail_joint is
+             left out because its own goal tolerance is 0.00, i.e. the controller does not
+             check it either. -->
+        <WaitForMoveComplete trajectory="{trajectory}"
+          joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+          goal_tolerance="0.05"
+          timeout_ms="120000"
+          mpc_drives="{mpc_drives}"/>
+        <Action ID="FollowJointTrajectory" _skipIf="mpc_drives"
+          server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+          server_timeout="500"
+          trajectory="{trajectory}"/>
+      </Sequence>
     </Decorator>
   </BehaviorTree>
 </root>

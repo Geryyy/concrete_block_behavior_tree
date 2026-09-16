@@ -56,6 +56,61 @@ def test_cbs_a2b_subtree_keeps_approval_and_trajectory_following():
     assert ("Action", "FollowJointTrajectory") in nodes, "trajectory following is gone"
 
 
+def test_cbs_a2b_subtree_lets_exactly_one_commander_run_a_move():
+    """Issue 148: the action goal and the MPC must never both be live.
+
+    The branch is bound at launch, not in the file: WaitForMoveComplete reads
+    `a2b_mpc_drives` and skips itself when it is false, and the action carries
+    the opposite guard. Losing either guard puts two commanders on the JTC.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+
+    wait = next(root.iter("WaitForMoveComplete"))
+    assert wait.get("mpc_drives") == "{mpc_drives}"
+    assert wait.get("trajectory") == "{trajectory}"
+
+    # The /a2b_movement answer is the canonical eight. Gating on the passive pair
+    # would hold the move against a sway value the plan never aimed, read out
+    # through an uncalibrated offset; gating on q9 would hold it against a rail
+    # the controller's own goal tolerance (0.00) does not check.
+    checked = wait.get("joints").split(",")
+    assert "theta6_tip_joint" not in checked
+    assert "theta7_tilt_joint" not in checked
+    assert "q9_left_rail_joint" not in checked
+    with (
+        PACKAGE_DIR
+        / "config"
+        / "ros2_control"
+        / "crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml"
+    ).open() as handle:
+        constraints = yaml.safe_load(handle)["trajectory_controller_a2b"][
+            "ros__parameters"
+        ]["constraints"]
+    tolerance = float(wait.get("goal_tolerance"))
+    for joint in checked:
+        assert constraints[joint]["goal"] == tolerance, (
+            f"{joint} is checked here at {tolerance} but at "
+            f"{constraints[joint]['goal']} by the controller"
+        )
+
+    action = next(
+        element
+        for element in root.iter("Action")
+        if element.get("ID") == "FollowJointTrajectory"
+    )
+    assert action.get("_skipIf") == "mpc_drives"
+
+    # The plugin has to be loadable, or the tree fails to construct and the
+    # panel reports the misleading "File exists but can't be loaded".
+    with (PACKAGE_DIR / "config" / "bt_server_override.yaml").open() as handle:
+        override = yaml.safe_load(handle)
+    server_params = override["/**"]["ros__parameters"]
+    assert "BT_cb_wait_for_move_complete_condition" in server_params["plugin_lib_names"]
+    # Default off: every profile but cbs_mpc_active, the real-crane launch
+    # included, keeps the action goal.
+    assert server_params["a2b_mpc_drives"] is False
+
+
 def test_cbs_move_empty_uses_the_cbs_subtree():
     root = ElementTree.parse(CBS_MOVE_EMPTY).getroot()
 

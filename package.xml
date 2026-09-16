@@ -15,6 +15,7 @@
 
   <depend>lsrl_behavior_tree</depend>
   <depend>concrete_block_world_model_interfaces</depend>
+  <depend>crane_msgs</depend>
   <depend>epsilon_crane_control_interfaces</depend>
   <exec_depend>concrete_block_world_model</exec_depend>
   <exec_depend>concrete_block_detector</exec_depend>
@@ -55,6 +56,7 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>python3-yaml</test_depend>
 
   <export>

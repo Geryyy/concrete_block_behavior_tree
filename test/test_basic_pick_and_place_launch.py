@@ -333,6 +333,55 @@ def _started_executables(ld, **configurations):
     }
 
 
+def test_only_cbs_mpc_active_takes_the_action_goal_out_of_the_tree():
+    """Issue 148: `a2b_mpc_drives` is the one bit that moves the commander.
+
+    True and the CBS A2B subtree skips its FollowJointTrajectory goal, leaving
+    crane_mpc alone on the JTC; false and the tree commands as it always has.
+    Anything but `cbs_mpc_active` must read false, or two commanders go live.
+    """
+    from launch.utilities import (
+        normalize_to_list_of_substitutions,
+        perform_substitutions,
+    )
+
+    module = _load_launch_module("gazebo_wall_assembly_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    bt_node = next(
+        node
+        for node in _walk_entities(ld.entities)
+        if isinstance(node, Node)
+        and node.node_package == "lsrl_behavior_tree"
+        and node.node_executable == "bt_action_server"
+    )
+    parameter = next(
+        value
+        for param in getattr(bt_node, "_Node__parameters")
+        if isinstance(param, dict)
+        for key, value in param.items()
+        if "".join(getattr(part, "text", str(part)) for part in key) == "a2b_mpc_drives"
+    )
+
+    for controller, expected in (
+        ("cbs_mpc_active", "True"),
+        ("cbs_mpc", "False"),
+        ("mpc", "False"),
+        ("pid", "False"),
+    ):
+        context = LaunchContext()
+        for entity in _walk_entities(ld.entities):
+            if isinstance(entity, DeclareLaunchArgument):
+                entity.execute(context)
+        context.launch_configurations["controller"] = controller
+        assert (
+            perform_substitutions(
+                context, normalize_to_list_of_substitutions(parameter.value)
+            )
+            == expected
+        )
+
+
 def test_row3_truck_launch_uses_larger_grip_lift_height():
     module = _load_launch_module("gazebo_row3_middle_last_pzs100.launch.py")
     ld = module.generate_launch_description()

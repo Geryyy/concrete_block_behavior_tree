@@ -297,6 +297,21 @@ def generate_launch_description():
                             LaunchConfiguration("placement_disturbance_yaw_rad"),
                             value_type=float,
                         ),
+                        # One commander per move (issue 148). `cbs_mpc_active` is
+                        # the only profile where crane_mpc re-goals the JTC by
+                        # topic, so it is the only one where the CBS A2B subtree
+                        # drops its FollowJointTrajectory goal and waits on
+                        # WaitForMoveComplete instead.
+                        "a2b_mpc_drives": ParameterValue(
+                            PythonExpression(
+                                [
+                                    "'",
+                                    LaunchConfiguration("controller"),
+                                    "' == 'cbs_mpc_active'",
+                                ]
+                            ),
+                            value_type=bool,
+                        ),
                     },
                     {
                         "behaviortree": PathSubstitution(
