@@ -92,6 +92,20 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "mpc_waits_for_start",
+                default_value="False",
+                choices=["True", "False"],
+                description=(
+                    "Forwarded to pzs100_bringup: hold the standalone crane_mpc "
+                    "until the a2b trajectory controller is given a goal, which "
+                    "is what the RViz panel's 'Start trajectory' button sends. "
+                    "For a human driving from the panel. Leave it False for the "
+                    "tree, which sends no goal while the MPC drives and gates "
+                    "the move on GetUserApproval activating the controller "
+                    "instead (cbs_subtree_a2b_movement.xml)."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "place_approach_angle_deg",
                 default_value="4.0",
                 description="Pre-place lateral approach angle in degrees.",
@@ -175,6 +189,7 @@ def generate_launch_description():
                     "start_grip_traj_server": "False",
                     "controller": LaunchConfiguration("controller"),
                     "planner": LaunchConfiguration("planner"),
+                    "mpc_waits_for_start": LaunchConfiguration("mpc_waits_for_start"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
                     "seed_file": seed_file,
                     "gui": LaunchConfiguration("gui"),

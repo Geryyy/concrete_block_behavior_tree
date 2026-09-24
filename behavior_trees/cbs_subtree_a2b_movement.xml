@@ -1,62 +1,83 @@
 <?xml version="1.0"?>
-<!-- CBS copy of epsilon_crane_behavior_tree/behavior_trees/subtree_a2b_movement.xml,
-     with every SwitchController node removed.
+<!-- CBS copy of epsilon_crane_behavior_tree/behavior_trees/subtree_a2b_movement.xml.
 
-     On the new stack `trajectory_controller_a2b` has three would-be owners:
-     `crane_bringup/sim.launch.py` spawns it ACTIVE, this subtree used to activate and
-     deactivate it around every motion, and `crane_supervisor` treats itself as the only
-     caller of /controller_manager/switch_controller: it lists the controller in its
-     follow-mode set and polls list_controllers STRICT. A strict switch that finds the
-     world already changed under it faults the supervisor, which in a planner-tuning
-     harness reads as a planner failure. The controller is chained too: it commands
-     crane_velocity_controller's reference interfaces, not hardware, so its activation
-     state is not private between this tree and the machine.
+     Structurally the same tree: approval wraps activate, execute, deactivate, and the
+     Fallback's ForceFailure branch deactivates again on any failure inside it. The only CBS
+     difference is which child executes the move (see ONE COMMANDER below).
 
-     So the tree only follows the trajectory; the supervisor keeps sole ownership of
-     activation. The epsilon original wrapped the sequence in a Fallback whose failure
-     branch was a ForceFailure around one more deactivation, and with nothing left to
-     deactivate that branch is empty, so the Fallback collapses and the approval
-     decorator is the whole subtree.
+     CONTROLLER OWNERSHIP. This subtree used to drop every SwitchController node, on the
+     grounds that `crane_supervisor` was the sole caller of
+     /controller_manager/switch_controller and a STRICT switch that found the world already
+     changed under it would fault. That owner is obsolete and no launch in this package starts
+     it, so nothing activated `trajectory_controller_a2b` at all: the spawner brings it up
+     inactive (blockpose/launch_context/gazebo_model_bt.launch.py), the JTC only reads
+     ~/joint_trajectory between on_activate and on_deactivate, and on `cbs_mpc_active` the
+     MPC's horizon is remapped onto that topic, so the horizon reached an inactive controller
+     and the machine never moved. The tree owns the switch again, exactly as the timber one
+     does.
 
-     epsilon_crane_behavior_tree is a shared reference package and is not edited.
+     That ownership is also the deadman. GetUserApproval gates the activation, so before the
+     operator confirms there is no active controller for the horizon to reach, and on failure
+     the ForceFailure branch deactivates. Approval gating the *activation* is what makes it
+     gate the motion on `cbs_mpc_active`, where the planner's own publication of
+     /crane/reference (not a goal this tree sends) is what starts the MPC driving.
 
      ONE COMMANDER PER MOVE (issue 107). `trajectory_controller_a2b` takes a trajectory two
-     ways: this action goal, and `~/joint_trajectory`, whose documented behaviour is "always
-     replace old msg with new one". A live goal does not close the topic path, because JTC
-     sets `subscriber_is_active_` in on_activate/on_deactivate only, so an MPC re-goaling by
-     topic every 40 ms would run against this goal's `goal_time` and per-joint tolerances.
-     146 landed that remap, so issue 148 closes this: exactly one of the two children below
-     runs per move, and which one is bound at launch, not in this file. WaitForMoveComplete
-     reads the `a2b_mpc_drives` ROS parameter (true only on controller:=cbs_mpc_active),
-     writes it to `mpc_drives`, and returns SKIPPED when it is false, so on `pid`, `mpc` and
-     `cbs_mpc` the Sequence falls through to the unchanged action. On `cbs_mpc_active` the
-     action is skipped and nothing else is sent: the planner already publishes
-     /crane/reference on every plan, so the tree hands the move over by planning it.
+     ways: the action goal below, and `~/joint_trajectory`, whose documented behaviour is
+     "always replace old msg with new one". A live goal does not close the topic path, because
+     JTC sets `subscriber_is_active_` in on_activate/on_deactivate only, so an MPC re-goaling
+     by topic every 40 ms would run against this goal's `goal_time` and per-joint tolerances.
+     146 landed that remap, so issue 148 closes this: exactly one of the two children runs per
+     move, and which one is bound at launch, not in this file. WaitForMoveComplete reads the
+     `a2b_mpc_drives` ROS parameter (true only on controller:=cbs_mpc_active), writes it to
+     `mpc_drives`, and returns SKIPPED when it is false, so on `pid`, `mpc` and `cbs_mpc` the
+     Sequence falls through to the unchanged action.
 
      WaitForMoveComplete is the completion oracle the action goal used to be. It is not a
      like-for-like replacement: it also requires /crane/sway_settled to read SETTLED_YES,
-     which no goal ever checked. See the node's header. -->
+     which no goal ever checked. See the node's header.
+
+     epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
 <root BTCPP_format="4">
   <BehaviorTree ID="SubTreeCbsA2BMovement">
-    <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
-      wait_rising_edge="False">
-      <Sequence>
-        <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal, and
-             0.05 is that number. Not every joint {trajectory} names: the /a2b_movement answer
-             is the canonical eight and carries theta6_tip_joint / theta7_tilt_joint, which
-             the plan does not aim and /crane/reference does not track; q9_left_rail_joint is
-             left out because its own goal tolerance is 0.00, i.e. the controller does not
-             check it either. -->
-        <WaitForMoveComplete trajectory="{trajectory}"
-          joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
-          goal_tolerance="0.05"
-          timeout_ms="120000"
-          mpc_drives="{mpc_drives}"/>
-        <Action ID="FollowJointTrajectory" _skipIf="mpc_drives"
-          server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-          server_timeout="500"
-          trajectory="{trajectory}"/>
-      </Sequence>
-    </Decorator>
+    <Fallback name="Fallback to deactivate controllers">
+      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+        wait_rising_edge="False">
+        <Sequence>
+          <SwitchController name="Activate controller"
+            activate_controllers="trajectory_controller_a2b"
+            deactivate_controllers=""
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+          <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal, and
+               0.05 is that number. Not every joint {trajectory} names: the /a2b_movement answer
+               is the canonical eight and carries theta6_tip_joint / theta7_tilt_joint, which
+               the plan does not aim and /crane/reference does not track; q9_left_rail_joint is
+               left out because its own goal tolerance is 0.00, i.e. the controller does not
+               check it either. -->
+          <WaitForMoveComplete trajectory="{trajectory}"
+            joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+            goal_tolerance="0.05"
+            timeout_ms="120000"
+            mpc_drives="{mpc_drives}"/>
+          <Action ID="FollowJointTrajectory" _skipIf="mpc_drives"
+            server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+            server_timeout="500"
+            trajectory="{trajectory}"/>
+          <SwitchController name="Deactivate controller"
+            activate_controllers=""
+            deactivate_controllers="trajectory_controller_a2b"
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+        </Sequence>
+      </Decorator>
+      <Decorator ID="ForceFailure">
+        <SwitchController name="Deactivate controller"
+          activate_controllers=""
+          deactivate_controllers="trajectory_controller_a2b"
+          server_timeout="1000"
+          service_name="/controller_manager/switch_controller"/>
+      </Decorator>
+    </Fallback>
   </BehaviorTree>
 </root>

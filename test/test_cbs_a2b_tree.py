@@ -1,10 +1,11 @@
 """Static checks on the CBS A2B trees.
 
 Whether the tree actually runs is a graph-level, human-run gate (PRD §14). What can
-be pinned offline is the contract that made these files necessary: on the new stack
-`crane_supervisor` is the sole caller of /controller_manager/switch_controller, so no
-CBS A2B tree may carry a SwitchController node -- and the timber-backed trees, which
-still own their controller, must stay exactly as they are.
+be pinned offline is the contract that made these files necessary: the CBS subtree
+executes a move the way the timber one does -- approval gating an activate / execute
+/ deactivate sequence -- differing only in which child runs the move. The
+timber-backed trees, which own their controller the same way, must stay exactly as
+they are.
 """
 
 from pathlib import Path
@@ -38,13 +39,41 @@ def _catalog_entries():
     return catalog["behavior_trees"]
 
 
-def test_cbs_a2b_subtree_leaves_switching_to_the_supervisor():
-    assert not _switches(CBS_SUBTREE), (
-        "The CBS A2B subtree must not switch trajectory_controller_a2b; "
-        "crane_supervisor owns it"
+def test_cbs_a2b_subtree_gates_activation_behind_approval():
+    """
+    Approval must gate the *activation*, which is what gates the motion.
+
+    On `cbs_mpc_active` this tree sends no goal: the planner publishing
+    /crane/reference is what starts the MPC driving, and the horizon reaches the
+    JTC over ~/joint_trajectory, which the JTC reads only between on_activate and
+    on_deactivate. So an activation outside the approval decorator -- or no
+    activation at all, which is what left the horizon going to an inactive
+    controller -- is a move nobody confirmed.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    approval = next(
+        element
+        for element in root.iter("Decorator")
+        if element.get("ID") == "GetUserApproval"
     )
+    activations = [
+        element
+        for element in approval.iter("SwitchController")
+        if element.get("activate_controllers") == "trajectory_controller_a2b"
+    ]
+    assert activations, "nothing activates the controller inside the approval gate"
+
+    # Every failure path still has to put it back, or an abandoned move leaves an
+    # active controller behind for the next horizon to drive.
+    deactivations = [
+        element
+        for element in root.iter("SwitchController")
+        if element.get("deactivate_controllers") == "trajectory_controller_a2b"
+    ]
+    assert len(deactivations) >= 2, "the ForceFailure branch must deactivate too"
+
     assert not _switches(CBS_MOVE_EMPTY), (
-        "The CBS move-empty tree must not switch any controller"
+        "The CBS move-empty tree delegates switching to the subtree"
     )
 
 
