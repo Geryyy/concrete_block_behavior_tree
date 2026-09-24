@@ -109,8 +109,11 @@ private:
   rclcpp::Subscription<JointState>::SharedPtr joint_state_sub_;
   rclcpp::Subscription<SwaySettled>::SharedPtr settled_sub_;
 
-  // crane_mpc decimates this stream by 2 on a 25 Hz cycle and publishes every
-  // change, so a live producer is never quiet for a tenth of this.
+  // crane_mpc decimates this stream by 2 and publishes every change, so a live
+  // producer is quiet for two of its cycles at most: 120 ms on the 0.06 s grid
+  // it ships today, and a few hundred on a box loaded enough to overrun it.
+  // Eight times that is still inside this bound, which is why the bound is not
+  // written as a multiple of a cycle time that moved once already.
   static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
   // Long against a turning point, short against any pendulum this crane slings:
   // the load hangs metres below the tip, so a half-period is seconds, while the

@@ -96,6 +96,23 @@ def generate_launch_description():
                     "cbs_mpc values require planner:=cbs"
                 ),
             ),
+            # Off by default, because the behaviour tree is the other caller and
+            # it sends no goal at all on this profile: issue 148 skips the
+            # FollowJointTrajectory action whenever the MPC drives, so a gate on
+            # by default would leave a tree that plans correctly and never moves.
+            DeclareLaunchArgument(
+                "mpc_waits_for_start",
+                default_value="False",
+                choices=["True", "False"],
+                description=(
+                    "Hold the standalone crane_mpc until the a2b trajectory "
+                    "controller is given a goal, which is what the RViz motion "
+                    "planning panel's 'Start trajectory' button sends. Without "
+                    "it the planner's own publication of /crane/reference "
+                    "starts the motion, so the machine leaves on 'Calculate'. "
+                    "For a human at the panel; leave it False for the tree."
+                ),
+            ),
             DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
@@ -266,6 +283,23 @@ def generate_launch_description():
                 "use_sim_time": "true",
                 "mode": PythonExpression(
                     ["'active' if '", controller, "' == 'cbs_mpc_active' else 'shadow'"]
+                ),
+                # This profile's a2b spawner remaps the JTC's ~/controller_state
+                # onto the shared /trajectory_controllers/controller_state, not
+                # onto the contract name the node defaults to, so shadow mode
+                # would have nothing to compare against. Shared with the
+                # grasping controller; the node drops what does not name its
+                # joints.
+                "controller_state_topic": "/trajectory_controllers/controller_state",
+                # The panel's Start button sends its goal here and nowhere else
+                # (mp_rviz_panel.hpp:210 hard-codes the name), so this is the
+                # only name the gate can watch.
+                "start_signal_action": PythonExpression(
+                    [
+                        "'/trajectory_controller_a2b/follow_joint_trajectory' if '",
+                        LaunchConfiguration("mpc_waits_for_start"),
+                        "' == 'True' else ''",
+                    ]
                 ),
             }.items(),
             condition=IfCondition(starts_standalone_mpc),

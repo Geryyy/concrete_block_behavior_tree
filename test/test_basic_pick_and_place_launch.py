@@ -271,6 +271,12 @@ def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
         assert expected_yaml in resolve(launch_arguments["controller_a2b_config"])
         if starts_mpc:
             assert resolve(mpc_arguments["mode"]) == expected_mode
+            # No start gate unless a human asks for one. The gate waits for a
+            # FollowJointTrajectory goal, and this is the profile where the tree
+            # sends none -- `a2b_mpc_drives` skips that action whenever the MPC
+            # drives -- so a default that armed it would leave every tree here
+            # planning correctly and never moving.
+            assert resolve(mpc_arguments["start_signal_action"]) == ""
 
 
 def _node_parameter_names(node):
