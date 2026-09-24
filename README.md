@@ -301,3 +301,13 @@ server stay unchanged.
   still match the world model.
 - Keep block IDs consistent across `world_model_seed_pick_place.yaml` and
   `config/wall_plans.yaml`.
+- Sim needs `CYCLONEDDS_URI`, contrary to the old "hardware only" rule.
+  `gazebo_wall_assembly_pzs100` starts ~25 processes and Cyclone's default
+  participant-index ceiling is 9, so the last ones die with *"Failed to find a
+  free participant index"* — which looks like a broken node, not a refused
+  participant. This package's env hook sets the variable `set-if-unset` to its
+  committed `config/cyclonedds_sim.xml` (default multicast, ceiling 120), so a
+  sourced workspace is enough, for the launch and for anything attached to the
+  running chain afterwards. An exported URI still wins: hardware benches point
+  it at the machine-local, gitignored root `cyclonedds.xml`, which disables
+  multicast and pins a loopback peer and must not be used for sim.

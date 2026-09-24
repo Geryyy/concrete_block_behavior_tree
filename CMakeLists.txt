@@ -99,6 +99,10 @@ if(BUILD_TESTING)
     test_cbs_a2b_tree
     test/test_cbs_a2b_tree.py
   )
+  ament_add_pytest_test(
+    test_dds_sim_profile
+    test/test_dds_sim_profile.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")

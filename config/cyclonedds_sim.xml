@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+  <!-- Sim DDS profile. Committed and installed; the package env hook points
+       CYCLONEDDS_URI here (set-if-unset) so no operator export is needed.
+
+       Only the participant-index ceiling is raised. The wall-assembly launch
+       starts ~25 processes, Cyclone's default ceiling is 9, and everything past
+       it dies with "Failed to find a free participant index for domain 0",
+       which reads as a broken node rather than a refused participant. 120 is
+       the protocol maximum and leaves room for probes attached to a running
+       chain.
+
+       Discovery stays at the Cyclone default: multicast on, no peer list, no
+       pinned interface. Do not copy the machine-local root cyclonedds.xml here.
+       It disables multicast and pins a loopback peer, so any process without
+       that exact file discovers nothing. -->
+  <Domain id="any">
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+    </Discovery>
+  </Domain>
+</CycloneDDS>
