@@ -76,6 +76,17 @@ def test_cbs_a2b_subtree_gates_activation_behind_approval():
         "The CBS move-empty tree delegates switching to the subtree"
     )
 
+    # BEST_EFFORT is the node's default and the reason owning the switch is safe:
+    # controller_manager warns "already active" and drops that controller from the
+    # request, where STRICT would fail the whole switch. Profiles that spawn the
+    # controller active run no tree today, but a STRICT switch here would fault the
+    # move the day one does.
+    for switch in root.iter("SwitchController"):
+        assert switch.get("strictness") is None, (
+            "leave strictness at BEST_EFFORT; a STRICT switch fails outright when "
+            "the world is already what it asks for"
+        )
+
 
 def test_cbs_a2b_subtree_keeps_approval_and_trajectory_following():
     nodes = _nodes(CBS_SUBTREE)

@@ -381,6 +381,10 @@ def generate_launch_description():
                 ],
             ),
             # ── Keyboard TUI ────────────────────────────────────────────
+            # Also the sim's operator-approval producer: it publishes
+            # /gpio_controller/remote_ctrl_states itself, so `z` (button12) held
+            # in its xterm is what GetUserApproval/CheckUserApproval read here.
+            # Dropping it, or gui:=False, leaves every approval node blocking.
             Node(
                 package="timber_crane_tui",
                 executable="remote_ctrl",

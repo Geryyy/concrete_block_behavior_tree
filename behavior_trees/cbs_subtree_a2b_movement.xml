@@ -22,6 +22,22 @@
      gate the motion on `cbs_mpc_active`, where the planner's own publication of
      /crane/reference (not a goal this tree sends) is what starts the MPC driving.
 
+     APPROVAL IS HELD, AND IT IS NOT HARDWARE-ONLY. GetUserApproval is
+     RemoteCtrlStates::button12 *held*: GetMsgCondition re-reads the last message every tick
+     and halts the child on a false or on 5 ticks without a message, so releasing mid-move
+     drops into the ForceFailure branch and deactivates. The producer is not the gpio
+     controller alone: timber_crane_tui's `remote_ctrl` publishes
+     /gpio_controller/remote_ctrl_states straight from the keyboard, and the CBS sim launches
+     already start it under gui:=True. So in sim the operator holds `z` in the TUI xterm for
+     the whole move (up to WaitForMoveComplete's 120 s); with gui:=False nothing publishes the
+     topic and every approval node in this tree blocks.
+
+     STRICTNESS. The switches leave `strictness` unset, so the node's BEST_EFFORT default
+     applies: controller_manager warns "already active" and drops that controller from the
+     request instead of failing, which is what the old comment feared from a STRICT switch.
+     Every launch that runs this tree spawns trajectory_controller_a2b inactive anyway;
+     the spawners that bring it up active are the mp and hardware ones, which run no tree.
+
      ONE COMMANDER PER MOVE (issue 107). `trajectory_controller_a2b` takes a trajectory two
      ways: the action goal below, and `~/joint_trajectory`, whose documented behaviour is
      "always replace old msg with new one". A live goal does not close the topic path, because

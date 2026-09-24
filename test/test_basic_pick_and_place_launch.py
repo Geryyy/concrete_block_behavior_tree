@@ -339,6 +339,22 @@ def _started_executables(ld, **configurations):
     }
 
 
+def test_wall_assembly_launch_starts_the_operator_approval_producer():
+    """The approval gate is reachable in sim, and `gui` is the whole switch.
+
+    Issue 158 assumed /gpio_controller/remote_ctrl_states was hardware-only, so a
+    tree-driven move could not be confirmed in sim. It is not: timber_crane_tui's
+    `remote_ctrl` publishes that topic from the keyboard and this profile already
+    starts it. Every GetUserApproval and CheckUserApproval in the CBS trees blocks
+    without it, so losing this node makes every tree here unrunnable.
+    """
+    module = _load_launch_module("gazebo_wall_assembly_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    assert "remote_ctrl" in _started_executables(ld, gui="True")
+    assert "remote_ctrl" not in _started_executables(ld, gui="False")
+
+
 def test_only_cbs_mpc_active_takes_the_action_goal_out_of_the_tree():
     """Issue 148: `a2b_mpc_drives` is the one bit that moves the commander.
 
