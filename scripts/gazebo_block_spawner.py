@@ -113,7 +113,7 @@ class GazeboBlockSpawner(Node):
         self.declare_parameter(
             "seed_config_file",
             os.path.join(
-                get_package_share_directory("concrete_block_perception"),
+                get_package_share_directory("concrete_block_world_model"),
                 "config",
                 "world_model_seed_pick_place.yaml",
             ),
