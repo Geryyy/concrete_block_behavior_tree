@@ -53,6 +53,7 @@ add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estim
 add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_pickup_residual_action src/plugins/action/evaluate_pickup_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_publish_gripper_state_action src/plugins/action/publish_gripper_state.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_set_mpc_payload_action src/plugins/action/set_mpc_payload.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 add_executable(gripper_grasp_detector
   src/nodes/gripper_grasp_detector.cpp
@@ -91,6 +92,13 @@ if(BUILD_TESTING)
   ament_add_gtest(test_wait_for_move_complete test/test_wait_for_move_complete.cpp)
   target_link_libraries(test_wait_for_move_complete BT_cb_wait_for_move_complete_condition)
   ament_target_dependencies(test_wait_for_move_complete ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  ament_add_gtest(test_set_mpc_payload test/test_set_mpc_payload.cpp)
+  target_link_libraries(test_set_mpc_payload BT_cb_set_mpc_payload_action)
+  ament_target_dependencies(test_set_mpc_payload ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  ament_add_pytest_test(
+    test_mpc_payload_tree
+    test/test_mpc_payload_tree.py
+  )
   ament_add_pytest_test(
     test_basic_pick_and_place_launch
     test/test_basic_pick_and_place_launch.py

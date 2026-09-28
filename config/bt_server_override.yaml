@@ -67,3 +67,4 @@ lifecycle_manager:
       - BT_cb_evaluate_placement_residual_action
       - BT_cb_evaluate_pickup_residual_action
       - BT_cb_publish_gripper_state_action
+      - BT_cb_set_mpc_payload_action

@@ -63,7 +63,18 @@
         task_status="2"
         grasp_offset="{grasp_offset}"/>
 
-      <!-- 5. Lift the grasped block -->
+      <!-- 5. Tell the MPC what it now carries. An unknown block is the one
+           condition that leaves 174's measured mismatch envelope, and the lift
+           below is the first carrying move. -->
+      <Action ID="SetMpcPayload" name="Set MPC payload"
+        service_name="/crane/mpc/set_payload"
+        carries="true"
+        mass="{payload_mass}"
+        s_log_8_x="{s_log_8_x}"
+        s_log_8_y="{s_log_8_y}"
+        s_log_8_z="{s_log_8_z}"/>
+
+      <!-- 6. Lift the grasped block -->
       <SetBlackboard output_key="lf_carries" value="true"/>
       <SubTree ID="SubTreeLift" _autoremap="true"/>
 
