@@ -64,6 +64,16 @@ ament_target_dependencies(gripper_grasp_detector
   std_msgs
 )
 
+# sim only: gz pose/info with entity names, for scripts/seyond_sim.py
+find_package(gz_transport_vendor REQUIRED)
+find_package(gz-transport REQUIRED)
+find_package(gz_msgs_vendor REQUIRED)
+find_package(gz-msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
+add_executable(gz_pose_relay src/nodes/gz_pose_relay.cpp)
+ament_target_dependencies(gz_pose_relay rclcpp tf2_msgs)
+target_link_libraries(gz_pose_relay gz-transport::core gz-msgs::core)
+
 install(DIRECTORY
   behavior_trees
   config
@@ -75,11 +85,13 @@ install(DIRECTORY
 
 install(PROGRAMS
   scripts/gazebo_block_spawner.py
+  scripts/seyond_sim.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS
   gripper_grasp_detector
+  gz_pose_relay
   ${plugin_libs}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

@@ -15,7 +15,7 @@ from launch.actions import (
     SetEnvironmentVariable,
     TimerAction,
 )
-from launch.conditions import IfCondition, LaunchConfigurationEquals
+from launch.conditions import IfCondition
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -121,14 +121,9 @@ def generate_launch_description():
                 description="Start the concrete-block detector on the simulated raw LiDAR cloud.",
             ),
             DeclareLaunchArgument(
-                "enable_livox_sim",
-                default_value="off",
-                description="Enable the Gazebo Livox PointCloud2 sensor with value 'livox'.",
-            ),
-            DeclareLaunchArgument(
                 "lidar_points_topic",
-                default_value="/livox/points",
-                description="Raw PointCloud2 topic published by the simulated Livox sensor.",
+                default_value="/seyond/points",
+                description="Raw PointCloud2 topic of the emulated Seyond (seyond_sim.py).",
             ),
             DeclareLaunchArgument(
                 "enable_placement_disturbance",
@@ -194,31 +189,32 @@ def generate_launch_description():
                     "seed_file": seed_file,
                     "gui": LaunchConfiguration("gui"),
                     "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
-                    "enable_livox_sim": LaunchConfiguration("enable_livox_sim"),
                 }.items(),
             ),
             # The PZS100 bringup owns the seeded world model.  The detector
             # talks to it through /concrete_block_detector/discover_blocks;
             # launching the detector directly avoids a second world model.
-            # Gazebo reduces the sensor's fixed joint, while the Livox plugin
-            # still publishes its sensor name as frame_id. Restore that fixed
-            # identity edge so raw cloud stamps can be transformed to world.
+            # CPU Seyond emulator (no GPU, no gz rendering): ray-casts the blocks
+            # gz reports (via gz_pose_relay), publishes the machine's frame and topic.
             Node(
-                package="tf2_ros",
-                executable="static_transform_publisher",
-                name="livox_sim_sensor_frame",
-                arguments=["0", "0", "0", "0", "0", "0", "livox_frame", "livox_sim"],
-                parameters=[{"use_sim_time": True}],
+                package="concrete_block_behavior_tree",
+                executable="gz_pose_relay",
+                remappings=[("gz_poses", "/gz/poses")],
+                parameters=[{"names": "crane_model|seyond|block_.*"}],
+                condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
-            # gz gpu_lidar (enable_livox_sim:=livox) -> the detector's raw cloud.
             Node(
-                package="ros_gz_bridge",
-                executable="parameter_bridge",
-                name="livox_sim_bridge",
-                arguments=["/livox/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"],
-                remappings=[("/livox/scan/points", LaunchConfiguration("lidar_points_topic"))],
-                parameters=[{"use_sim_time": True}],
-                condition=LaunchConfigurationEquals("enable_livox_sim", "livox"),
+                package="concrete_block_behavior_tree",
+                executable="seyond_sim.py",
+                name="seyond_sim",
+                output="screen",
+                remappings=[
+                    ("gz_poses", "/gz/poses"),
+                    ("points", LaunchConfiguration("lidar_points_topic")),
+                ],
+                # wall-clock timer: the stamp comes from the gz pose sample, and
+                # sim time would put ~1 kHz /clock through Python (4x the CPU)
+                condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
             Node(
                 package="concrete_block_detector",
