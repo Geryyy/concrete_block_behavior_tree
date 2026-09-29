@@ -15,7 +15,7 @@ from launch.actions import (
     SetEnvironmentVariable,
     TimerAction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -210,6 +210,16 @@ def generate_launch_description():
                 arguments=["0", "0", "0", "0", "0", "0", "livox_frame", "livox_sim"],
                 parameters=[{"use_sim_time": True}],
             ),
+            # gz gpu_lidar (enable_livox_sim:=livox) -> the detector's raw cloud.
+            Node(
+                package="ros_gz_bridge",
+                executable="parameter_bridge",
+                name="livox_sim_bridge",
+                arguments=["/livox/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"],
+                remappings=[("/livox/scan/points", LaunchConfiguration("lidar_points_topic"))],
+                parameters=[{"use_sim_time": True}],
+                condition=LaunchConfigurationEquals("enable_livox_sim", "livox"),
+            ),
             Node(
                 package="concrete_block_detector",
                 executable="concrete_block_detector_node",
@@ -225,6 +235,13 @@ def generate_launch_description():
                         # cloudini for hardware.  Debug outlets are configured in
                         # detector.yaml, not here.
                         "point_cloud_transport": "raw",
+                        # detector.yaml names the hardware estimator's elastic/
+                        # frames; the sim publishes the rigid ones.
+                        "pose_priors.fk.tcp_frame": "K8_tool_center_point",
+                        "gripper_self_filter.left_rail.parent_frame": "K9",
+                        "gripper_self_filter.left_rail.rail_frame": "K10_left_rail",
+                        "gripper_self_filter.right_rail.parent_frame": "K11",
+                        "gripper_self_filter.right_rail.rail_frame": "K12_right_rail",
                     },
                 ],
                 remappings=[("points", LaunchConfiguration("lidar_points_topic"))],
