@@ -17,7 +17,7 @@
      remote. -->
 <root main_tree_to_execute="Move Empty PZS100" BTCPP_format="4">
   <include
-    path="install/epsilon_crane_behavior_tree/share/epsilon_crane_behavior_tree/behavior_trees/subtree_a2b_movement.xml"/>
+    ros_pkg="epsilon_crane_behavior_tree" path="behavior_trees/subtree_a2b_movement.xml"/>
   <BehaviorTree ID="Move Empty PZS100">
     <Sequence>
       <SetBlackboard output_key="slow_down" value="1.0"/>

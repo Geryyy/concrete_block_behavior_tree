@@ -20,7 +20,7 @@
      pose in RViz, confirm on the remote. -->
 <root main_tree_to_execute="CBS Move Empty PZS100" BTCPP_format="4">
   <include
-    path="install/concrete_block_behavior_tree/share/concrete_block_behavior_tree/behavior_trees/cbs_subtree_a2b_movement.xml"/>
+    ros_pkg="concrete_block_behavior_tree" path="behavior_trees/cbs_subtree_a2b_movement.xml"/>
   <BehaviorTree ID="CBS Move Empty PZS100">
     <Sequence>
       <SetBlackboard output_key="slow_down" value="1.0"/>
