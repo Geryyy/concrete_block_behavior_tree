@@ -1,0 +1,278 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+ <tabbed_widget parent="main_window" name="Main Window">
+  <Tab containers="1" tab_name="overview">
+   <Container>
+     <DockSplitter orientation="-" count="4" sizes="0.250000;0.250000;0.250000;0.250000">
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="path error: slew/boom/arm/rotator [rad]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[0]"/>
+        <curve color="#d62728" name="/trajectory_controllers/controller_state/error/positions[1]"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/error/positions[2]"/>
+        <curve color="#ff7f0e" name="/trajectory_controllers/controller_state/error/positions[6]"/>
+       </plot>
+      </DockArea>
+      <DockArea name="path error: telescope [m]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[3]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="sway: tip/tilt [rad]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/position"/>
+        <curve color="#d62728" name="/joint_states/theta7_tilt_joint/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="sway rate: tip/tilt [rad/s]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/velocity"/>
+        <curve color="#d62728" name="/joint_states/theta7_tilt_joint/velocity"/>
+        <curve color="#1ac938" name="/grip_traj/passive_velocity_rms/data"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="pump flow: Q_pump / Q_pump_max, MPC bound (sim)">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane_mpc/pump_flow/pump/Q_pump_share"/>
+        <curve color="#d62728" name="/crane_mpc/pump_flow/pump/Q_pump_share_planned"/>
+       </plot>
+      </DockArea>
+      <DockArea name="pump flow per axis [m^3/s] (sim)">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane_mpc/pump_flow/pump/Q.theta1_slewing_joint"/>
+        <curve color="#d62728" name="/crane_mpc/pump_flow/pump/Q.theta2_boom_joint"/>
+        <curve color="#1ac938" name="/crane_mpc/pump_flow/pump/Q.theta3_arm_joint"/>
+        <curve color="#ff7f0e" name="/crane_mpc/pump_flow/pump/Q.q4_big_telescope"/>
+        <curve color="#f14cc1" name="/crane_mpc/pump_flow/pump/Q.theta8_rotator_joint"/>
+        <curve color="#9467bd" name="/crane_mpc/pump_flow/pump/Q.q9_left_rail_joint"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+      <DockArea name="MPC solve time vs budget [s]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane/mpc/solver_health/solve_time"/>
+        <curve color="#d62728" name="/crane/mpc/solver_health/solve_budget"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="joints">
+   <Container>
+     <DockSplitter orientation="-" count="5" sizes="0.200000;0.200000;0.200000;0.200000;0.200000">
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="slew position: ref / meas">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[0]"/>
+        <curve color="#d62728" name="/joint_states/theta1_slewing_joint/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="slew velocity: ref / meas / cmd">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[0]"/>
+        <curve color="#d62728" name="/joint_states/theta1_slewing_joint/velocity"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/output/velocities[0]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="boom position: ref / meas">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[1]"/>
+        <curve color="#d62728" name="/joint_states/theta2_boom_joint/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="boom velocity: ref / meas / cmd">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[1]"/>
+        <curve color="#d62728" name="/joint_states/theta2_boom_joint/velocity"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/output/velocities[1]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="arm position: ref / meas">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[2]"/>
+        <curve color="#d62728" name="/joint_states/theta3_arm_joint/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="arm velocity: ref / meas / cmd">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[2]"/>
+        <curve color="#d62728" name="/joint_states/theta3_arm_joint/velocity"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/output/velocities[2]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="telescope position: ref / meas">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[3]"/>
+        <curve color="#d62728" name="/joint_states/q4_big_telescope/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="telescope velocity: ref / meas / cmd">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[3]"/>
+        <curve color="#d62728" name="/joint_states/q4_big_telescope/velocity"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/output/velocities[3]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="rotator position: ref / meas">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[6]"/>
+        <curve color="#d62728" name="/joint_states/theta8_rotator_joint/position"/>
+       </plot>
+      </DockArea>
+      <DockArea name="rotator velocity: ref / meas / cmd">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[6]"/>
+        <curve color="#d62728" name="/joint_states/theta8_rotator_joint/velocity"/>
+        <curve color="#1ac938" name="/trajectory_controllers/controller_state/output/velocities[6]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="mpc">
+   <Container>
+     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="constraint violation: sway/sway rate/cyl force/pump">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane/mpc/solver_health/constraint_violation[0]"/>
+        <curve color="#d62728" name="/crane/mpc/solver_health/constraint_violation[1]"/>
+        <curve color="#1ac938" name="/crane/mpc/solver_health/constraint_violation[2]"/>
+        <curve color="#ff7f0e" name="/crane/mpc/solver_health/constraint_violation[3]"/>
+       </plot>
+      </DockArea>
+      <DockArea name="outcome (1 conv, 2 budget, 3 failed) / slack">
+       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane/mpc/solver_health/outcome"/>
+        <curve color="#d62728" name="/crane/mpc/solver_health/used_slack"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="cost terms">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane/mpc/solver_health/cost_term[0]"/>
+        <curve color="#d62728" name="/crane/mpc/solver_health/cost_term[1]"/>
+        <curve color="#1ac938" name="/crane/mpc/solver_health/cost_term[2]"/>
+        <curve color="#ff7f0e" name="/crane/mpc/solver_health/cost_term[3]"/>
+        <curve color="#f14cc1" name="/crane/mpc/solver_health/cost_term[4]"/>
+        <curve color="#9467bd" name="/crane/mpc/solver_health/cost_term[5]"/>
+        <curve color="#17becf" name="/crane/mpc/solver_health/cost_term[6]"/>
+        <curve color="#bcbd22" name="/crane/mpc/solver_health/cost_term[7]"/>
+       </plot>
+      </DockArea>
+      <DockArea name="QP iterations">
+       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/crane/mpc/solver_health/qp_iterations"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     </DockSplitter>
+   </Container>
+  </Tab>
+  <Tab containers="1" tab_name="operator">
+   <Container>
+     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
+      <DockArea name="pickup / placement translation error [m]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/assembly_operator/pickup_translation_error_m/data"/>
+        <curve color="#d62728" name="/assembly_operator/placement_translation_error_m/data"/>
+        <curve color="#1ac938" name="/assembly_operator/placement_indicator_threshold_m/data"/>
+       </plot>
+      </DockArea>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="grasp detected / passive settled">
+       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/gripper/grasp_detected/data"/>
+        <curve color="#d62728" name="/grip_traj/passive_settled/data"/>
+       </plot>
+      </DockArea>
+      <DockArea name="gripper rail: ref / meas [m]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="-1" right="1" left="0"/>
+        <limitY/>
+        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[7]"/>
+        <curve color="#d62728" name="/joint_states/q9_left_rail_joint/position"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     </DockSplitter>
+   </Container>
+  </Tab>
+  <currentTabIndex index="0"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <Plugins>
+  <plugin ID="ROS2 Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="10"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="false"/>
+   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m"/>
+  </plugin>
+ </Plugins>
+ <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS2 Topic Subscriber"/>
+ <customMathEquations/>
+ <snippets/>
+</root>

@@ -141,9 +141,10 @@ BT::NodeStatus PublishGripperState::tick()
   msg.log.radius_top = static_cast<float>(sanitize(radius_top, "radius_top"));
   msg.log.radius_bottom = static_cast<float>(sanitize(radius_bottom, "radius_bottom"));
   msg.log.length = static_cast<float>(sanitize(length, "length"));
-  msg.s_log_8.x = sanitize(s_log_8_x, "s_log_8_x");
-  msg.s_log_8.y = sanitize(s_log_8_y, "s_log_8_y");
-  msg.s_log_8.z = sanitize(s_log_8_z, "s_log_8_z");
+  // Empty jaws have no grasp offset; unset is expected there, not worth a warning.
+  msg.s_log_8.x = carries ? sanitize(s_log_8_x, "s_log_8_x") : 0.0;
+  msg.s_log_8.y = carries ? sanitize(s_log_8_y, "s_log_8_y") : 0.0;
+  msg.s_log_8.z = carries ? sanitize(s_log_8_z, "s_log_8_z") : 0.0;
 
   pub_->publish(msg);
 
