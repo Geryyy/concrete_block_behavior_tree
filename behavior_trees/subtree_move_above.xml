@@ -21,7 +21,7 @@
            would silence the abort and the retry would never fire. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
       <Action ID="SetGoalPose" name="Set approach pose"
-        yN.x="{mv_x}" yN.y="{mv_y}" yN.z="{mv_z}"
+        yN_x="{mv_x}" yN_y="{mv_y}" yN_z="{mv_z}"
         phiN="{mv_yaw}"
         goal="{yN}" phi="{phi}"/>
       <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
@@ -32,7 +32,7 @@
         service_name="a2b_movement" server_timeout="30000"
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>
-      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{mv_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"

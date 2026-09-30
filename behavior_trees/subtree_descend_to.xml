@@ -7,7 +7,7 @@
   <BehaviorTree ID="SubTreeDescendTo">
     <Sequence name="descend_to">
       <Action ID="SetGoalPose" name="Set descend target"
-        yN.x="{dz_x}" yN.y="{dz_y}" yN.z="{dz_z}"
+        yN_x="{dz_x}" yN_y="{dz_y}" yN_z="{dz_z}"
         phiN="{dz_yaw}"
         goal="{COG}" phi="{phi}"/>
       <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
@@ -17,7 +17,7 @@
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
-      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{dz_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"

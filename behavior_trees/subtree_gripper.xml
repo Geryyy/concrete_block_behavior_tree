@@ -14,7 +14,7 @@
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
-      <Condition ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{gr_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
