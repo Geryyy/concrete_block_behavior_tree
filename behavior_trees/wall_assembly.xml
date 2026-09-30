@@ -24,8 +24,10 @@
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
       <!-- Block approximated as cylinder for timber planner compatibility -->
-      <SetBlackboard output_key="log_shape_text"
-        value="radius_top: 0.30, radius_bottom: 0.30, length: 0.90"/>
+      <!-- Planner collision body for the carried block (only the planner reads the shape): a
+           vertical cylinder around the upright 0.9 x 0.6 x 0.6 m block, radius its footprint's
+           half-diagonal sqrt(0.45^2 + 0.3^2). The old r 0.30 / l 0.90 missed the corners. -->
+      <SetBlackboard output_key="log_shape_text" value="radius_top: 0.541, radius_bottom: 0.541, length: 0.60"/>
       <!-- CBS has no log-scene perception; leave logsScene unset on the BB.
            CalcA2BMovement's getInput returns failure without convertFromString
            and request_->logs_scene stays default-empty. -->
