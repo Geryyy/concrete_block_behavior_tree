@@ -64,15 +64,23 @@ ament_target_dependencies(gripper_grasp_detector
   std_msgs
 )
 
-# sim only: gz pose/info with entity names, for scripts/seyond_sim.py
+# sim only: CPU lidar gz system (Harmonic has no physics lidar), see src/sim/seyond_lidar.cpp
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_common_vendor REQUIRED)
+find_package(gz-common REQUIRED COMPONENTS graphics)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED COMPONENTS register)
 find_package(gz_transport_vendor REQUIRED)
 find_package(gz-transport REQUIRED)
 find_package(gz_msgs_vendor REQUIRED)
 find_package(gz-msgs REQUIRED)
-find_package(tf2_msgs REQUIRED)
-add_executable(gz_pose_relay src/nodes/gz_pose_relay.cpp)
-ament_target_dependencies(gz_pose_relay rclcpp tf2_msgs)
-target_link_libraries(gz_pose_relay gz-transport::core gz-msgs::core)
+find_package(Bullet REQUIRED)
+add_library(SeyondLidarSystem SHARED src/sim/seyond_lidar.cpp)
+target_include_directories(SeyondLidarSystem PRIVATE ${BULLET_INCLUDE_DIRS})
+target_link_libraries(SeyondLidarSystem
+  gz-sim::gz-sim gz-common::graphics gz-plugin::register gz-transport::core gz-msgs::core
+  ${BULLET_LIBRARIES})
 
 install(DIRECTORY
   behavior_trees
@@ -85,13 +93,12 @@ install(DIRECTORY
 
 install(PROGRAMS
   scripts/gazebo_block_spawner.py
-  scripts/seyond_sim.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS
   gripper_grasp_detector
-  gz_pose_relay
+  SeyondLidarSystem
   ${plugin_libs}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

@@ -10,6 +10,7 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import (
+    ExecuteProcess,
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     SetEnvironmentVariable,
@@ -123,7 +124,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "lidar_points_topic",
                 default_value="/seyond/points",
-                description="Raw PointCloud2 topic of the emulated Seyond (seyond_sim.py).",
+                description="Raw PointCloud2 topic of the simulated Seyond (SeyondLidar gz system).",
             ),
             DeclareLaunchArgument(
                 "enable_placement_disturbance",
@@ -194,26 +195,28 @@ def generate_launch_description():
             # The PZS100 bringup owns the seeded world model.  The detector
             # talks to it through /concrete_block_detector/discover_blocks;
             # launching the detector directly avoids a second world model.
-            # CPU Seyond emulator (no GPU, no gz rendering): ray-casts the blocks
-            # gz reports (via gz_pose_relay), publishes the machine's frame and topic.
-            Node(
-                package="concrete_block_behavior_tree",
-                executable="gz_pose_relay",
-                remappings=[("gz_poses", "/gz/poses")],
-                parameters=[{"names": "crane_model|seyond|block_.*"}],
+            # CPU Seyond lidar (no GPU): the SeyondLidar gz system, attached to the
+            # running world, ray-casts every collision shape; bridged to ROS.
+            ExecuteProcess(
+                cmd=[
+                    "until gz service -s /world/default/entity/system/add"
+                    " --reqtype gz.msgs.EntityPlugin_V --reptype gz.msgs.Boolean --timeout 2000"
+                    " --req 'entity: {name: \"default\", type: WORLD} plugins: {name:"
+                    " \"concrete_block_behavior_tree::SeyondLidar\", filename: \"SeyondLidarSystem\","
+                    " innerxml: \"<topic>/seyond/points</topic>\"}' | grep -q 'data: true';"
+                    " do sleep 1; done"
+                ],
+                shell=True,
+                name="seyond_lidar_attach",
                 condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
             Node(
-                package="concrete_block_behavior_tree",
-                executable="seyond_sim.py",
-                name="seyond_sim",
-                output="screen",
-                remappings=[
-                    ("gz_poses", "/gz/poses"),
-                    ("points", LaunchConfiguration("lidar_points_topic")),
-                ],
-                # wall-clock timer: the stamp comes from the gz pose sample, and
-                # sim time would put ~1 kHz /clock through Python (4x the CPU)
+                package="ros_gz_bridge",
+                executable="parameter_bridge",
+                name="seyond_lidar_bridge",
+                arguments=["/seyond/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"],
+                remappings=[("/seyond/points", LaunchConfiguration("lidar_points_topic"))],
+                parameters=[{"use_sim_time": True}],
                 condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
             Node(
