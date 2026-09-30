@@ -10,14 +10,16 @@
     <!-- Model origin is at box centre.                                   -->
     <link name='link'>
       <inertial>
-        <mass>80</mass>
+        <!-- 0.9 x 0.6 x 0.6 m concrete, ~2400 kg/m^3: the 800 kg the BT declares.
+             Solid box: ixx = m/12 (0.6^2 + 0.6^2), iyy = izz = m/12 (0.9^2 + 0.6^2). -->
+        <mass>800</mass>
         <inertia>
-          <ixx>4.67</ixx>
+          <ixx>48.0</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>7.55</iyy>
+          <iyy>78.0</iyy>
           <iyz>0</iyz>
-          <izz>7.55</izz>
+          <izz>78.0</izz>
         </inertia>
         <pose>0 0 0 0 0 0</pose>
       </inertial>
