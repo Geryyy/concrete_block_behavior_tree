@@ -50,6 +50,8 @@ add_bt_plugin(BT_cb_wait_for_move_complete_condition
   src/plugins/condition/wait_for_move_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_wait_for_load_off_condition
   src/plugins/condition/wait_for_load_off.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_publish_mpc_reference_action
+  src/plugins/action/publish_mpc_reference.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_wait_for_operator_command_action src/plugins/action/wait_for_operator_command.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})

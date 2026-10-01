@@ -19,7 +19,7 @@
         carries="{lf_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
+      <SubTree ID="SubTreeMpcExecute" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
 </root>
