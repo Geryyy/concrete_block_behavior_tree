@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <root main_tree_to_execute="OperatorGuidedSingleBlock" BTCPP_format="4">
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_execute_trajectory.xml"/>
+  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/cbs_subtree_a2b_movement.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_move_above.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_descend_to.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_gripper.xml"/>

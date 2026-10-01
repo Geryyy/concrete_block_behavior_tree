@@ -37,7 +37,10 @@
         carries="{mv_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
+      <!-- Not SubTreeExecuteTrajectory: with the MPC driving, that held an action goal
+           against the MPC's topic re-goals and ended the move without waiting for the
+           load to stop swinging, so the descent set the block down mid-swing. -->
+      <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
     </Sequence>
     </Decorator>
   </BehaviorTree>
