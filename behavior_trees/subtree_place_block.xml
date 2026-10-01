@@ -31,10 +31,13 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <SetBlackboard output_key="dz_x" value="{place_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_y}"/>
-      <SetBlackboard output_key="dz_z" value="{place_z}"/>
+      <!-- Aimed 5 cm under the slot: the fixed end sat within a few cm of first contact,
+           pressing in on one run and hanging short on the next. WaitForLoadOff stops it at
+           contact, and at its floor, 1 cm under place_z, if there is no ground. -->
+      <Script code="dz_z := place_z - 0.05"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
-      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+      <SubTree ID="SubTreeDescendToLand" _autoremap="true"/>
 
       <!-- 2. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"

@@ -113,7 +113,9 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "lift_height",
-                default_value="1.0",
+                # 1.0 carried the block over its neighbour with ~0.3 m to spare and the
+                # MPC sagged 0.18 m crossing it: the corner caught (sim run 17).
+                default_value="1.5",
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),
             DeclareLaunchArgument(

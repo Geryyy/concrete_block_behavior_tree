@@ -36,4 +36,51 @@
       </Decorator>
     </Fallback>
   </BehaviorTree>
+
+  <!-- SubTreeExecuteTrajectory for a carrying descent: done when the block has landed,
+       not when the trajectory ends. WaitForLoadOff halts the descent (cancel; the JTC
+       holds) on landing, and fails it (jaws shut, operator) past the kinematic floor
+       or on timeout. The trajectory ending or aborting decides nothing: run 11 pushed
+       the block 1 cm into the ground and the JTC aborted on the slew it dragged. -->
+  <BehaviorTree ID="SubTreeExecuteUntilLanded">
+    <Fallback name="fallback_deactivate_controller">
+      <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
+        wait_rising_edge="False">
+        <Sequence>
+          <Action name="Activate controller" ID="SwitchController"
+            activate_controllers="trajectory_controller_a2b"
+            deactivate_controllers=""
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+          <Parallel success_count="1" failure_count="1">
+            <Sequence>
+              <ForceSuccess>
+                <Action ID="FollowJointTrajectory"
+                  server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+                  server_timeout="500"
+                  trajectory="{trajectory}"
+                  goal_tolerance="{ex_goal_tolerance}"
+                  goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
+              </ForceSuccess>
+              <Sleep msec="600000"/>
+            </Sequence>
+            <Action ID="WaitForLoadOff" mass="{payload_mass}" target_z="{place_z}"
+              s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+          </Parallel>
+          <Action name="Deactivate controller" ID="SwitchController"
+            activate_controllers=""
+            deactivate_controllers="trajectory_controller_a2b"
+            server_timeout="1000"
+            service_name="/controller_manager/switch_controller"/>
+        </Sequence>
+      </Decorator>
+      <Decorator ID="ForceFailure">
+        <Action name="Deactivate controller fallback" ID="SwitchController"
+          activate_controllers=""
+          deactivate_controllers="trajectory_controller_a2b"
+          server_timeout="1000"
+          service_name="/controller_manager/switch_controller"/>
+      </Decorator>
+    </Fallback>
+  </BehaviorTree>
 </root>

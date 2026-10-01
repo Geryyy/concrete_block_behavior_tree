@@ -65,15 +65,17 @@
             deactivate_controllers=""
             server_timeout="1000"
             service_name="/controller_manager/switch_controller"/>
-          <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal, and
-               0.05 is that number. Not every joint {trajectory} names: the /a2b_movement answer
+          <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal. 0.02,
+               not the JTC's 0.05: 0.05 rad of slew is 0.35 m at the block, and the descent was
+               planned from there while the crane still arrived (sim, 2026-10-01). 0.01 is under
+               the MPC's standing error (0.014 seen), which nothing integrates away. Not every joint {trajectory} names: the /a2b_movement answer
                is the canonical eight and carries theta6_tip_joint / theta7_tilt_joint, which
                the plan does not aim and /crane/reference does not track; q9_left_rail_joint is
                left out because its own goal tolerance is 0.00, i.e. the controller does not
                check it either. -->
           <WaitForMoveComplete trajectory="{trajectory}"
             joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
-            goal_tolerance="0.05"
+            goal_tolerance="0.02"
             timeout_ms="120000"
             mpc_drives="{mpc_drives}"/>
           <Action ID="FollowJointTrajectory" _skipIf="mpc_drives"
