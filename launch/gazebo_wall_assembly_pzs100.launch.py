@@ -108,7 +108,9 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "place_approach_angle_deg",
-                default_value="4.0",
+                # 18: the place waypoint sits 0.30 tan(18) = 0.10 m to the open side; 4 (2 cm)
+                # left no clearance to a neighbour 2 cm away (sim wall run 65).
+                default_value="18.0",
                 description="Pre-place lateral approach angle in degrees.",
             ),
             DeclareLaunchArgument(

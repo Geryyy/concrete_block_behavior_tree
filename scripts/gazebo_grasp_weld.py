@@ -69,7 +69,20 @@ class GazeboGraspWeld(Node):
         return f"/cbs_sim/{block}/{verb}"
 
     def _send(self, block: str, verb: str):
-        _gz("topic", "-t", self._topic(block, verb), "-m", "gz.msgs.Empty", "-p", " ")
+        # Three times: a fresh `gz topic -p` publisher can lose its first message to
+        # discovery, and a lost detach lifted block_2 with the empty gripper (wall run 69).
+        # A repeat on a joint already in that state only warns.
+        for _ in range(3):
+            _gz(
+                "topic",
+                "-t",
+                self._topic(block, verb),
+                "-m",
+                "gz.msgs.Empty",
+                "-p",
+                " ",
+            )
+            time.sleep(0.2)
 
     def _models(self) -> dict[str, int]:
         out = _gz(
