@@ -20,7 +20,9 @@
            under the MPC's standing error (0.014 seen). Without the MPC the goal aborts at it
            when the arm stalls short on the valve dead zone, which is what fires
            replan_on_missed_goal. -->
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+      <!-- Carrying only: the pickup approach needs no accuracy, the grasp tolerates it. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.02" _skipIf="mv_carries != 'true'"/>
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.05" _skipIf="mv_carries == 'true'"/>
       <Script code="ex_publish_reference := false; ex_until_landed := false"/>
       <Action ID="SetGoalPose" name="Set approach pose"
         yN_x="{mv_x}" yN_y="{mv_y}" yN_z="{mv_z}"

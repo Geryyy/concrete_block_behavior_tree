@@ -1,7 +1,7 @@
-// Where the carried block is now: gripper TF (pendulum joints included) times the grasp
-// offset, the estimate WriteBlockPoseFromGripper writes, without writing it. The place
-// descent corrects its final segment by it: the actuated joints reach the plan, the passive
-// pendulum does not hang where the plan assumes (2-4 cm at the block, sim runs 47-49).
+// Where the carried block hangs: gripper TF (pendulum joints included) times the grasp
+// offset, the estimate WriteBlockPoseFromGripper writes, without writing it. Averaged over
+// `window_s`: one pendulum period puts the mean at the swing's centre, where one sample read
+// 0.5 cm off a block swinging +-3 cm (sim run 54).
 
 #include <memory>
 #include <string>
@@ -19,11 +19,11 @@
 namespace concrete_block_behavior_tree
 {
 
-class MeasureBlockFromGripper : public BT::SyncActionNode
+class MeasureBlockFromGripper : public BT::StatefulActionNode
 {
 public:
   MeasureBlockFromGripper(const std::string & name, const BT::NodeConfig & conf)
-  : BT::SyncActionNode(name, conf)
+  : BT::StatefulActionNode(name, conf)
   {
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
@@ -37,47 +37,77 @@ public:
       BT::InputPort<std::string>("frame", "K0_mounting_base", "Frame of the outputs"),
       BT::InputPort<geometry_msgs::msg::Pose>(
         "grasp_offset", "Offset gripper_tcp <- block_center (from CaptureBlockGraspOffset)"),
+      BT::InputPort<double>("window_s", 0.0, "Average over this long; 0 is one sample"),
       BT::OutputPort<double>("x", "Block centre [m]"),
       BT::OutputPort<double>("y", "Block centre [m]"),
       BT::OutputPort<double>("z", "Block centre [m]"),
     };
   }
 
-  BT::NodeStatus tick() override
+  BT::NodeStatus onStart() override
   {
-    std::string gripper_frame, frame;
-    geometry_msgs::msg::Pose offset;
-    getInput("gripper_frame", gripper_frame);
-    getInput("frame", frame);
-    if (!getInput("grasp_offset", offset)) {
-      RCLCPP_ERROR(node_->get_logger(), "MeasureBlockFromGripper: no grasp_offset");
-      return BT::NodeStatus::FAILURE;
+    window_ = 0.0;
+    getInput("window_s", window_);
+    sum_ = tf2::Vector3(0.0, 0.0, 0.0);
+    samples_ = 0;
+    start_ = node_->now();
+    return sample() ? onRunning() : BT::NodeStatus::FAILURE;
+  }
+
+  BT::NodeStatus onRunning() override
+  {
+    if ((node_->now() - start_).seconds() < window_) {
+      return sample() ? BT::NodeStatus::RUNNING : BT::NodeStatus::FAILURE;
     }
-    geometry_msgs::msg::TransformStamped tcp;
-    try {
-      tcp = tf_buffer_->lookupTransform(
-        frame, gripper_frame, tf2::TimePointZero, tf2::durationFromSec(1.0));
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_ERROR(node_->get_logger(), "MeasureBlockFromGripper: %s", e.what());
-      return BT::NodeStatus::FAILURE;
-    }
-    tf2::Transform frame_tcp, tcp_block;
-    tf2::fromMsg(tcp.transform, frame_tcp);
-    tf2::fromMsg(offset, tcp_block);
-    const tf2::Vector3 p = (frame_tcp * tcp_block).getOrigin();
+    const tf2::Vector3 p = sum_ / static_cast<double>(samples_);
     setOutput("x", p.x());
     setOutput("y", p.y());
     setOutput("z", p.z());
     RCLCPP_INFO(
-      node_->get_logger(), "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s",
-      p.x(), p.y(), p.z(), frame.c_str());
+      node_->get_logger(),
+      "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, %d samples",
+      p.x(), p.y(), p.z(), frame_.c_str(), samples_);
     return BT::NodeStatus::SUCCESS;
   }
 
+  void onHalted() override {}
+
 private:
+  // One TF sample into the sum; false on a missing offset or transform.
+  bool sample()
+  {
+    std::string gripper_frame;
+    geometry_msgs::msg::Pose offset;
+    getInput("gripper_frame", gripper_frame);
+    getInput("frame", frame_);
+    if (!getInput("grasp_offset", offset)) {
+      RCLCPP_ERROR(node_->get_logger(), "MeasureBlockFromGripper: no grasp_offset");
+      return false;
+    }
+    geometry_msgs::msg::TransformStamped tcp;
+    try {
+      tcp = tf_buffer_->lookupTransform(
+        frame_, gripper_frame, tf2::TimePointZero, tf2::durationFromSec(1.0));
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_ERROR(node_->get_logger(), "MeasureBlockFromGripper: %s", e.what());
+      return false;
+    }
+    tf2::Transform frame_tcp, tcp_block;
+    tf2::fromMsg(tcp.transform, frame_tcp);
+    tf2::fromMsg(offset, tcp_block);
+    sum_ += (frame_tcp * tcp_block).getOrigin();
+    ++samples_;
+    return true;
+  }
+
   rclcpp::Node::SharedPtr node_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::string frame_;
+  double window_{0.0};
+  tf2::Vector3 sum_;
+  int samples_{0};
+  rclcpp::Time start_;
 };
 
 }  // namespace concrete_block_behavior_tree

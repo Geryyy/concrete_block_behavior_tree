@@ -35,13 +35,27 @@
       <Script code="ex_until_landed := false"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
-      <!-- Aim the final segment by where the block hangs, not where the plan put it: the
-           joints arrive, the passive pendulum hangs 2-4 cm off (sim runs 47-49). -->
-      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
-        x="{meas_x}" y="{meas_y}"/>
-      <Script code="dz_x := place_x + (place_x - meas_x); dz_y := place_y + (place_y - meas_y)"/>
+      <!-- Correct in the air, not on the way down: the slew and rotator stop ~5 mrad short of
+           any goal, and a correction left to the final segment was blocked by the ground
+           (3 cm, sim runs 50/53). Each pass aims past the slot by the measured miss, so a
+           constant short-fall still converges. Under 1 cm, no move. -->
+      <Script code="aim_x := place_x; aim_y := place_y"/>
+      <Repeat num_cycles="2">
+        <Sequence>
+          <!-- 2.7 s: one period of the carried pendulum. -->
+          <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
+            x="{meas_x}" y="{meas_y}"/>
+          <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y"/>
+          <Sequence _skipIf="miss_x * miss_x + miss_y * miss_y &lt; 0.0001">
+            <Script code="aim_x := aim_x + miss_x; aim_y := aim_y + miss_y"/>
+            <Script code="dz_x := aim_x; dz_y := aim_y; dz_z := place_z + 0.10"/>
+            <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+          </Sequence>
+        </Sequence>
+      </Repeat>
+      <Script code="dz_x := aim_x; dz_y := aim_y"/>
 
-      <!-- 2. Final segment at a third of the speed, ending on landing: at full speed the
+      <!-- 2. Final segment at half the speed, ending on landing: at full speed the
            block met the ground at 0.25 m/s and hopped (sim run 43).
            Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
            10 cm low still left the hook carrying ~60 % of the landed block (sim run 41).
@@ -50,7 +64,7 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <Script code="dz_z := place_z - 0.20; ex_until_landed := true"/>
       <SetBlackboard output_key="sd_saved" value="{slow_down}"/>
-      <SetBlackboard output_key="slow_down" value="3.0"/>
+      <SetBlackboard output_key="slow_down" value="2.0"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       <SetBlackboard output_key="slow_down" value="{sd_saved}"/>
 
