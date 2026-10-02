@@ -10,8 +10,8 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import (
-    ExecuteProcess,
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
     SetEnvironmentVariable,
     TimerAction,
@@ -203,8 +203,8 @@ def generate_launch_description():
                 cmd=[
                     "until gz service -s /world/default/entity/system/add"
                     " --reqtype gz.msgs.EntityPlugin_V --reptype gz.msgs.Boolean --timeout 2000"
-                    " --req 'entity: {name: \"default\", type: WORLD} plugins: {name:"
-                    " \"concrete_block_behavior_tree::SeyondLidar\", filename: \"SeyondLidarSystem\","
+                    ' --req \'entity: {name: "default", type: WORLD} plugins: {name:'
+                    ' "concrete_block_behavior_tree::SeyondLidar", filename: "SeyondLidarSystem",'
                     " innerxml: \"<topic>/seyond/points</topic>\"}' | grep -q 'data: true';"
                     " do sleep 1; done"
                 ],
@@ -216,8 +216,12 @@ def generate_launch_description():
                 package="ros_gz_bridge",
                 executable="parameter_bridge",
                 name="seyond_lidar_bridge",
-                arguments=["/seyond/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"],
-                remappings=[("/seyond/points", LaunchConfiguration("lidar_points_topic"))],
+                arguments=[
+                    "/seyond/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked"
+                ],
+                remappings=[
+                    ("/seyond/points", LaunchConfiguration("lidar_points_topic"))
+                ],
                 parameters=[{"use_sim_time": True}],
                 condition=IfCondition(LaunchConfiguration("start_perception")),
             ),
@@ -395,6 +399,13 @@ def generate_launch_description():
                                 "spawn_height_offset": 0.15,
                             },
                         ],
+                    ),
+                    Node(
+                        package="concrete_block_behavior_tree",
+                        executable="gazebo_grasp_weld.py",
+                        name="gazebo_grasp_weld",
+                        output="screen",
+                        parameters=[{"use_sim_time": True}],
                     ),
                 ],
             ),

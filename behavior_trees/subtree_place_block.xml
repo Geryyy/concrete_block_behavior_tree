@@ -31,10 +31,11 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <SetBlackboard output_key="dz_x" value="{place_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_y}"/>
-      <!-- Aimed 10 cm under the slot: the MPC ends ~8 cm short of a descent's end, and an
-           end at the slot hung the block short of the ground. WaitForLoadOff stops it at
-           contact, and at its floor, 1 cm under place_z, if there is no ground. -->
-      <Script code="dz_z := place_z - 0.10"/>
+      <!-- Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
+           10 cm low still left the hook carrying ~60 % of the landed block (sim run 41).
+           WaitForLoadOff stops it once the hook is unloaded, and at its floor, 1 cm under
+           place_z, if there is no ground. -->
+      <Script code="dz_z := place_z - 0.20"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
       <Script code="ex_until_landed := true"/>

@@ -184,6 +184,13 @@ def generate_launch_description():
                             },
                         ],
                     ),
+                    Node(
+                        package="concrete_block_behavior_tree",
+                        executable="gazebo_grasp_weld.py",
+                        name="gazebo_grasp_weld",
+                        output="screen",
+                        parameters=[{"use_sim_time": True}],
+                    ),
                 ],
             ),
             Node(

@@ -97,6 +97,7 @@ install(DIRECTORY
 
 install(PROGRAMS
   scripts/gazebo_block_spawner.py
+  scripts/gazebo_grasp_weld.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
