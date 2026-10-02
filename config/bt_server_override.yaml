@@ -63,6 +63,7 @@ lifecycle_manager:
       - BT_cb_plan_complete_condition
       - BT_cb_wait_for_move_complete_condition
       - BT_cb_wait_for_load_off_condition
+      - BT_cb_measure_block_from_gripper_action
       - BT_cb_publish_mpc_reference_action
       - BT_cb_wait_for_operator_command_action
       - BT_cb_run_pose_estimation_action

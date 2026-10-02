@@ -3,8 +3,8 @@
        Caller sets on the (shared) blackboard before invoking:
          dz_x, dz_y, dz_z, dz_yaw  - target CoG pose (world)
          dz_carries                - "true"/"false": carrying a block?
-         ex_until_landed           - true: MPC descent ending on landing (placing);
-                                     false: JTC goal, MPC silent (picking)
+         ex_until_landed           - true: ends on landing, not arrival
+       Carrying, the MPC drives it (placing); empty, a JTC goal with the MPC silent (picking).
        Produces: COG, phi (goal pose), trajectory. -->
   <BehaviorTree ID="SubTreeDescendTo">
     <Sequence name="descend_to">
@@ -25,7 +25,7 @@
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <IfThenElse>
-        <ScriptCondition code="ex_until_landed"/>
+        <ScriptCondition code="dz_carries == 'true'"/>
         <Sequence>
           <Script code="ex_publish_reference := true"/>
           <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>

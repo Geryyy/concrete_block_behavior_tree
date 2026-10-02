@@ -45,6 +45,8 @@ add_bt_plugin(BT_cb_wait_for_grasp_signal_condition src/plugins/condition/wait_f
 add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action
   src/plugins/action/write_block_pose_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_measure_block_from_gripper_action
+  src/plugins/action/measure_block_from_gripper.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_plan_complete_condition src/plugins/condition/plan_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_wait_for_move_complete_condition
   src/plugins/condition/wait_for_move_complete.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})

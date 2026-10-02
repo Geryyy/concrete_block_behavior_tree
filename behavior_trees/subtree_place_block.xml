@@ -24,24 +24,37 @@
   <BehaviorTree ID="SubTreePlaceFromHover">
     <Sequence name="place_from_hover">
 
-      <!-- 1. Descend to place (carrying) -->
-      <!-- Tight: this endpoint is the deliverable.  The gripper opens on the
-           next step, so a descent that stopped short must abort here rather
-           than release the block off-slot. -->
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+      <!-- 1. Descend to 10 cm over the slot, carrying, and let the load settle there.
+           Loose: a waypoint; the final segment plans from wherever it stopped. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.10"/>
       <SetBlackboard output_key="dz_x" value="{place_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_y}"/>
-      <!-- Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
+      <Script code="dz_z := place_z + 0.10"/>
+      <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
+      <SetBlackboard output_key="dz_carries" value="true"/>
+      <Script code="ex_until_landed := false"/>
+      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+
+      <!-- Aim the final segment by where the block hangs, not where the plan put it: the
+           joints arrive, the passive pendulum hangs 2-4 cm off (sim runs 47-49). -->
+      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
+        x="{meas_x}" y="{meas_y}"/>
+      <Script code="dz_x := place_x + (place_x - meas_x); dz_y := place_y + (place_y - meas_y)"/>
+
+      <!-- 2. Final segment at a third of the speed, ending on landing: at full speed the
+           block met the ground at 0.25 m/s and hopped (sim run 43).
+           Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
            10 cm low still left the hook carrying ~60 % of the landed block (sim run 41).
            WaitForLoadOff stops it once the hook is unloaded, and at its floor, 1 cm under
            place_z, if there is no ground. -->
-      <Script code="dz_z := place_z - 0.20"/>
-      <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
-      <SetBlackboard output_key="dz_carries" value="true"/>
-      <Script code="ex_until_landed := true"/>
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+      <Script code="dz_z := place_z - 0.20; ex_until_landed := true"/>
+      <SetBlackboard output_key="sd_saved" value="{slow_down}"/>
+      <SetBlackboard output_key="slow_down" value="3.0"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+      <SetBlackboard output_key="slow_down" value="{sd_saved}"/>
 
-      <!-- 2. Write final block pose, then open gripper -->
+      <!-- 3. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"

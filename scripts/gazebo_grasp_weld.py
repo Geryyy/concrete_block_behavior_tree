@@ -55,7 +55,9 @@ class GazeboGraspWeld(Node):
         # A held block hangs under the rotator; its neighbours are >= 1 m away in xy.
         self.max_xy = self.declare_parameter("max_xy", 0.6).value
 
-        self.blocks = self._add_joints()
+        self.crane_id = 0
+        self.welds: set[str] = set()
+        self.blocks = self._find_blocks()
         self.attached: str | None = None
         self.q9_at_attach = 0.0
         self.clamp_since: float | None = None
@@ -88,8 +90,8 @@ class GazeboGraspWeld(Node):
             for m in re.finditer(r'model \{\s*name: "([^"]+)"\s*id: (\d+)', out)
         }
 
-    def _add_joints(self) -> list[str]:
-        """Wait for the spawner's blocks, give each a detached joint to the crane."""
+    def _find_blocks(self) -> list[str]:
+        """Wait for the crane and the spawner's blocks; remember the crane's entity id."""
         deadline = time.monotonic() + 120.0
         while True:
             models = self._models()
@@ -97,48 +99,52 @@ class GazeboGraspWeld(Node):
             if self.crane in models and blocks:
                 time.sleep(2.0)  # let the spawner finish the set
                 models = self._models()
-                blocks = sorted(n for n in models if n.startswith(self.prefix))
-                break
+                self.crane_id = models[self.crane]
+                return sorted(n for n in models if n.startswith(self.prefix))
             if time.monotonic() > deadline:
                 self.get_logger().error(
                     f"no {self.crane} or {self.prefix}* in gz; no welds"
                 )
                 return []
             time.sleep(1.0)
-        for b in blocks:
-            xml = (
-                f"<parent_link>{self.parent_link}</parent_link><child_model>{b}</child_model>"
-                f"<child_link>link</child_link><attach_topic>{self._topic(b, 'attach')}"
-                f"</attach_topic><detach_topic>{self._topic(b, 'detach')}</detach_topic>"
-            )
-            req = (
-                f"entity: {{id: {models[self.crane]}}} plugins: {{name: "
-                f'"gz::sim::systems::DetachableJoint", filename: '
-                f'"gz-sim-detachable-joint-system", innerxml: {json.dumps(xml)}}}'
-            )
-            ok = "data: true" in _gz(
-                "service",
-                "-s",
-                f"/world/{self.world}/entity/system/add",
-                "--reqtype",
-                "gz.msgs.EntityPlugin_V",
-                "--reptype",
-                "gz.msgs.Boolean",
-                "--timeout",
-                "5000",
-                "--req",
-                req,
-            )
-            self.get_logger().info(f"weld for {b}: {'added' if ok else 'FAILED'}")
-        # Each system attaches as soon as it is added, and subscribes a step later: a detach
-        # sent right after the add was lost once and left block_4 welded (sim run 42). A
-        # detach on a free block only warns.
-        time.sleep(2.0)
-        for _ in range(2):
-            for b in blocks:
-                self._send(b, "detach")
-            time.sleep(1.0)
-        return blocks
+
+    def _attach(self, b: str) -> bool:
+        """
+        Weld b to the crane where it is.
+
+        A DetachableJoint attaches the moment it is added, so it is added at the first grasp
+        of b, not at startup: added there, every block was welded until its detach arrived
+        and the crane dragged them (sim runs 42, 48). Later grasps use its attach topic.
+        """
+        if b in self.welds:
+            self._send(b, "attach")
+            return True
+        xml = (
+            f"<parent_link>{self.parent_link}</parent_link><child_model>{b}</child_model>"
+            f"<child_link>link</child_link><attach_topic>{self._topic(b, 'attach')}"
+            f"</attach_topic><detach_topic>{self._topic(b, 'detach')}</detach_topic>"
+        )
+        req = (
+            f"entity: {{id: {self.crane_id}}} plugins: {{name: "
+            f'"gz::sim::systems::DetachableJoint", filename: '
+            f'"gz-sim-detachable-joint-system", innerxml: {json.dumps(xml)}}}'
+        )
+        ok = "data: true" in _gz(
+            "service",
+            "-s",
+            f"/world/{self.world}/entity/system/add",
+            "--reqtype",
+            "gz.msgs.EntityPlugin_V",
+            "--reptype",
+            "gz.msgs.Boolean",
+            "--timeout",
+            "5000",
+            "--req",
+            req,
+        )
+        if ok:
+            self.welds.add(b)
+        return ok
 
     def _block_under_jaws(self) -> str | None:
         out = _gz(
@@ -194,7 +200,10 @@ class GazeboGraspWeld(Node):
         if block is None:
             self.next_look = now + 1.0  # jaws shut on nothing; the gz lookup blocks
             return
-        self._send(block, "attach")
+        if not self._attach(block):
+            self.get_logger().error(f"could not weld {block}")
+            self.next_look = now + 1.0
+            return
         self.attached, self.q9_at_attach = block, q
         self.get_logger().info(f"welded {block} at q9 {q:.3f}, effort {eff:.0f}")
 
