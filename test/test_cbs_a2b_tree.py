@@ -117,28 +117,15 @@ def test_cbs_a2b_subtree_lets_exactly_one_commander_run_a_move():
     assert "theta6_tip_joint" not in checked
     assert "theta7_tilt_joint" not in checked
     assert "q9_left_rail_joint" not in checked
-    with (
-        PACKAGE_DIR
-        / "config"
-        / "ros2_control"
-        / "crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml"
-    ).open() as handle:
-        constraints = yaml.safe_load(handle)["trajectory_controller_a2b"][
-            "ros__parameters"
-        ]["constraints"]
-    tolerance = float(wait.get("goal_tolerance"))
-    for joint in checked:
-        assert constraints[joint]["goal"] == tolerance, (
-            f"{joint} is checked here at {tolerance} but at "
-            f"{constraints[joint]['goal']} by the controller"
-        )
+    # Each caller sets the tolerance; move_above asks less than the JTC's 0.05.
+    assert wait.get("goal_tolerance") == "{ex_goal_tolerance}"
 
-    action = next(
+    guard = next(
         element
-        for element in root.iter("Action")
-        if element.get("ID") == "FollowJointTrajectory"
+        for element in root.iter("Fallback")
+        if any(child.get("ID") == "FollowJointTrajectory" for child in element)
     )
-    assert action.get("_skipIf") == "mpc_drives"
+    assert guard.get("_skipIf") == "mpc_drives"
 
     # The plugin has to be loadable, or the tree fails to construct and the
     # panel reports the misleading "File exists but can't be loaded".
@@ -158,8 +145,7 @@ def test_cbs_move_empty_uses_the_cbs_subtree():
 
     includes = [element.get("path") for element in root.iter("include")]
     assert includes == [
-        "install/concrete_block_behavior_tree/share/concrete_block_behavior_tree"
-        "/behavior_trees/cbs_subtree_a2b_movement.xml"
+        "behavior_trees/cbs_subtree_a2b_movement.xml"
     ], "the CBS tree must include its own subtree, not epsilon's"
 
     subtrees = [element.get("ID") for element in root.iter("SubTree")]
@@ -168,7 +154,7 @@ def test_cbs_move_empty_uses_the_cbs_subtree():
     # The planning call and the approval condition are what the harness exercises.
     nodes = _nodes(CBS_MOVE_EMPTY)
     assert ("CalcA2BMovement", None) in nodes
-    assert ("Condition", "CheckUserApproval") in nodes
+    assert ("Action", "CheckUserApproval") in nodes
     assert ("Decorator", "WaitGoalPose") in nodes
 
     # log_state_estimator is not spawned on this profile; CalcGripState would throw

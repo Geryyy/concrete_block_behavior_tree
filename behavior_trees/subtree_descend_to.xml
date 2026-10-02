@@ -3,6 +3,8 @@
        Caller sets on the (shared) blackboard before invoking:
          dz_x, dz_y, dz_z, dz_yaw  - target CoG pose (world)
          dz_carries                - "true"/"false": carrying a block?
+         ex_until_landed           - true: MPC descent ending on landing (placing);
+                                     false: JTC goal, MPC silent (picking)
        Produces: COG, phi (goal pose), trajectory. -->
   <BehaviorTree ID="SubTreeDescendTo">
     <Sequence name="descend_to">
@@ -22,30 +24,14 @@
         carries="{dz_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!-- SubTreeDescendTo, carrying: ends on landing, see SubTreeExecuteUntilLanded. -->
-  <BehaviorTree ID="SubTreeDescendToLand">
-    <Sequence name="descend_to">
-      <Action ID="SetGoalPose" name="Set descend target"
-        yN_x="{dz_x}" yN_y="{dz_y}" yN_z="{dz_z}"
-        phiN="{dz_yaw}"
-        goal="{COG}" phi="{phi}"/>
-      <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
-      <Action ID="CalcGripMovement" name="Plan descend"
-        carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
-        phiToolN="{phi}" service_name="grip_traj_movement"
-        server_timeout="40000" slowDown="{slow_down}"
-        s_log_8_x="{s_log_8_x}"
-        trajectory="{trajectory}" yN="{COG}"/>
-      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <Action ID="PublishGripperState" name="Publish payload to MPC"
-        carries="{dz_carries}" mass="{payload_mass}"
-        log_shape_text="{log_shape_text}"
-        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <SubTree ID="SubTreeExecuteUntilLanded" _autoremap="true"/>
+      <IfThenElse>
+        <ScriptCondition code="ex_until_landed"/>
+        <Sequence>
+          <Script code="ex_publish_reference := true"/>
+          <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
+        </Sequence>
+        <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
+      </IfThenElse>
     </Sequence>
   </BehaviorTree>
 </root>

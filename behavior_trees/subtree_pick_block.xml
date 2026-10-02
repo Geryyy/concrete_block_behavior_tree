@@ -35,6 +35,7 @@
       <SetBlackboard output_key="dz_z" value="{pickup_z}"/>
       <SetBlackboard output_key="dz_yaw" value="{pickup_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="false"/>
+      <Script code="ex_until_landed := false"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- 3. Close gripper -->

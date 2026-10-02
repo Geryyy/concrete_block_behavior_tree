@@ -303,7 +303,7 @@ def test_wall_assembly_launch_exposes_grip_lift_height_override():
     ]
     assert any(
         declare.name == "lift_height"
-        and getattr(declare.default_value[0], "text", None) == "1.0"
+        and getattr(declare.default_value[0], "text", None) == "1.5"
         for declare in declares
     )
 

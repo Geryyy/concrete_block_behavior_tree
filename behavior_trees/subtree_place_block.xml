@@ -37,7 +37,8 @@
       <Script code="dz_z := place_z - 0.10"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
-      <SubTree ID="SubTreeDescendToLand" _autoremap="true"/>
+      <Script code="ex_until_landed := true"/>
+      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- 2. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"

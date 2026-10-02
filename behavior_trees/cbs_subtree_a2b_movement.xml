@@ -55,6 +55,13 @@
 
      epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
 <root BTCPP_format="4">
+  <!-- The one MPC-execute subtree: A2B moves, lift, carrying descent. Caller sets:
+         ex_goal_tolerance     arrival tolerance [rad|m]
+         ex_publish_reference  true: hand {trajectory} to the MPC (grip plans); false where
+                               crane_planning already published it (A2B)
+         ex_until_landed       true: done on landing (WaitForLoadOff), not on arrival
+       mpc_drives is written by WaitForMoveComplete; a landing descent skips that node and
+       reads the value of the move before. -->
   <BehaviorTree ID="SubTreeCbsA2BMovement">
     <Fallback name="Fallback to deactivate controllers">
       <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
@@ -65,23 +72,42 @@
             deactivate_controllers=""
             server_timeout="1000"
             service_name="/controller_manager/switch_controller"/>
-          <!-- `joints` is the set the a2b JTC gives a non-zero constraints.<joint>.goal. 0.02,
-               not the JTC's 0.05: 0.05 rad of slew is 0.35 m at the block, and the descent was
-               planned from there while the crane still arrived (sim, 2026-10-01). 0.01 is under
-               the MPC's standing error (0.014 seen), which nothing integrates away. Not every joint {trajectory} names: the /a2b_movement answer
-               is the canonical eight and carries theta6_tip_joint / theta7_tilt_joint, which
-               the plan does not aim and /crane/reference does not track; q9_left_rail_joint is
-               left out because its own goal tolerance is 0.00, i.e. the controller does not
-               check it either. -->
-          <WaitForMoveComplete trajectory="{trajectory}"
-            joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
-            goal_tolerance="0.02"
-            timeout_ms="120000"
-            mpc_drives="{mpc_drives}"/>
-          <Action ID="FollowJointTrajectory" _skipIf="mpc_drives"
-            server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-            server_timeout="500"
-            trajectory="{trajectory}"/>
+          <!-- `joints`: the actuated five. The /a2b_movement answer is the canonical eight and
+               carries theta6_tip_joint / theta7_tilt_joint, which the plan does not aim and
+               /crane/reference does not track; q9_left_rail_joint has goal tolerance 0.00, i.e.
+               the controller does not check it either.
+               Landing: the move branch never ends the move. It publishes and sleeps (or runs
+               the goal, whose end or abort decides nothing: run 11 pushed the block 1 cm into
+               the ground and the JTC aborted on the slew it dragged); WaitForLoadOff ends it on
+               landing and fails it past the kinematic floor or on timeout. -->
+          <Parallel success_count="1" failure_count="1">
+            <Sequence>
+              <!-- Nested: a script reads both sides of ||, and mpc_drives is unset until
+                   the first move's WaitForMoveComplete. Grip moves follow a move_above. -->
+              <Sequence _skipIf="!ex_publish_reference">
+                <Action ID="PublishMpcReference" trajectory="{trajectory}"
+                  _skipIf="!mpc_drives"/>
+              </Sequence>
+              <WaitForMoveComplete trajectory="{trajectory}" _skipIf="ex_until_landed"
+                joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+                goal_tolerance="{ex_goal_tolerance}"
+                timeout_ms="120000"
+                mpc_drives="{mpc_drives}"/>
+              <Fallback _skipIf="mpc_drives">
+                <Action ID="FollowJointTrajectory"
+                  server_name="/trajectory_controller_a2b/follow_joint_trajectory"
+                  server_timeout="500"
+                  trajectory="{trajectory}"
+                  goal_tolerance="{ex_goal_tolerance}"
+                  goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
+                <AlwaysSuccess _skipIf="!ex_until_landed"/>
+              </Fallback>
+              <Sleep msec="600000" _skipIf="!ex_until_landed"/>
+            </Sequence>
+            <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed"
+              mass="{payload_mass}" target_z="{place_z}"
+              s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+          </Parallel>
           <SwitchController name="Deactivate controller"
             activate_controllers=""
             deactivate_controllers="trajectory_controller_a2b"
