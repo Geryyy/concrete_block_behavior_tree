@@ -27,8 +27,8 @@
       <!-- 1. Descend to a waypoint 30 cm over the slot and offset to its open side by the plan
            server's approach (place_approach_*: along the build direction, away from the
            placed neighbour). Straight down from the carry hover, clear of a neighbour 2 cm
-           away (wall run 65). Loose tolerance: the correction below plans from where it is. -->
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.10"/>
+           away (wall run 65). The correction below finishes what this leaves undone. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
       <SetBlackboard output_key="dz_x" value="{place_approach_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_approach_y}"/>
       <Script code="dz_z := place_z + 0.30"/>
@@ -38,19 +38,20 @@
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- Correct in the air, before the angled entry: the slew and rotator stop ~5 mrad short
-           of any goal (sim runs 50/53). The measured miss at the waypoint accumulates in
-           off_*, which shifts every later target, so a constant short-fall still converges.
-           Under 1 cm, no move. -->
-      <Script code="off_x := 0.0; off_y := 0.0"/>
-      <Repeat num_cycles="2">
+           of any goal (sim runs 50/53), and a descent knocked by a push stopped 27 cm high and
+           still passed its joint tolerance (wall run 79). The measured 3-D miss at the waypoint
+           accumulates in off_*, which shifts every later target, so a constant short-fall
+           still converges. Under 1 cm, no move. -->
+      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0"/>
+      <Repeat num_cycles="3">
         <Sequence>
           <!-- 2.7 s: one period of the carried pendulum. -->
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-            x="{meas_x}" y="{meas_y}"/>
-          <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y"/>
-          <Sequence _skipIf="miss_x * miss_x + miss_y * miss_y &lt; 0.0001">
-            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
-            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30"/>
+            x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+          <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
+          <Sequence _skipIf="miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &lt; 0.0001">
+            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
+            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
           </Sequence>
         </Sequence>
@@ -59,7 +60,11 @@
       <!-- 2. Angled entry from the open side to 5 cm over the slot: the gap to the neighbour
            only closes to its final 2 cm. -->
       <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.05"/>
-      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+      <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
+           mid-move leaves the crane short and this wait times out. -->
+      <Decorator ID="RetryUntilSuccessful" num_attempts="2">
+        <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+      </Decorator>
 
       <!-- 3. Final segment, straight down at half the speed, ending on landing: at full
            speed the block met the ground at 0.25 m/s and hopped (sim run 43).

@@ -115,11 +115,10 @@ private:
   // Eight times that is still inside this bound, which is why the bound is not
   // written as a multiple of a cycle time that moved once already.
   static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
-  // Long against a turning point, short against any pendulum this crane slings:
-  // the load hangs metres below the tip, so a half-period is seconds, while the
-  // window where the rate is under the bound on a swinging load is a fraction of
-  // a second. A design choice, not a measurement -- no bag has been read for it.
-  static constexpr std::chrono::milliseconds kSettledMinHold{1000};
+  // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
+  // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
+  // points, and the block slid 5 cm on touchdown (sim wall run 77).
+  static constexpr std::chrono::milliseconds kSettledMinHold{2700};
 
   mutable std::mutex mutex_;
   std::optional<JointState> joint_state_;
