@@ -21,6 +21,7 @@ import rclpy
 import rclpy.executors
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Empty, String
 
 
 def _gz(*args: str, timeout: float = 10.0) -> str:
@@ -63,26 +64,52 @@ class GazeboGraspWeld(Node):
         self.clamp_since: float | None = None
         self.next_look = 0.0
         self.armed = True
+        # Commands go through one long-lived bridge and are re-sent until the joint's own
+        # state confirms them: three one-shot `gz topic -p` detaches were all lost under load
+        # and the lift carried a placed block away (wall run 104).
+        verbs = ("attach", "detach")
+        self.bridge = subprocess.Popen(
+            ["ros2", "run", "ros_gz_bridge", "parameter_bridge"]
+            + [
+                f"{self._topic(b, v)}@std_msgs/msg/Empty]gz.msgs.Empty"
+                for b in self.blocks
+                for v in verbs
+            ]
+            + [
+                f"{self._topic(b, 'state')}@std_msgs/msg/String[gz.msgs.StringMsg"
+                for b in self.blocks
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.pubs = {
+            (b, v): self.create_publisher(Empty, self._topic(b, v), 10)
+            for b in self.blocks
+            for v in verbs
+        }
+        self.state: dict[str, str] = {}
+        self.want: dict[str, str] = {}
+        for b in self.blocks:
+            self.create_subscription(
+                String,
+                self._topic(b, "state"),
+                lambda m, b=b: self.state.update({b: m.data}),
+                10,
+            )
+        self.create_timer(0.2, self._resend)
         self.create_subscription(JointState, "/joint_states", self._on_js, 10)
 
     def _topic(self, block: str, verb: str) -> str:
         return f"/cbs_sim/{block}/{verb}"
 
     def _send(self, block: str, verb: str):
-        # Three times: a fresh `gz topic -p` publisher can lose its first message to
-        # discovery, and a lost detach lifted block_2 with the empty gripper (wall run 69).
-        # A repeat on a joint already in that state only warns.
-        for _ in range(3):
-            _gz(
-                "topic",
-                "-t",
-                self._topic(block, verb),
-                "-m",
-                "gz.msgs.Empty",
-                "-p",
-                " ",
-            )
-            time.sleep(0.2)
+        self.want[block] = verb + "ed"
+        self.pubs[(block, verb)].publish(Empty())
+
+    def _resend(self):
+        for block, wanted in self.want.items():
+            if self.state.get(block) != wanted:
+                self.pubs[(block, wanted[:-2])].publish(Empty())
 
     def _models(self) -> dict[str, int]:
         out = _gz(
@@ -136,6 +163,7 @@ class GazeboGraspWeld(Node):
             f"<parent_link>{self.parent_link}</parent_link><child_model>{b}</child_model>"
             f"<child_link>link</child_link><attach_topic>{self._topic(b, 'attach')}"
             f"</attach_topic><detach_topic>{self._topic(b, 'detach')}</detach_topic>"
+            f"<output_topic>{self._topic(b, 'state')}</output_topic>"
         )
         req = (
             f"entity: {{id: {self.crane_id}}} plugins: {{name: "
@@ -157,6 +185,7 @@ class GazeboGraspWeld(Node):
         )
         if ok:
             self.welds.add(b)
+            self.want[b] = "attached"  # an added joint attaches by itself
         return ok
 
     def _block_under_jaws(self) -> str | None:
@@ -228,6 +257,7 @@ def main():
         rclpy.spin(node)
     except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
+    node.bridge.terminate()
     node.destroy_node()
     if rclpy.ok():
         rclpy.shutdown()
