@@ -86,7 +86,7 @@ WaitForMoveComplete::WaitForMoveComplete(
       settled_ = *msg;
       settled_received_ = std::chrono::steady_clock::now();
       // Any verdict that is not YES restarts the hold.
-      if (msg->settled != SwaySettled::SETTLED_YES) {
+      if (!still(*msg)) {
         settled_since_.reset();
       } else if (!settled_since_) {
         settled_since_ = settled_received_;
@@ -117,6 +117,11 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     return BT::NodeStatus::FAILURE;
   }
   getInput("goal_tolerance", goal_tolerance_);
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    sway_bound_ = 0.0;
+    getInput("sway_bound", sway_bound_);
+  }
   getInput("timeout_ms", timeout_ms_);
 
   std::string joints;
@@ -220,7 +225,7 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   if (!settled_ || now - settled_received_ > kSettledMaxAge) {
     return "no fresh sway verdict";
   }
-  if (settled_->settled != SwaySettled::SETTLED_YES) {
+  if (!still(*settled_)) {
     return "the load is not settled: " + settled_->message;
   }
   if (!settled_since_ || now - *settled_since_ < kSettledMinHold) {
@@ -229,6 +234,20 @@ std::string WaitForMoveComplete::not_arrived_reason() const
     return "the load has not read settled for long enough to be still";
   }
   return {};
+}
+
+bool WaitForMoveComplete::still(const SwaySettled & verdict) const
+{
+  if (sway_bound_ <= 0.0 || verdict.settled == SwaySettled::SETTLED_UNKNOWN) {
+    return verdict.settled == SwaySettled::SETTLED_YES;
+  }
+  for (const double rate : verdict.velocity) {
+    // Negated <=: a NaN rate must not read as still.
+    if (!(std::abs(rate) <= sway_bound_)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace concrete_block_behavior_tree

@@ -37,6 +37,7 @@
         </Decorator>
       </Decorator>
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+      <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
       <Script code="ex_publish_reference := false; ex_until_landed := false"/>
       <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
     </Sequence>

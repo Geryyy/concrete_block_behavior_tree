@@ -3,6 +3,8 @@
 // `window_s`: one pendulum period puts the mean at the swing's centre, where one sample read
 // 0.5 cm off a block swinging +-3 cm (sim run 54).
 
+#include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 
@@ -41,6 +43,7 @@ public:
       BT::OutputPort<double>("x", "Block centre [m]"),
       BT::OutputPort<double>("y", "Block centre [m]"),
       BT::OutputPort<double>("z", "Block centre [m]"),
+      BT::OutputPort<double>("tilt", "Block's vertical axis off the frame's z [rad]"),
     };
   }
 
@@ -49,6 +52,7 @@ public:
     window_ = 0.0;
     getInput("window_s", window_);
     sum_ = tf2::Vector3(0.0, 0.0, 0.0);
+    tilt_sum_ = 0.0;
     samples_ = 0;
     start_ = node_->now();
     return sample() ? onRunning() : BT::NodeStatus::FAILURE;
@@ -63,10 +67,12 @@ public:
     setOutput("x", p.x());
     setOutput("y", p.y());
     setOutput("z", p.z());
+    const double tilt = tilt_sum_ / static_cast<double>(samples_);
+    setOutput("tilt", tilt);
     RCLCPP_INFO(
       node_->get_logger(),
-      "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, %d samples",
-      p.x(), p.y(), p.z(), frame_.c_str(), samples_);
+      "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, tilt %.2f deg, %d samples",
+      p.x(), p.y(), p.z(), frame_.c_str(), tilt * 180.0 / M_PI, samples_);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -95,7 +101,11 @@ private:
     tf2::Transform frame_tcp, tcp_block;
     tf2::fromMsg(tcp.transform, frame_tcp);
     tf2::fromMsg(offset, tcp_block);
-    sum_ += (frame_tcp * tcp_block).getOrigin();
+    const tf2::Transform block = frame_tcp * tcp_block;
+    sum_ += block.getOrigin();
+    // Only as good as the grasp offset: FK cannot see a block clamped crooked (the gripper
+    // hung within 1.2 deg while its block hung 9), a vision-refined offset can.
+    tilt_sum_ += std::acos(std::clamp(std::abs(block.getBasis().getColumn(2).z()), 0.0, 1.0));
     ++samples_;
     return true;
   }
@@ -106,6 +116,7 @@ private:
   std::string frame_;
   double window_{0.0};
   tf2::Vector3 sum_;
+  double tilt_sum_{0.0};
   int samples_{0};
   rclcpp::Time start_;
 };

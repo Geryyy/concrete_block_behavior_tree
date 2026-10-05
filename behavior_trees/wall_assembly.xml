@@ -21,6 +21,9 @@
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
       <SetBlackboard output_key="payload_mass" value="800.0"/>
+      <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base:
+           world (-13, 1.5), level and clear of example_wall's pickups. -->
+      <Script code="regrip_x := 6.06; regrip_y := -1.15"/>
       <!-- Pickup approach and place approach come from the wall plan server.
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
@@ -83,8 +86,11 @@
 
             <SubTree ID="SubTreePickAndPlaceBlock" _autoremap="true"/>
 
+            <!-- The default response wait is tens of ms; under load the last block's call
+                 took longer and aborted a finished wall (sim terrain run 135). -->
             <SetBlockTaskStatus
               service_name="/world_model_node/set_block_task_status"
+              server_timeout="5000"
               block_id="{target_block_id}"
               task_status="3"
               status_ok="{status_ok}"

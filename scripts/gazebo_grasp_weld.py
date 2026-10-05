@@ -11,10 +11,13 @@ current relative pose while q9 clamps and lets go as soon as q9 opens.
 gz CLI, like gazebo_block_spawner.py: no gz python bindings on jazzy.
 """
 
+import ctypes
 import json
 import math
 import re
+import signal
 import subprocess
+import threading
 import time
 
 import rclpy
@@ -38,6 +41,11 @@ def _rotate(q: dict, v: list[float]) -> list[float]:
     c1 = [y * v[2] - z * v[1], z * v[0] - x * v[2], x * v[1] - y * v[0]]
     c2 = [y * c1[2] - z * c1[1], z * c1[0] - x * c1[2], x * c1[1] - y * c1[0]]
     return [v[i] + 2 * w * c1[i] + 2 * c2[i] for i in range(3)]
+
+
+def _die_with_parent():
+    # A streaming `gz topic` child outlived its node and kept running (sim run 124).
+    ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
 
 
 class GazeboGraspWeld(Node):
@@ -81,6 +89,7 @@ class GazeboGraspWeld(Node):
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            preexec_fn=_die_with_parent,
         )
         self.pubs = {
             (b, v): self.create_publisher(Empty, self._topic(b, v), 10)
@@ -97,6 +106,8 @@ class GazeboGraspWeld(Node):
                 10,
             )
         self.create_timer(0.2, self._resend)
+        self.poses: tuple[float, str] | None = None
+        threading.Thread(target=self._stream_poses, daemon=True).start()
         self.create_subscription(JointState, "/joint_states", self._on_js, 10)
 
     def _topic(self, block: str, verb: str) -> str:
@@ -159,6 +170,12 @@ class GazeboGraspWeld(Node):
         if b in self.welds:
             self._send(b, "attach")
             return True
+        if self.state.get(b) == "attached":
+            # An add whose reply was lost: the joint is there. Adding again doubled it and the
+            # weld landed mid-lift, jerking the MPC into QP failures (sim terrain run 131).
+            self.welds.add(b)
+            self.want[b] = "attached"
+            return True
         xml = (
             f"<parent_link>{self.parent_link}</parent_link><child_model>{b}</child_model>"
             f"<child_link>link</child_link><attach_topic>{self._topic(b, 'attach')}"
@@ -188,20 +205,32 @@ class GazeboGraspWeld(Node):
             self.want[b] = "attached"  # an added joint attaches by itself
         return ok
 
+    def _stream_poses(self):
+        # The newest gz pose message: a one-shot `gz topic -e -n 1` per grasp came back
+        # empty under load and two blocks were never welded (sim terrain run 123).
+        topic = f"/world/{self.world}/dynamic_pose/info"
+        while True:
+            proc = subprocess.Popen(
+                ["gz", "topic", "-e", "-t", topic, "--json-output"],
+                stdout=subprocess.PIPE,
+                text=True,
+                preexec_fn=_die_with_parent,
+            )
+            # Kept raw, parsed per grasp: parsing every message cost half a core.
+            for line in proc.stdout:
+                if self.parent_link in line:
+                    self.poses = (time.monotonic(), line)
+            time.sleep(1.0)
+
     def _block_under_jaws(self) -> str | None:
-        out = _gz(
-            "topic",
-            "-e",
-            "-n",
-            "1",
-            "-t",
-            f"/world/{self.world}/dynamic_pose/info",
-            "--json-output",
-        )
+        if self.poses is None or time.monotonic() - self.poses[0] > 1.0:
+            self.get_logger().warn("no fresh gz pose message to find the gripped block")
+            return None
         try:
-            poses = {p["name"]: p for p in json.loads(out.splitlines()[0])["pose"]}
+            poses = {p["name"]: p for p in json.loads(self.poses[1])["pose"]}
             crane, link = poses[self.crane], poses[self.parent_link]
-        except (IndexError, KeyError, ValueError):
+        except (ValueError, KeyError):
+            self.get_logger().warn(f"gz poses lack {self.crane} or {self.parent_link}")
             return None
         pos = lambda p: [p.get("position", {}).get(k, 0.0) for k in "xyz"]  # noqa: E731
         rel = _rotate(crane.get("orientation", {}), pos(link))
@@ -240,11 +269,14 @@ class GazeboGraspWeld(Node):
             return
         block = self._block_under_jaws()
         if block is None:
-            self.next_look = now + 1.0  # jaws shut on nothing; the gz lookup blocks
+            self.get_logger().warn(
+                "jaws clamped, no block under them to weld", throttle_duration_sec=5.0
+            )
+            self.next_look = now + 1.0
             return
         if not self._attach(block):
             self.get_logger().error(f"could not weld {block}")
-            self.next_look = now + 1.0
+            self.next_look = now + 0.3
             return
         self.attached, self.q9_at_attach = block, q
         self.get_logger().info(f"welded {block} at q9 {q:.3f}, effort {eff:.0f}")

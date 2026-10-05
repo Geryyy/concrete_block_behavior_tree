@@ -56,6 +56,7 @@
            placed neighbour). Straight down from the carry hover, clear of a neighbour 2 cm
            away (wall run 65). The correction below finishes what this leaves undone. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
+      <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
       <SetBlackboard output_key="dz_x" value="{place_approach_x}"/>
       <SetBlackboard output_key="dz_y" value="{place_approach_y}"/>
       <Script code="dz_z := place_z + 0.30"/>
@@ -102,6 +103,13 @@
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
         <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       </Decorator>
+      <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- From 5 cm over dz_x/dz_y: touchdown, release, lift away. -->
+  <BehaviorTree ID="SubTreeTouchdown">
+    <Sequence name="touchdown">
 
       <!-- 3. Final segment, straight down at half the speed, ending on landing: at full
            speed the block met the ground at 0.25 m/s and hopped (sim run 43).

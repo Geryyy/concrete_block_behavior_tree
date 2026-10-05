@@ -47,7 +47,7 @@ def test_grip_hands_the_mpc_the_block_the_planner_already_gets():
 
 
 def test_release_clears_the_payload_after_the_jaws_open():
-    elements = _sequence(TREE_DIR / "subtree_place_block.xml", "SubTreePlaceFinish")
+    elements = _sequence(TREE_DIR / "subtree_place_block.xml", "SubTreeTouchdown")
     at = _index(elements, lambda e: e.get("ID") == "SetMpcPayload")
 
     assert elements[at].get("carries") == "false"

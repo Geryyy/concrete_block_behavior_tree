@@ -66,7 +66,11 @@
 
       <!-- 5. Tell the MPC what it now carries. An unknown block is the one
            condition that leaves 174's measured mismatch envelope, and the lift
-           below is the first carrying move. -->
+           below is the first carrying move. The COM's xy (planner and MPC alike) is clamped
+           to 3 cm: their sway equilibrium assumes a centred load, and a crooked grip's 6.4 cm
+           had every move refused as not settling (sim terrain run 128). -->
+      <Script code="s_log_8_x := s_log_8_x &gt; 0.03 ? 0.03 : (s_log_8_x &lt; -0.03 ? -0.03 : s_log_8_x);
+                    s_log_8_y := s_log_8_y &gt; 0.03 ? 0.03 : (s_log_8_y &lt; -0.03 ? -0.03 : s_log_8_y)"/>
       <Action ID="SetMpcPayload" name="Set MPC payload"
         service_name="/crane/mpc/set_payload"
         carries="true"
@@ -78,6 +82,30 @@
       <!-- 6. Lift the grasped block -->
       <SetBlackboard output_key="lf_carries" value="true"/>
       <SubTree ID="SubTreeLift" _autoremap="true"/>
+
+      <!-- 7. Look at the block in hand. The grasp offset above is FK against the world
+           model's pose, which takes a block on uneven ground for flat: a block clamped 9 deg
+           crooked hung under a gripper within 1.2 deg of vertical (sim terrain run 119).
+           Vision rewrites the carried block's pose; the offset is captured again from it,
+           and grip_tilt is what the jaws really hold. Without a detector both pass through. -->
+      <ForceSuccess>
+        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+          server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
+          timeout_s="8.0" message="{grasp_refine_message}"/>
+      </ForceSuccess>
+      <!-- Only grasp_offset is taken: the payload stays what the MPC was given above. -->
+      <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset after vision"
+        service_name="/world_model_node/get_coarse_blocks"
+        server_timeout="5000"
+        block_id="{grasp_object_contains}"
+        gripper_frame="K8_tool_center_point"
+        world_frame="world"
+        grasp_offset="{grasp_offset}"
+        s_log_8_x="{vision_s_log_8_x}"
+        s_log_8_y="{vision_s_log_8_y}"
+        s_log_8_z="{vision_s_log_8_z}"/>
+      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
+        tilt="{grip_tilt}"/>
 
     </Sequence>
   </BehaviorTree>

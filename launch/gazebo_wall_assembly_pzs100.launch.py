@@ -8,7 +8,6 @@ and a bt_action_server with CBS + epsilon_crane plugins.
 
 import os
 
-from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
@@ -16,7 +15,7 @@ from launch.actions import (
     SetEnvironmentVariable,
     TimerAction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
@@ -26,6 +25,8 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+
+from launch import LaunchDescription
 
 
 def generate_launch_description():
@@ -155,6 +156,9 @@ def generate_launch_description():
                 ),
                 description="World-model/Gazebo seed YAML with world_model.initial_blocks.",
             ),
+            # Vision start: world_model_seed_none.yaml here, and the blocks Gazebo spawns
+            # from seed_file are found by SCENE_DISCOVERY instead of known up front.
+            DeclareLaunchArgument("world_model_seed_file", default_value=seed_file),
             # Point the RViz BT panel to concrete_block_behavior_tree
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
@@ -191,7 +195,7 @@ def generate_launch_description():
                     "planner": LaunchConfiguration("planner"),
                     "mpc_waits_for_start": LaunchConfiguration("mpc_waits_for_start"),
                     "initial_pose": LaunchConfiguration("initial_pose"),
-                    "seed_file": seed_file,
+                    "seed_file": LaunchConfiguration("world_model_seed_file"),
                     "gui": LaunchConfiguration("gui"),
                     "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
                 }.items(),
@@ -408,6 +412,18 @@ def generate_launch_description():
                         name="gazebo_grasp_weld",
                         output="screen",
                         parameters=[{"use_sim_time": True}],
+                    ),
+                    # Stands in for the detector when start_perception is off: true block
+                    # poses + noise on the detector's service, for the world model's REFINE_*.
+                    Node(
+                        package="concrete_block_behavior_tree",
+                        executable="gazebo_block_oracle.py",
+                        name="concrete_block_detector",
+                        output="screen",
+                        parameters=[{"use_sim_time": True}],
+                        condition=UnlessCondition(
+                            LaunchConfiguration("start_perception")
+                        ),
                     ),
                 ],
             ),

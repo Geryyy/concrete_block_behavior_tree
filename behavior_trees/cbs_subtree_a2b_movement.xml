@@ -57,6 +57,7 @@
 <root BTCPP_format="4">
   <!-- The one MPC-execute subtree: A2B moves, lift, carrying descent. Caller sets:
          ex_goal_tolerance     arrival tolerance [rad|m]
+         ex_sway_bound         sway rate bound at arrival [rad/s], 0: the MPC verdict's
          ex_publish_reference  true: hand {trajectory} to the MPC (grip plans); false where
                                crane_planning already published it (A2B)
          ex_until_landed       true: done on landing (WaitForLoadOff), not on arrival
@@ -91,6 +92,7 @@
               <WaitForMoveComplete trajectory="{trajectory}" _skipIf="ex_until_landed"
                 joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
                 goal_tolerance="{ex_goal_tolerance}"
+                sway_bound="{ex_sway_bound}"
                 timeout_ms="120000"
                 mpc_drives="{mpc_drives}"/>
               <Fallback _skipIf="mpc_drives">

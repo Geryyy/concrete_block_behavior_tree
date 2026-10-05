@@ -83,6 +83,9 @@ public:
       BT::InputPort<int>("timeout_ms", 120000, "Give up and fail after this long"),
       BT::InputPort<std::string>("joint_states_topic", "/joint_states", "Measured joint state"),
       BT::InputPort<std::string>("settled_topic", "/crane/sway_settled", "Sway verdict"),
+      // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
+      // a decaying sway that nothing after it needs that still (sim terrain run 134).
+      BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),
       // True only where this node is the commander, from the `a2b_mpc_drives`
       // ROS parameter. The sibling FollowJointTrajectory action is _skipIf'd on
       // it, so exactly one of the two commands any given move.
@@ -102,6 +105,8 @@ private:
   // Why the move is not over yet, or empty when it is. The sentence is what the
   // timeout reports, so the failure says which half was missing.
   std::string not_arrived_reason() const;
+  // The verdict's YES, or, with a sway_bound, its rates against that. UNKNOWN never is.
+  bool still(const SwaySettled & verdict) const;
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
@@ -128,6 +133,7 @@ private:
   std::optional<std::chrono::steady_clock::time_point> settled_since_;
 
   bool mpc_drives_{false};
+  double sway_bound_{0.0};
   JointTrajectory trajectory_;
   std::vector<std::string> joints_;
   double goal_tolerance_{0.05};
