@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <map>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -36,8 +37,15 @@ public:
         last_command_ = message->data;
         ++command_sequence_;
       }, options);
-    state_pub_ = node_->create_publisher<std_msgs::msg::String>(
-      state_topic_, rclcpp::QoS(1).transient_local());
+    // One latched publisher per topic, shared by every wait node: one each left a late panel
+    // with every node's last "waiting:" in arbitrary order, a stale stage among them.
+    static std::map<std::string, rclcpp::Publisher<std_msgs::msg::String>::SharedPtr> shared;
+    auto & pub = shared[state_topic_];
+    if (!pub) {
+      pub = node_->create_publisher<std_msgs::msg::String>(
+        state_topic_, rclcpp::QoS(1).transient_local());
+    }
+    state_pub_ = pub;
   }
 
   static BT::PortsList providedPorts()
@@ -108,6 +116,7 @@ public:
       if (last_command_ == command) {
         setOutput("received", last_command_);
         setOutput("exit_requested", true);
+        publishRunning();
         return BT::NodeStatus::FAILURE;
       }
     }
@@ -115,6 +124,7 @@ public:
       if (last_command_ == command) {
         setOutput("received", last_command_);
         setOutput("exit_requested", false);
+        publishRunning();
         return BT::NodeStatus::SUCCESS;
       }
     }
@@ -132,6 +142,14 @@ private:
     for (const auto & command : failure_commands_) {
       message.data += "|" + command;
     }
+    state_pub_->publish(message);
+  }
+
+  // Latched after the command: the stage is no longer waiting, whatever comes next.
+  void publishRunning()
+  {
+    std_msgs::msg::String message;
+    message.data = "running:" + last_command_;
     state_pub_->publish(message);
   }
 
