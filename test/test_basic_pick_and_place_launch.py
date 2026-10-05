@@ -22,10 +22,11 @@ def _walk_entities(entities):
         sub_entities = getattr(entity, "entities", None)
         if sub_entities:
             yield from _walk_entities(sub_entities)
-        # TimerAction keeps its children in a private attribute, not `entities`.
-        timed = getattr(entity, "_TimerAction__actions", None)
-        if timed:
-            yield from _walk_entities(timed)
+        # TimerAction and GroupAction keep their children in private attributes.
+        for private in ("_TimerAction__actions", "_GroupAction__actions"):
+            children = getattr(entity, private, None)
+            if children:
+                yield from _walk_entities(children)
 
 
 def _started_packages(ld, **configurations):
