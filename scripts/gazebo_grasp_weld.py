@@ -44,7 +44,7 @@ def _rotate(q: dict, v: list[float]) -> list[float]:
 
 
 def _die_with_parent():
-    # A streaming `gz topic` child outlived its node and kept running (sim run 124).
+    # A streaming `gz topic` child outlived its node and kept running.
     ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
 
 
@@ -57,7 +57,7 @@ class GazeboGraspWeld(Node):
         self.prefix = self.declare_parameter("block_prefix", "block_").value
         self.q9 = self.declare_parameter("q9_joint", "q9_left_rail_joint").value
         # Clamping, not touching: the sim clamps at ~7 kN, the grasp detector's 100 N fired
-        # on empty jaws after run 38 lost its block.
+        # on empty jaws and lost the block.
         self.clamp_effort = self.declare_parameter("clamp_effort", 3000.0).value
         self.clamp_hold = self.declare_parameter("clamp_hold_s", 0.2).value
         self.open_margin = self.declare_parameter("open_margin", 0.01).value
@@ -74,7 +74,7 @@ class GazeboGraspWeld(Node):
         self.armed = True
         # Commands go through one long-lived bridge and are re-sent until the joint's own
         # state confirms them: three one-shot `gz topic -p` detaches were all lost under load
-        # and the lift carried a placed block away (wall run 104).
+        # and the lift carried a placed block away.
         verbs = ("attach", "detach")
         self.bridge = subprocess.Popen(
             ["ros2", "run", "ros_gz_bridge", "parameter_bridge"]
@@ -165,14 +165,14 @@ class GazeboGraspWeld(Node):
 
         A DetachableJoint attaches the moment it is added, so it is added at the first grasp
         of b, not at startup: added there, every block was welded until its detach arrived
-        and the crane dragged them (sim runs 42, 48). Later grasps use its attach topic.
+        and the crane dragged them. Later grasps use its attach topic.
         """
         if b in self.welds:
             self._send(b, "attach")
             return True
         if self.state.get(b) == "attached":
             # An add whose reply was lost: the joint is there. Adding again doubled it and the
-            # weld landed mid-lift, jerking the MPC into QP failures (sim terrain run 131).
+            # weld landed mid-lift, jerking the MPC into QP failures.
             self.welds.add(b)
             self.want[b] = "attached"
             return True
@@ -207,7 +207,7 @@ class GazeboGraspWeld(Node):
 
     def _stream_poses(self):
         # The newest gz pose message: a one-shot `gz topic -e -n 1` per grasp came back
-        # empty under load and two blocks were never welded (sim terrain run 123).
+        # empty under load and two blocks were never welded.
         topic = f"/world/{self.world}/dynamic_pose/info"
         while True:
             proc = subprocess.Popen(

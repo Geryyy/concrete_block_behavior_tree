@@ -1,7 +1,7 @@
 // Where the carried block hangs: gripper TF (pendulum joints included) times the grasp
 // offset, the estimate WriteBlockPoseFromGripper writes, without writing it. Averaged over
 // `window_s`: one pendulum period puts the mean at the swing's centre, where one sample read
-// 0.5 cm off a block swinging +-3 cm (sim run 54).
+// 0.5 cm off a block swinging +-3 cm.
 
 #include <algorithm>
 #include <cmath>

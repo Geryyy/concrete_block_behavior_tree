@@ -15,9 +15,9 @@
       <!-- A waypoint descent that stopped short (a push, an MPC escalation) goes back up the
            collision-checked A2B move and comes down again: the grip descents are not
            collision-checked, and a 55 cm diagonal correction beside a placed block knocked
-           two off the wall (wall run 97). -->
+           two off the wall. -->
       <!-- A failed approach lifts straight up first: a push swung block_4 onto block_3, and
-           the A2B planner refuses a start 1 cm from a block (wall run 103). -->
+           the A2B planner refuses a start 1 cm from a block. -->
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
         <Fallback>
           <Sequence>
@@ -54,7 +54,7 @@
       <!-- 1. Descend to a waypoint 30 cm over the slot and offset to its open side by the plan
            server's approach (place_approach_*: along the build direction, away from the
            placed neighbour). Straight down from the carry hover, clear of a neighbour 2 cm
-           away (wall run 65). The correction below finishes what this leaves undone. -->
+           away. The correction below finishes what this leaves undone. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
       <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
       <SetBlackboard output_key="dz_x" value="{place_approach_x}"/>
@@ -66,8 +66,8 @@
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- Correct in the air, before the angled entry: the slew and rotator stop ~5 mrad short
-           of any goal (sim runs 50/53), and a descent knocked by a push stopped 27 cm high and
-           still passed its joint tolerance (wall run 79). The measured 3-D miss at the waypoint
+           of any goal, and a descent knocked by a push stopped 27 cm high and
+           still passed its joint tolerance. The measured 3-D miss at the waypoint
            accumulates in off_*, which shifts every later target, so a constant short-fall
            still converges. Under 1 cm, no move. -->
       <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0"/>
@@ -78,8 +78,8 @@
             x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
           <!-- Vertical only: a descent that stopped 28 cm short is not corrected diagonally
-               (wall run 97). A lateral miss is: steady wind holds the block 14 cm aside, the
-               same on every retry (wall run 102). -->
+               A lateral miss is: steady wind holds the block 14 cm aside, the same on every
+               retry. -->
           <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
           <Sequence _skipIf="miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &lt; 0.0001">
             <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
@@ -112,9 +112,9 @@
     <Sequence name="touchdown">
 
       <!-- 3. Final segment, straight down at half the speed, ending on landing: at full
-           speed the block met the ground at 0.25 m/s and hopped (sim run 43).
+           speed the block met the ground at 0.25 m/s and hopped.
            Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
-           10 cm low still left the hook carrying ~60 % of the landed block (sim run 41).
+           10 cm low still left the hook carrying ~60 % of the landed block.
            WaitForLoadOff stops it once the hook is unloaded, and at its floor, 1 cm under
            place_z, if there is no ground. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>

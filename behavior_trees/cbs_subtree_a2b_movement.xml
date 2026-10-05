@@ -78,7 +78,7 @@
                /crane/reference does not track; q9_left_rail_joint has goal tolerance 0.00, i.e.
                the controller does not check it either.
                Landing: the move branch never ends the move. It publishes and sleeps (or runs
-               the goal, whose end or abort decides nothing: run 11 pushed the block 1 cm into
+               the goal, whose end or abort decides nothing: one run pushed the block 1 cm into
                the ground and the JTC aborted on the slew it dragged); WaitForLoadOff ends it on
                landing and fails it past the kinematic floor or on timeout. -->
           <Parallel success_count="1" failure_count="1">
@@ -107,7 +107,7 @@
               <Sleep msec="600000" _skipIf="!ex_until_landed"/>
             </Sequence>
             <!-- 0.7, not 0.25: at 0.25 the jaws opened with ~60 % of the block still on
-                 the hook and the boom bounced 0.3 m (sim run 41). -->
+                 the hook and the boom bounced 0.3 m. -->
             <!-- 40 s: the slow final segment is a ~10 s plan and unloads after contact. -->
             <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed" drop_fraction="0.7"
               timeout_ms="40000"

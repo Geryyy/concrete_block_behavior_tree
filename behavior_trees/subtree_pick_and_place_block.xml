@@ -7,7 +7,7 @@
     <Sequence name="pick_and_place_block">
       <SubTree ID="SubTreePickBlock" _autoremap="true"/>
       <!-- A block gripped more than 3 deg crooked lands on an edge and slides 5-11 cm while
-           the hook unloads, or its carry plan does not converge (sim terrain runs 120-122). -->
+           the hook unloads, or its carry plan does not converge. -->
       <Fallback>
         <ScriptCondition code="grip_tilt &lt; 0.0524"/>
         <SubTree ID="SubTreeRegrip" _autoremap="true"/>
@@ -30,7 +30,7 @@
   </BehaviorTree>
 
   <!-- Set the carried block down at place_* unmeasured: a regrip needs it flat, not exact.
-       The wall placement's in-air correction and angled entry cost ~50 s of it (sim run 133). -->
+       The wall placement's in-air correction and angled entry cost ~50 s of it. -->
   <BehaviorTree ID="SubTreeSetDown">
     <Sequence name="set_down">
       <SetBlackboard output_key="mv_x" value="{place_x}"/>

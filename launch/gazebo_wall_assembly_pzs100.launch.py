@@ -111,14 +111,14 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "place_approach_angle_deg",
                 # 18: the place waypoint sits 0.30 tan(18) = 0.10 m to the open side; 4 (2 cm)
-                # left no clearance to a neighbour 2 cm away (sim wall run 65).
+                # left no clearance to a neighbour 2 cm away.
                 default_value="18.0",
                 description="Pre-place lateral approach angle in degrees.",
             ),
             DeclareLaunchArgument(
                 "lift_height",
                 # 1.0 carried the block over its neighbour with ~0.3 m to spare and the
-                # MPC sagged 0.18 m crossing it: the corner caught (sim run 17).
+                # MPC sagged 0.18 m crossing it: the corner caught.
                 default_value="1.5",
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),

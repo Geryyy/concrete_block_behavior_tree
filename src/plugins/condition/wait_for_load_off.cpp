@@ -124,7 +124,7 @@ BT::NodeStatus WaitForLoadOff::onRunning()
     }
     // Hanging: the block sits |s_log_8| straight below K8. Not rotated through K8's
     // attitude -- the tool tilts as the block lands, and a 1 m lever then moved the
-    // estimate 0.4 m in a second (sim run 25).
+    // estimate 0.4 m in a second.
     centre.x = k8.transform.translation.x;
     centre.y = k8.transform.translation.y;
     centre.z = k8.transform.translation.z - std::abs(centre_k8.z);
@@ -136,7 +136,7 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   }
   const double above = centre.z - target_z;
   // Gated on the lowest point reached, not on now: the boom springs up as the load
-  // leaves it, 0.2 m within a second of touchdown (sim run 27).
+  // leaves it, 0.2 m within a second of touchdown.
   lowest_ = std::min(lowest_, above);
   if (above < -floor) {
     RCLCPP_ERROR(

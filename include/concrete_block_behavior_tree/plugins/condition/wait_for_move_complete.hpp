@@ -84,7 +84,7 @@ public:
       BT::InputPort<std::string>("joint_states_topic", "/joint_states", "Measured joint state"),
       BT::InputPort<std::string>("settled_topic", "/crane/sway_settled", "Sway verdict"),
       // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
-      // a decaying sway that nothing after it needs that still (sim terrain run 134).
+      // a decaying sway that nothing after it needs that still.
       BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),
       // True only where this node is the commander, from the `a2b_mpc_drives`
       // ROS parameter. The sibling FollowJointTrajectory action is _skipIf'd on
@@ -122,7 +122,7 @@ private:
   static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
   // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
   // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
-  // points, and the block slid 5 cm on touchdown (sim wall run 77).
+  // points, and the block slid 5 cm on touchdown.
   static constexpr std::chrono::milliseconds kSettledMinHold{2700};
 
   mutable std::mutex mutex_;

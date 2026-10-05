@@ -35,7 +35,7 @@ def _qmul(a, b):
 
 
 def _die_with_parent():
-    # A streaming `gz topic` child outlived its node and kept running (sim run 124).
+    # A streaming `gz topic` child outlived its node and kept running.
     ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
 
 
@@ -59,8 +59,7 @@ class GazeboBlockOracle(Node):
         )
         self.rng = random.Random(self.declare_parameter("seed", 0).value)
         # One streaming subscription, answered from its newest message: a one-shot
-        # `gz topic -e -n 1` per request took over 5 s under load and the refine timed out
-        # (sim terrain run 123).
+        # `gz topic -e -n 1` per request took over 5 s under load and the refine timed out.
         self.latest: tuple[float, str] | None = None
         threading.Thread(target=self._stream, daemon=True).start()
         self.create_service(DiscoverBlocks, "~/discover_blocks", self._discover)

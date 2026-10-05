@@ -68,7 +68,7 @@
            condition that leaves 174's measured mismatch envelope, and the lift
            below is the first carrying move. The COM's xy (planner and MPC alike) is clamped
            to 3 cm: their sway equilibrium assumes a centred load, and a crooked grip's 6.4 cm
-           had every move refused as not settling (sim terrain run 128). -->
+           had every move refused as not settling. -->
       <Script code="s_log_8_x := s_log_8_x &gt; 0.03 ? 0.03 : (s_log_8_x &lt; -0.03 ? -0.03 : s_log_8_x);
                     s_log_8_y := s_log_8_y &gt; 0.03 ? 0.03 : (s_log_8_y &lt; -0.03 ? -0.03 : s_log_8_y)"/>
       <Action ID="SetMpcPayload" name="Set MPC payload"
@@ -85,7 +85,7 @@
 
       <!-- 7. Look at the block in hand. The grasp offset above is FK against the world
            model's pose, which takes a block on uneven ground for flat: a block clamped 9 deg
-           crooked hung under a gripper within 1.2 deg of vertical (sim terrain run 119).
+           crooked hung under a gripper within 1.2 deg of vertical.
            Vision rewrites the carried block's pose; the offset is captured again from it,
            and grip_tilt is what the jaws really hold. Without a detector both pass through. -->
       <ForceSuccess>

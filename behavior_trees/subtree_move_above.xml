@@ -24,7 +24,7 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02" _skipIf="mv_carries != 'true'"/>
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05" _skipIf="mv_carries == 'true'"/>
       <!-- Sway: an empty hook need not wait out the swing to the verdict's 0.02 rad/s: ~5 s
-           per move (sim terrain run 134); the descent to the block lets it decay further. -->
+           per move; the descent to the block lets it decay further. -->
       <SetBlackboard output_key="ex_sway_bound" value="0.0" _skipIf="mv_carries != 'true'"/>
       <SetBlackboard output_key="ex_sway_bound" value="0.05" _skipIf="mv_carries == 'true'"/>
       <Script code="ex_publish_reference := false; ex_until_landed := false"/>

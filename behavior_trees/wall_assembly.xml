@@ -87,7 +87,7 @@
             <SubTree ID="SubTreePickAndPlaceBlock" _autoremap="true"/>
 
             <!-- The default response wait is tens of ms; under load the last block's call
-                 took longer and aborted a finished wall (sim terrain run 135). -->
+                 took longer and aborted a finished wall. -->
             <SetBlockTaskStatus
               service_name="/world_model_node/set_block_task_status"
               server_timeout="5000"
