@@ -11,6 +11,7 @@ import os
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    GroupAction,
     IncludeLaunchDescription,
     SetEnvironmentVariable,
     TimerAction,
@@ -184,21 +185,34 @@ def generate_launch_description():
                 value="/behavior_trees/move_empty_pzs100.xml",
             ),
             # ── PZS100 crane simulation (without epsilon_crane BT) ───────
-            IncludeLaunchDescription(
-                PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
-                / "launch"
-                / "pzs100_bringup.launch.py",
-                launch_arguments={
-                    "start_bt_action_server": "False",
-                    "start_grip_traj_server": "False",
-                    "controller": LaunchConfiguration("controller"),
-                    "planner": LaunchConfiguration("planner"),
-                    "mpc_waits_for_start": LaunchConfiguration("mpc_waits_for_start"),
-                    "initial_pose": LaunchConfiguration("initial_pose"),
-                    "seed_file": LaunchConfiguration("world_model_seed_file"),
-                    "gui": LaunchConfiguration("gui"),
-                    "gazebo_world_file": LaunchConfiguration("gazebo_world_file"),
-                }.items(),
+            # Scoped: an include's launch_arguments leak into this file, and its seed_file
+            # (the world model's) replaced the spawner's, so nothing was spawned.
+            GroupAction(
+                scoped=True,
+                actions=[
+                    IncludeLaunchDescription(
+                        PathSubstitution(
+                            FindPackageShare("concrete_block_behavior_tree")
+                        )
+                        / "launch"
+                        / "pzs100_bringup.launch.py",
+                        launch_arguments={
+                            "start_bt_action_server": "False",
+                            "start_grip_traj_server": "False",
+                            "controller": LaunchConfiguration("controller"),
+                            "planner": LaunchConfiguration("planner"),
+                            "mpc_waits_for_start": LaunchConfiguration(
+                                "mpc_waits_for_start"
+                            ),
+                            "initial_pose": LaunchConfiguration("initial_pose"),
+                            "seed_file": LaunchConfiguration("world_model_seed_file"),
+                            "gui": LaunchConfiguration("gui"),
+                            "gazebo_world_file": LaunchConfiguration(
+                                "gazebo_world_file"
+                            ),
+                        }.items(),
+                    ),
+                ],
             ),
             # The PZS100 bringup owns the seeded world model.  The detector
             # talks to it through /concrete_block_detector/discover_blocks;

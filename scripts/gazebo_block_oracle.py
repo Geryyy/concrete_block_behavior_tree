@@ -138,7 +138,12 @@ class GazeboBlockOracle(Node):
             block.last_seen = response.blocks.header.stamp
             response.blocks.blocks.append(block)
         response.success = True
+        # The testsite ground is flat: the plane the detector's fit would return, no cells.
         response.ground_height_m = 0.0
+        response.ground_model.valid = True
+        response.ground_model.plane_normal.z = 1.0
+        response.ground_model.plane_source = "oracle"
+        response.ground_model.cell_size = 1.0
         response.message = f"oracle: {len(response.blocks.blocks)} blocks from gz"
         return response
 
