@@ -52,7 +52,7 @@ public:
     window_ = 0.0;
     getInput("window_s", window_);
     sum_ = tf2::Vector3(0.0, 0.0, 0.0);
-    tilt_sum_ = 0.0;
+    axis_sum_ = tf2::Vector3(0.0, 0.0, 0.0);
     samples_ = 0;
     start_ = node_->now();
     return sample() ? onRunning() : BT::NodeStatus::FAILURE;
@@ -67,7 +67,9 @@ public:
     setOutput("x", p.x());
     setOutput("y", p.y());
     setOutput("z", p.z());
-    const double tilt = tilt_sum_ / static_cast<double>(samples_);
+    // Tilt of the mean block axis, not the mean of |tilt|: a swing cancels over the window
+    // instead of reading as a crooked grip.
+    const double tilt = std::acos(std::clamp(std::abs(axis_sum_.normalized().z()), 0.0, 1.0));
     setOutput("tilt", tilt);
     RCLCPP_INFO(
       node_->get_logger(),
@@ -105,7 +107,9 @@ private:
     sum_ += block.getOrigin();
     // Only as good as the grasp offset: FK cannot see a block clamped crooked (the gripper
     // hung within 1.2 deg while its block hung 9), a vision-refined offset can.
-    tilt_sum_ += std::acos(std::clamp(std::abs(block.getBasis().getColumn(2).z()), 0.0, 1.0));
+    // Block z-axis; its sign is arbitrary, so keep it pointing up before summing.
+    const tf2::Vector3 axis = block.getBasis().getColumn(2);
+    axis_sum_ += axis.z() < 0.0 ? -axis : axis;
     ++samples_;
     return true;
   }
@@ -116,7 +120,7 @@ private:
   std::string frame_;
   double window_{0.0};
   tf2::Vector3 sum_;
-  double tilt_sum_{0.0};
+  tf2::Vector3 axis_sum_;
   int samples_{0};
   rclcpp::Time start_;
 };

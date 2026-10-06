@@ -8,10 +8,9 @@
       <!-- Loose: a lift only needs clearance, and the pendulum swings as the
            block leaves the ground, so a tight check would abort on physics. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.20"/>
-      <!-- Empty, the next move need not wait out the swing; carried, a swing reads as grip
-           tilt and triggers a needless regrip. -->
-      <SetBlackboard output_key="ex_sway_bound" value="0.0" _skipIf="lf_carries != 'true'"/>
-      <SetBlackboard output_key="ex_sway_bound" value="0.05" _skipIf="lf_carries == 'true'"/>
+      <!-- The next move need not wait out the swing: the planner starts from a measured one,
+           and the tilt measurement averages it out. -->
+      <SetBlackboard output_key="ex_sway_bound" value="0.05"/>
       <Script code="ex_publish_reference := true; ex_until_landed := false"/>
       <Action ID="CalcGripMovement" name="Plan lift"
         carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"

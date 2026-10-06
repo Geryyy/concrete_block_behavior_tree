@@ -70,23 +70,28 @@
            still passed its joint tolerance. The measured 3-D miss at the waypoint
            accumulates in off_*, which shifts every later target, so a constant short-fall
            still converges. Under 1 cm, no move. -->
-      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0"/>
+      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0; still_off := true"/>
       <Repeat num_cycles="3">
-        <Sequence>
-          <!-- 2.7 s: one period of the carried pendulum. -->
-          <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-            x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
-          <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
-          <!-- Vertical only: a descent that stopped 28 cm short is not corrected diagonally
-               A lateral miss is: steady wind holds the block 14 cm aside, the same on every
-               retry. -->
-          <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
-          <Sequence _skipIf="miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &lt; 0.0001">
-            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
-            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
-            <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+        <!-- A pass after one that found the block within 1 cm measures nothing: 4 s saved. -->
+        <Fallback>
+          <ScriptCondition code="!still_off"/>
+          <Sequence>
+            <!-- 2.7 s: one period of the carried pendulum. -->
+            <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
+              x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+            <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
+            <!-- Vertical only: a descent that stopped 28 cm short is not corrected diagonally.
+                 A lateral miss is: steady wind holds the block 14 cm aside, the same on every
+                 retry. -->
+            <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
+            <Script code="still_off := miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &gt;= 0.0001"/>
+            <Sequence _skipIf="!still_off">
+              <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
+              <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
+              <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+            </Sequence>
           </Sequence>
-        </Sequence>
+        </Fallback>
       </Repeat>
     </Sequence>
   </BehaviorTree>
