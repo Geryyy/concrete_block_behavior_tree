@@ -14,6 +14,24 @@
       <SetBlackboard output_key="mv_carries" value="false"/>
       <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
 
+      <!-- Look at the target from the hover before going down: a block first seen past a
+           lifted one came back 15 cm off, and the jaws closed on nothing. Without a
+           detection the plan's pose stands. -->
+      <ForceSuccess>
+        <Sequence>
+          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+            server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+            timeout_s="8.0"/>
+          <EvaluatePickupResidual
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" expected_pickup_pose="{target_block_pose_coarse}"
+            planned_pickup_x="{pickup_x}" planned_pickup_y="{pickup_y}"
+            translation_tolerance_m="0.04"
+            corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"/>
+          <Script code="pickup_x := corrected_pickup_x; pickup_y := corrected_pickup_y"/>
+        </Sequence>
+      </ForceSuccess>
+
       <SubTree ID="SubTreePickFromHover" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>

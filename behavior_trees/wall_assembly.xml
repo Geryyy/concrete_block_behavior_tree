@@ -21,6 +21,7 @@
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
       <SetBlackboard output_key="payload_mass" value="800.0"/>
+      <Script code="plan_has_task := true; survey_x := 0.0; survey_y := 0.0; survey_z := 0.0; survey_yaw := 0.0"/>
       <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base:
            world (-13, 1.5), level and clear of example_wall's pickups. -->
       <Script code="regrip_x := 6.06; regrip_y := -1.15"/>
@@ -56,31 +57,58 @@
                operator_guided_single_block.xml's existing pattern. Activate
                a plan (e.g. "example_wall") in Plan Control before running
                this tree. -->
-            <GetNextAssemblyTask
-              service_name="/concrete_block_wall_plan_server/get_next_assembly_task"
-              server_timeout="10000"
-              wall_plan_name=""
-              reset_plan="false"
-              task_id="{task_id}"
-              target_block_id="{target_block_id}"
-              reference_block_id="{reference_block_id}"
-              target_block_pose_coarse="{target_block_pose_coarse}"
-              target_block_pose_precise="{target_block_pose_precise}"
-              reference_block_pose_precise="{reference_block_pose_precise}"
-              plan_has_task="{plan_has_task}"
-              plan_message="{plan_message}"
-              pickup_x="{pickup_x}"
-              pickup_y="{pickup_y}"
-              pickup_z="{pickup_z}"
-              pickup_yaw="{pickup_yaw}"
-              place_x="{place_x}"
-              place_y="{place_y}"
-              place_z="{place_z}"
-              place_yaw="{place_yaw}"
-              pickup_approach_z="{approach_z}"
-              approach_x="{place_approach_x}"
-              approach_y="{place_approach_y}"
-              approach_z="{place_approach_z}"/>
+            <!-- A slot whose block is not known yet (hidden behind another from the lidar on
+                 the slewing column, or never seeded) leaves the server waiting: discover from
+                 here and ask again. A finished plan skips the discovery. -->
+            <RetryUntilSuccessful num_attempts="3">
+              <Fallback>
+                <GetNextAssemblyTask
+                  service_name="/concrete_block_wall_plan_server/get_next_assembly_task"
+                  server_timeout="10000"
+                  wall_plan_name=""
+                  reset_plan="false"
+                  task_id="{task_id}"
+                  target_block_id="{target_block_id}"
+                  reference_block_id="{reference_block_id}"
+                  target_block_pose_coarse="{target_block_pose_coarse}"
+                  target_block_pose_precise="{target_block_pose_precise}"
+                  reference_block_pose_precise="{reference_block_pose_precise}"
+                  plan_has_task="{plan_has_task}"
+                  plan_message="{plan_message}"
+                  pickup_x="{pickup_x}"
+                  pickup_y="{pickup_y}"
+                  pickup_z="{pickup_z}"
+                  pickup_yaw="{pickup_yaw}"
+                  place_x="{place_x}"
+                  place_y="{place_y}"
+                  place_z="{place_z}"
+                  place_yaw="{place_yaw}"
+                  pickup_approach_z="{approach_z}"
+                  approach_x="{place_approach_x}"
+                  approach_y="{place_approach_y}"
+                  approach_z="{place_approach_z}"/>
+                <Sequence>
+                  <ScriptCondition code="plan_has_task"/>
+                  <!-- Back over the last pickup first: from the wall the column-mounted lidar
+                       looks away, and at the lift the lifted block still hid the next one. The
+                       plan's survey_position comes back as pickup_* (off the line of sight, so
+                       the hook does not shadow the far blocks); without one the answer is
+                       zeroes and the last pickup hover, saved below, stands in. -->
+                  <ForceSuccess>
+                    <Sequence>
+                      <Script code="offered := pickup_x != 0.0 || pickup_y != 0.0; mv_x := offered ? pickup_x : survey_x; mv_y := offered ? pickup_y : survey_y; mv_z := offered ? approach_z : survey_z; mv_yaw := offered ? pickup_yaw : survey_yaw; mv_carries := 'false'"/>
+                      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
+                    </Sequence>
+                  </ForceSuccess>
+                  <ForceSuccess>
+                    <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+                      server_timeout="10000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>
+                  </ForceSuccess>
+                  <AlwaysFailure/>
+                </Sequence>
+              </Fallback>
+            </RetryUntilSuccessful>
+            <Script code="survey_x := pickup_x; survey_y := pickup_y; survey_z := approach_z; survey_yaw := pickup_yaw"/>
 
             <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
