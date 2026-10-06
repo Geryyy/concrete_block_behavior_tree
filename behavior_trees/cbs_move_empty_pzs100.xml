@@ -18,10 +18,10 @@
      Use it to exercise the new planner and the A2B controller from the RViz
      BehaviorTreePanel: load config/bt_panel_catalog.yaml, pick this entry, set a 2D goal
      pose in RViz, confirm on the remote. -->
-<root main_tree_to_execute="CBS Move Empty PZS100" BTCPP_format="4">
+<root main_tree_to_execute="CbsMoveEmptyPzs100" BTCPP_format="4">
   <include
     ros_pkg="concrete_block_behavior_tree" path="behavior_trees/cbs_subtree_a2b_movement.xml"/>
-  <BehaviorTree ID="CBS Move Empty PZS100">
+  <BehaviorTree ID="CbsMoveEmptyPzs100">
     <Sequence>
       <SetBlackboard output_key="slow_down" value="1.0"/>
       <Decorator ID="RetryUntilSuccessful" num_attempts="-1">

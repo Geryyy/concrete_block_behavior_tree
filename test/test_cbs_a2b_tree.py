@@ -141,7 +141,7 @@ def test_cbs_a2b_subtree_lets_exactly_one_commander_run_a_move():
 def test_cbs_move_empty_uses_the_cbs_subtree():
     root = ElementTree.parse(CBS_MOVE_EMPTY).getroot()
 
-    assert root.get("main_tree_to_execute") == "CBS Move Empty PZS100"
+    assert root.get("main_tree_to_execute") == "CbsMoveEmptyPzs100"
 
     includes = [element.get("path") for element in root.iter("include")]
     assert includes == [
@@ -194,3 +194,12 @@ def test_timber_backed_trees_still_own_their_controller():
         "move_empty_pzs100.xml never switched a controller itself; it delegates to "
         "epsilon's subtree_a2b_movement.xml"
     )
+
+
+def test_no_tree_id_has_whitespace():
+    """BT.CPP 4.9 refuses to load a tree whose ID has a space ('forbidden character')."""
+    for xml in TREE_DIR.glob("*.xml"):
+        root = ElementTree.parse(xml).getroot()
+        names = [root.get("main_tree_to_execute") or ""]
+        names += [tree.get("ID") for tree in root.iter("BehaviorTree")]
+        assert not any(" " in name for name in names), xml.name
