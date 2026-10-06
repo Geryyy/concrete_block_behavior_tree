@@ -4,3 +4,4 @@ prepend-non-duplicate;GAZEBO_MODEL_PATH;share/concrete_block_behavior_tree/model
 prepend-non-duplicate;GAZEBO_RESOURCE_PATH;share
 prepend-non-duplicate;GAZEBO_RESOURCE_PATH;share/concrete_block_behavior_tree/models
 prepend-non-duplicate;
+set-if-unset;GZ_IP;127.0.0.1

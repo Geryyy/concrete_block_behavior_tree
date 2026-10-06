@@ -11,11 +11,18 @@
        the protocol maximum and leaves room for probes attached to a running
        chain.
 
-       Discovery stays at the Cyclone default: multicast on, no peer list, no
-       pinned interface. Do not copy the machine-local root cyclonedds.xml here.
-       It disables multicast and pins a loopback peer, so any process without
-       that exact file discovers nothing. -->
+       Discovery is multicast on the loopback interface, forced on (lo carries no
+       MULTICAST flag). Auto selection picked a VPN tunnel when one was up and
+       nothing discovered anything; the sim is one host, so lo is enough. A sim
+       watched from a second machine needs its own profile. Do not copy the
+       machine-local root cyclonedds.xml here: it disables multicast and pins a
+       peer, so any process without that exact file discovers nothing. -->
   <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="lo" multicast="true"/>
+      </Interfaces>
+    </General>
     <Discovery>
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
