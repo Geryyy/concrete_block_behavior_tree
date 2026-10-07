@@ -8,6 +8,7 @@ and a bt_action_server with CBS + epsilon_crane plugins.
 
 import os
 
+from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
@@ -26,8 +27,6 @@ from launch.substitutions import (
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
-
-from launch import LaunchDescription
 
 
 def generate_launch_description():
@@ -73,25 +72,29 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "controller",
-                default_value="pid",
+                default_value="cbs_mpc_active",
                 choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
                 description=(
-                    "Low-level A2B controller: 'pid' is the JTC with the PID "
-                    "plugin; 'mpc' is the same JTC with the in-process "
-                    "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
-                    "standalone crane_mpc node beside it, in shadow mode; "
-                    "'cbs_mpc_active' composes identically but puts that node "
-                    "in active mode, so its horizon drives the JTC. Both "
-                    "cbs_mpc values require planner:=cbs"
+                    "Low-level A2B controller: 'cbs_mpc_active' (default) keeps "
+                    "the PID JTC and starts the standalone crane_mpc node beside "
+                    "it in active mode, so its horizon drives the JTC -- the CBS "
+                    "pipeline every working wall build uses; 'cbs_mpc' composes "
+                    "identically but in shadow mode; 'pid' is the JTC with the "
+                    "PID plugin; 'mpc' is the same JTC with the in-process "
+                    "JtcMpcPlugin. Both cbs_mpc values require planner:=cbs, so "
+                    "overriding planner alone is a launch-time error"
                 ),
             ),
             DeclareLaunchArgument(
                 "planner",
-                default_value="ilqr",
+                default_value="cbs",
                 choices=["ilqr", "vpsto", "cbs"],
                 description=(
-                    "A2B planner: 'ilqr'/'vpsto' are the legacy timber servers, "
-                    "'cbs' is crane_planning's crane_planner"
+                    "A2B planner: 'cbs' (default) is crane_planning's "
+                    "crane_planner; 'ilqr'/'vpsto' are the legacy timber servers, "
+                    "whose joint range excludes initial_pose:=1 and which refuse "
+                    "the first move here -- select one only with controller:=pid "
+                    "or controller:=mpc"
                 ),
             ),
             DeclareLaunchArgument(

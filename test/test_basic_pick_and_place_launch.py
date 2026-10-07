@@ -325,6 +325,29 @@ def test_wall_assembly_launch_exposes_grip_lift_height_override():
     ), "Wall assembly launch must include the PZS100 bringup that owns the detector"
 
 
+def test_wall_assembly_launch_defaults_to_the_cbs_pipeline():
+    """Issue 217: the defaults must be the pair that actually runs a wall build.
+
+    `planner:=ilqr` refuses the default `initial_pose:=1` outright ("q0[2] is not
+    feasible"), so the old defaults aborted the tree on its first move. The CBS
+    pair is also the only one `reject_cbs_mpc_without_cbs_planner` accepts for
+    `cbs_mpc_active`, so the two defaults have to move together.
+    """
+    module = _load_launch_module("gazebo_wall_assembly_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    context = LaunchContext()
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+
+    assert context.launch_configurations["planner"] == "cbs"
+    assert context.launch_configurations["controller"] == "cbs_mpc_active"
+
+    bringup = _load_launch_module("pzs100_bringup.launch.py")
+    bringup.reject_cbs_mpc_without_cbs_planner(context)
+
+
 def _started_executables(ld, **configurations):
     """Node executables the profile starts with these launch configurations set."""
     context = LaunchContext()
