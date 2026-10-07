@@ -93,10 +93,13 @@
                        looks away, and at the lift the lifted block still hid the next one. The
                        plan's survey_position comes back as pickup_* (off the line of sight, so
                        the hook does not shadow the far blocks); without one the answer is
-                       zeroes and the last pickup hover, saved below, stands in. -->
+                       zeroes and the last pickup hover, saved below, stands in. The yaw is
+                       always the last pickup's: the offered 0 wound the rotator a full turn
+                       (4.76 rad) on the way to the next pickup, and the loaded lift's MPC QP was
+                       infeasible from its first tick. -->
                   <ForceSuccess>
                     <Sequence>
-                      <Script code="offered := pickup_x != 0.0 || pickup_y != 0.0; mv_x := offered ? pickup_x : survey_x; mv_y := offered ? pickup_y : survey_y; mv_z := offered ? approach_z : survey_z; mv_yaw := offered ? pickup_yaw : survey_yaw; mv_carries := 'false'"/>
+                      <Script code="offered := pickup_x != 0.0 || pickup_y != 0.0; mv_x := offered ? pickup_x : survey_x; mv_y := offered ? pickup_y : survey_y; mv_z := offered ? approach_z : survey_z; mv_yaw := survey_yaw; mv_carries := 'false'"/>
                       <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
                     </Sequence>
                   </ForceSuccess>
