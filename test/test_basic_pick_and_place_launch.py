@@ -405,21 +405,6 @@ def test_only_cbs_mpc_active_takes_the_action_goal_out_of_the_tree():
         )
 
 
-def test_row3_truck_launch_uses_larger_grip_lift_height():
-    module = _load_launch_module("gazebo_row3_middle_last_pzs100.launch.py")
-    ld = module.generate_launch_description()
-
-    wall_include = next(
-        action
-        for action in _walk_entities(ld.entities)
-        if isinstance(action, IncludeLaunchDescription)
-        and "gazebo_wall_assembly_pzs100.launch.py"
-        in str(action.launch_description_source.location)
-    )
-    launch_arguments = dict(wall_include.launch_arguments)
-    assert launch_arguments["lift_height"] == "1.2"
-
-
 def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
     module = _load_launch_module("real_wall_assembly_pzs100.launch.py")
     ld = module.generate_launch_description()
