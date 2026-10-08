@@ -63,6 +63,10 @@
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>python3-yaml</test_depend>
+  <!-- test_start_pose_is_control_safe reads the control-safe box and the
+       initialization yaml / xacro mapping out of these two shares. -->
+  <test_depend>crane_model</test_depend>
+  <test_depend>epsilon_crane_description</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

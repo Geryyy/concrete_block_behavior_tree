@@ -85,7 +85,7 @@ Common launch arguments:
 
 ```text
 gui:=True|False
-initial_pose:=<epsilon crane initial pose id>
+initial_pose:=<epsilon crane initial pose id>   # default 2; 1 is outside the control-safe box
 controller:=pid|mpc
 ```
 

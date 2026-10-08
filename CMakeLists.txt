@@ -139,6 +139,10 @@ if(BUILD_TESTING)
     test_dds_sim_profile
     test/test_dds_sim_profile.py
   )
+  ament_add_pytest_test(
+    test_start_pose_is_control_safe
+    test/test_start_pose_is_control_safe.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")

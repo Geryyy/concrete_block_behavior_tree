@@ -65,9 +65,14 @@ def generate_launch_description():
                     "for a clean sim without the Seibersdorf container."
                 ),
             ),
+            # 2 (`initialization_outside.yaml`), not 1: pose 1 holds the arm at
+            # 1.5708 rad, 0.246 above crane_model's control-safe arm row
+            # (1.324864), so since issue 231 crane_planner refuses the first
+            # move from it -- and `CalcMovement` carries no message, so the
+            # tree only reports success = False. Pose 2 is inside every row.
             DeclareLaunchArgument(
                 "initial_pose",
-                default_value="1",
+                default_value="2",
                 description="Initial crane pose (see epsilon_crane_description)",
             ),
             DeclareLaunchArgument(
@@ -91,10 +96,10 @@ def generate_launch_description():
                 choices=["ilqr", "vpsto", "cbs"],
                 description=(
                     "A2B planner: 'cbs' (default) is crane_planning's "
-                    "crane_planner; 'ilqr'/'vpsto' are the legacy timber servers, "
-                    "whose joint range excludes initial_pose:=1 and which refuse "
-                    "the first move here -- select one only with controller:=pid "
-                    "or controller:=mpc"
+                    "crane_planner; 'ilqr'/'vpsto' are the legacy timber servers "
+                    "-- usable with the default initial_pose:=2, but they refuse "
+                    "initial_pose:=1 outright on the same arm row, so select one "
+                    "only with controller:=pid or controller:=mpc"
                 ),
             ),
             DeclareLaunchArgument(

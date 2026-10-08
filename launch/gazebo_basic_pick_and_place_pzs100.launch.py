@@ -46,7 +46,19 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "gazebo_world_file", default_value="epsilon_crane.world"
             ),
-            DeclareLaunchArgument("initial_pose", default_value="1"),
+            # 2 (`initialization_outside.yaml`), not 1: pose 1 holds the arm at
+            # 1.5708 rad, 0.246 above the control-safe arm row (1.324864), and
+            # the refusal here is `a2b_ilqr_server`'s -- this profile pins
+            # `planner:="ilqr"` below, not crane_planner -- which prints
+            # "q0[2] is not feasible: -0.91 < 1.71 < 1.32", the same row to the
+            # digit. Measured, pose 1: the tree fails on its first node and the
+            # crane never moves. Pose 2 plans and executes. 231's crane_planner
+            # gate is the same bound on the `cbs` planner.
+            DeclareLaunchArgument(
+                "initial_pose",
+                default_value="2",
+                description="Initial crane pose (see epsilon_crane_description)",
+            ),
             DeclareLaunchArgument("controller", default_value="pid"),
             DeclareLaunchArgument(
                 "seed_file",
@@ -153,11 +165,18 @@ def generate_launch_description():
                     },
                 ],
             ),
+            # `node_names`/`autostart` live in bt_server_override.yaml -- upstream
+            # dropped the lifecycle_manager block from epsilon's default.yaml, so
+            # base_bt_config alone aborts the manager on an uninitialized
+            # `node_names`, bt_action_server never activates and `execute_bt`
+            # never appears. Same parameter pair as the wall-assembly launch, and
+            # the second file is also what gives the BT server a
+            # `wait_for_service_timeout` long enough to survive autostart.
             Node(
                 package="nav2_lifecycle_manager",
                 executable="lifecycle_manager",
                 output="screen",
-                parameters=[base_bt_config, {"use_sim_time": True}],
+                parameters=[base_bt_config, override_bt_config, {"use_sim_time": True}],
             ),
             TimerAction(
                 period=8.0,

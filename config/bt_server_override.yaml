@@ -12,6 +12,14 @@ lifecycle_manager:
 
 /**:
   ros__parameters:
+    # Activating the BT server loads the tree, and loading it constructs every
+    # nav2 BtServiceNode, each of which waits this long for its service.
+    # nav2_behavior_tree::BtActionServer's own default is 1000 ms (not
+    # lsrl_behavior_tree's 5000 -- that is bt_worker's separate blackboard), and
+    # GetNextAssemblyTask missed /concrete_block_wall_plan_server/
+    # get_next_assembly_task by 0.21 s on the pick-and-place launch. A failed
+    # lifecycle transition is terminal, so that race cost the whole run.
+    wait_for_service_timeout: 15000
     # Operator-panel residual light: green at or below this translation
     # residual, red above.  This is deliberately looser than the 4 cm
     # correction tolerance used by the tree.

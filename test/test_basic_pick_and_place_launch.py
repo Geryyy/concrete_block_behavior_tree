@@ -328,10 +328,11 @@ def test_wall_assembly_launch_exposes_grip_lift_height_override():
 def test_wall_assembly_launch_defaults_to_the_cbs_pipeline():
     """Issue 217: the defaults must be the pair that actually runs a wall build.
 
-    `planner:=ilqr` refuses the default `initial_pose:=1` outright ("q0[2] is not
-    feasible"), so the old defaults aborted the tree on its first move. The CBS
-    pair is also the only one `reject_cbs_mpc_without_cbs_planner` accepts for
-    `cbs_mpc_active`, so the two defaults have to move together.
+    `planner:=ilqr` refuses `initial_pose:=1` outright ("q0[2] is not feasible"),
+    which was the launch default until 235, so the old defaults aborted the tree
+    on its first move. The CBS pair is also the only one
+    `reject_cbs_mpc_without_cbs_planner` accepts for `cbs_mpc_active`, so the two
+    defaults have to move together.
     """
     module = _load_launch_module("gazebo_wall_assembly_pzs100.launch.py")
     ld = module.generate_launch_description()
