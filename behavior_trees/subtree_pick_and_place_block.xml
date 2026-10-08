@@ -17,13 +17,17 @@
   </BehaviorTree>
 
   <!-- Set the block down flat at regrip_* (K0_mounting_base, level ground, clear of the
-       other blocks) and grip it again; the wall targets are kept across it. -->
+       other blocks) and grip it again; the wall targets are kept across it.
+       regrip_z, not pickup_z: the regrip spot is ground, the pickup need not be. Off the
+       truck bed pickup_z is 1.32 m higher than the ground there, which set the block down
+       in mid-air (SubTreeTouchdown's floor is place_z - 0.01) and then descended the re-pick
+       onto nothing. -->
   <BehaviorTree ID="SubTreeRegrip">
     <Sequence name="regrip">
       <Script code="kept_x := place_x; kept_y := place_y; kept_z := place_z; kept_yaw := place_yaw; kept_ax := place_approach_x; kept_ay := place_approach_y"/>
-      <Script code="place_x := regrip_x; place_y := regrip_y; place_z := pickup_z; place_yaw := pickup_yaw; place_approach_x := regrip_x; place_approach_y := regrip_y"/>
+      <Script code="place_x := regrip_x; place_y := regrip_y; place_z := regrip_z; place_yaw := pickup_yaw; place_approach_x := regrip_x; place_approach_y := regrip_y"/>
       <SubTree ID="SubTreeSetDown" _autoremap="true"/>
-      <Script code="pickup_x := regrip_x; pickup_y := regrip_y"/>
+      <Script code="pickup_x := regrip_x; pickup_y := regrip_y; pickup_z := regrip_z"/>
       <SubTree ID="SubTreePickBlock" _autoremap="true"/>
       <Script code="place_x := kept_x; place_y := kept_y; place_z := kept_z; place_yaw := kept_yaw; place_approach_x := kept_ax; place_approach_y := kept_ay"/>
     </Sequence>

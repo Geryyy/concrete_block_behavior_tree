@@ -144,9 +144,9 @@ def test_cbs_move_empty_uses_the_cbs_subtree():
     assert root.get("main_tree_to_execute") == "CbsMoveEmptyPzs100"
 
     includes = [element.get("path") for element in root.iter("include")]
-    assert includes == [
-        "behavior_trees/cbs_subtree_a2b_movement.xml"
-    ], "the CBS tree must include its own subtree, not epsilon's"
+    assert includes == ["behavior_trees/cbs_subtree_a2b_movement.xml"], (
+        "the CBS tree must include its own subtree, not epsilon's"
+    )
 
     subtrees = [element.get("ID") for element in root.iter("SubTree")]
     assert subtrees == ["SubTreeCbsA2BMovement"]
@@ -203,3 +203,34 @@ def test_no_tree_id_has_whitespace():
         names = [root.get("main_tree_to_execute") or ""]
         names += [tree.get("ID") for tree in root.iter("BehaviorTree")]
         assert not any(" " in name for name in names), xml.name
+
+
+def _regrip_scripts():
+    root = ElementTree.parse(TREE_DIR / "subtree_pick_and_place_block.xml").getroot()
+    regrip = [t for t in root.iter("BehaviorTree") if t.get("ID") == "SubTreeRegrip"]
+    assert len(regrip) == 1
+    return [node.get("code", "") for node in regrip[0].iter("Script")]
+
+
+def test_regrip_height_comes_from_regrip_z_not_the_pickup():
+    """
+    The regrip spot is level ground; the pickup is not necessarily.
+
+    Both halves took their z from `pickup_z`, invisible while every pickup was a
+    block on the ground. Off the truck bed (seed z 1.62 world) that is 1.32 m of
+    air: the set-down hits `WaitForLoadOff`'s floor at `place_z - 0.01` and fails
+    holding the load, and the re-pick descends onto nothing.
+    """
+    code = " ".join(_regrip_scripts())
+    assert "place_z := regrip_z" in code
+    assert "pickup_z := regrip_z" in code
+    assert "place_z := pickup_z" not in code
+
+    # A tree that enters the regrip without defining regrip_z reads it as 0.
+    for name in ("wall_assembly.xml", "basic_pick_and_place.xml"):
+        root = ElementTree.parse(TREE_DIR / name).getroot()
+        code = " ".join(node.get("code", "") for node in root.iter("Script"))
+        code += " ".join(
+            node.get("output_key", "") for node in root.iter("SetBlackboard")
+        )
+        assert "regrip_z" in code, name

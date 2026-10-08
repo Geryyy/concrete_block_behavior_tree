@@ -17,8 +17,10 @@
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
       <SetBlackboard output_key="payload_mass" value="800.0"/>
-      <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base. -->
-      <Script code="regrip_x := 6.06; regrip_y := -1.15"/>
+      <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base.
+           z is a block resting on the ground (world 0.3, K0 at world z 1.1407). The pickup's
+           own z will not do: the truck bed sits 1.32 m above it. -->
+      <Script code="regrip_x := 6.06; regrip_y := -1.15; regrip_z := -0.8407"/>
       <!-- Planner collision body for the carried block (only the planner reads the shape): a
            vertical cylinder around the upright 0.9 x 0.6 x 0.6 m block, radius its footprint's
            half-diagonal sqrt(0.45^2 + 0.3^2). The old r 0.30 / l 0.90 missed the corners. -->

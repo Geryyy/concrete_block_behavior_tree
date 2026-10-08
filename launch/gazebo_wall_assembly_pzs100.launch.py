@@ -122,6 +122,14 @@ def generate_launch_description():
                 "lift_height",
                 # 1.0 carried the block over its neighbour with ~0.3 m to spare and the
                 # MPC sagged 0.18 m crossing it: the corner caught.
+                #
+                # 1.5 is a GROUND pickup number. Picking off the truck bed
+                # (seed_file:=...world_model_seed_truck_loading.yaml) needs >= 2.07: the
+                # post-grasp lift is grip-trajectory phase 4 and is not collision-checked,
+                # so it is what has to clear the runges before the first checked move. A
+                # block seeded at world z 1.62 lifted 1.5 has its underside at 2.82, and
+                # the planner's runge boxes reach 3.384 (real posts 3.014) -- the A2B move
+                # out of the bay would start with the payload still between the posts.
                 default_value="1.5",
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),

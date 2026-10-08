@@ -23,8 +23,10 @@
       <SetBlackboard output_key="payload_mass" value="800.0"/>
       <Script code="plan_has_task := true; survey_x := 0.0; survey_y := 0.0; survey_z := 0.0; survey_yaw := 0.0"/>
       <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base:
-           world (-13, 1.5), level and clear of example_wall's pickups. -->
-      <Script code="regrip_x := 6.06; regrip_y := -1.15"/>
+           world (-13, 1.5), level and clear of example_wall's pickups. z is a block resting
+           on the ground: world 0.3 against K0 at world z 1.1407. Needed explicitly because
+           the pickup is not always ground level: off the truck bed it is world 1.62. -->
+      <Script code="regrip_x := 6.06; regrip_y := -1.15; regrip_z := -0.8407"/>
       <!-- Pickup approach and place approach come from the wall plan server.
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
