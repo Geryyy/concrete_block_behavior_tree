@@ -86,8 +86,13 @@ Common launch arguments:
 ```text
 gui:=True|False
 initial_pose:=<epsilon crane initial pose id>   # default 2; 1 is outside the control-safe box
-controller:=pid|mpc
+controller:=pid|mpc|cbs_mpc|cbs_mpc_active     # default cbs_mpc_active
+planner:=ilqr|vpsto|cbs                        # default cbs; cbs_mpc* require it
 ```
+
+Defaults are the CBS pipeline, as on wall assembly: the tree's A2B subtree waits
+on `/crane/sway_settled`, which only `crane_mpc` publishes, so `controller:=pid`
+or `:=mpc` leaves that wait to time out at the second move.
 
 ## Behavior Trees
 

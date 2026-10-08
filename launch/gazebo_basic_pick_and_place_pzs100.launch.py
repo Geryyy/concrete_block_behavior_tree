@@ -17,6 +17,7 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -47,19 +48,50 @@ def generate_launch_description():
                 "gazebo_world_file", default_value="epsilon_crane.world"
             ),
             # 2 (`initialization_outside.yaml`), not 1: pose 1 holds the arm at
-            # 1.5708 rad, 0.246 above the control-safe arm row (1.324864), and
-            # the refusal here is `a2b_ilqr_server`'s -- this profile pins
-            # `planner:="ilqr"` below, not crane_planner -- which prints
-            # "q0[2] is not feasible: -0.91 < 1.71 < 1.32", the same row to the
-            # digit. Measured, pose 1: the tree fails on its first node and the
-            # crane never moves. Pose 2 plans and executes. 231's crane_planner
-            # gate is the same bound on the `cbs` planner.
+            # 1.5708 rad, 0.246 above the control-safe arm row (1.324864), so
+            # the first move is refused -- crane_planner since 231, and
+            # `a2b_ilqr_server` on `planner:=ilqr` prints the same row to the
+            # digit ("q0[2] is not feasible: -0.91 < 1.71 < 1.32"). Measured,
+            # pose 1: the tree fails on its first node and the crane never
+            # moves. Pose 2 plans and executes.
             DeclareLaunchArgument(
                 "initial_pose",
                 default_value="2",
                 description="Initial crane pose (see epsilon_crane_description)",
             ),
-            DeclareLaunchArgument("controller", default_value="pid"),
+            # Same CBS pair as the wall launch (217). `basic_pick_and_place.xml`
+            # runs cbs_subtree_a2b_movement, whose settle wait needs
+            # /crane/sway_settled and crane_mpc is its only publisher: on
+            # `controller:=pid` nothing answers and the tree aborts at the
+            # second A2B move. The two defaults move together --
+            # `reject_cbs_mpc_without_cbs_planner` refuses cbs_mpc* on any other
+            # planner.
+            DeclareLaunchArgument(
+                "controller",
+                default_value="cbs_mpc_active",
+                choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
+                description=(
+                    "Low-level A2B controller: 'cbs_mpc_active' (default) keeps "
+                    "the PID JTC and starts the standalone crane_mpc node beside "
+                    "it in active mode, so its horizon drives the JTC; 'cbs_mpc' "
+                    "composes identically but in shadow mode; 'pid' is the JTC "
+                    "with the PID plugin; 'mpc' is the same JTC with the "
+                    "in-process JtcMpcPlugin. 'pid' and 'mpc' start no crane_mpc "
+                    "at all, so the tree's settle wait never passes. Both "
+                    "cbs_mpc values require planner:=cbs, so overriding planner "
+                    "alone is a launch-time error"
+                ),
+            ),
+            DeclareLaunchArgument(
+                "planner",
+                default_value="cbs",
+                choices=["ilqr", "vpsto", "cbs"],
+                description=(
+                    "A2B planner: 'cbs' (default) is crane_planning's "
+                    "crane_planner; 'ilqr'/'vpsto' are the legacy timber servers "
+                    "-- select one only with controller:=pid or controller:=mpc"
+                ),
+            ),
             DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
@@ -102,7 +134,7 @@ def generate_launch_description():
                 / "launch"
                 / "pzs100_bringup.launch.py",
                 launch_arguments={
-                    "planner": "ilqr",
+                    "planner": LaunchConfiguration("planner"),
                     "controller": LaunchConfiguration("controller"),
                     "start_bt_action_server": "False",
                     "start_grip_traj_server": "False",
@@ -156,6 +188,25 @@ def generate_launch_description():
                     base_bt_config,
                     override_bt_config,
                     {"use_sim_time": True},
+                    {
+                        # One commander per move (issue 148). `cbs_mpc_active` is
+                        # the only value where crane_mpc re-goals the JTC by
+                        # topic, so it is the only one where the CBS A2B subtree
+                        # drops its FollowJointTrajectory goal and waits on
+                        # WaitForMoveComplete instead. Left false under the
+                        # default controller, two commanders fight over
+                        # ~/joint_trajectory and the goal's tolerances.
+                        "a2b_mpc_drives": ParameterValue(
+                            PythonExpression(
+                                [
+                                    "'",
+                                    LaunchConfiguration("controller"),
+                                    "' == 'cbs_mpc_active'",
+                                ]
+                            ),
+                            value_type=bool,
+                        ),
+                    },
                     {
                         "behaviortree": PathSubstitution(
                             FindPackageShare("concrete_block_behavior_tree")

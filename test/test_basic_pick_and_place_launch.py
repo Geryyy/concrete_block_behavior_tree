@@ -120,6 +120,92 @@ def test_basic_pick_and_place_launch_loads_single_block_tree():
     assert False, "bt_action_server does not set a behaviortree parameter"
 
 
+def test_basic_pick_and_place_launch_defaults_to_the_cbs_pipeline():
+    """Issue 236: the defaults have to be the pair that can finish the tree.
+
+    `basic_pick_and_place.xml` runs cbs_subtree_a2b_movement, whose settle wait
+    needs /crane/sway_settled and crane_mpc is its only publisher. The launch
+    pinned `planner:=ilqr` and defaulted `controller:=pid`, so no crane_mpc ran
+    and the tree aborted at the second A2B move on any start pose. The two
+    defaults move together (`reject_cbs_mpc_without_cbs_planner`), and
+    `a2b_mpc_drives` has to follow `controller` or the tree's goal fights the
+    MPC over ~/joint_trajectory.
+    """
+    from launch.utilities import (
+        normalize_to_list_of_substitutions,
+        perform_substitutions,
+    )
+
+    module = _load_launch_module("gazebo_basic_pick_and_place_pzs100.launch.py")
+    ld = module.generate_launch_description()
+
+    bt_node = next(
+        node
+        for node in _walk_entities(ld.entities)
+        if isinstance(node, Node)
+        and node.node_package == "lsrl_behavior_tree"
+        and node.node_executable == "bt_action_server"
+    )
+    mpc_drives = next(
+        value
+        for param in getattr(bt_node, "_Node__parameters")
+        if isinstance(param, dict)
+        for key, value in param.items()
+        if "".join(getattr(part, "text", str(part)) for part in key) == "a2b_mpc_drives"
+    )
+
+    context = LaunchContext()
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+
+    assert context.launch_configurations["planner"] == "cbs"
+    assert context.launch_configurations["controller"] == "cbs_mpc_active"
+
+    bringup = _load_launch_module("pzs100_bringup.launch.py")
+    bringup.reject_cbs_mpc_without_cbs_planner(context)
+
+    # Forwarded, not pinned. This is the defect 236 actually was: the planner
+    # reached the bringup as the literal "ilqr", so no override could change it.
+    # Resolving only the default would pass against a re-pinned literal too, so
+    # drive an override through and require it to arrive -- that is what keeps
+    # `reject_cbs_mpc_without_cbs_planner` reachable instead of bypassed.
+    pzs100_include = next(
+        action
+        for action in _walk_entities(ld.entities)
+        if isinstance(action, IncludeLaunchDescription)
+        and "pzs100_bringup.launch.py" in str(action.launch_description_source.location)
+    )
+    launch_arguments = dict(pzs100_include.launch_arguments)
+
+    def forwarded(name):
+        return perform_substitutions(
+            context, normalize_to_list_of_substitutions(launch_arguments[name])
+        )
+
+    assert forwarded("planner") == "cbs"
+    assert forwarded("controller") == "cbs_mpc_active"
+    for planner, controller in (("ilqr", "pid"), ("vpsto", "mpc"), ("cbs", "cbs_mpc")):
+        context.launch_configurations["planner"] = planner
+        context.launch_configurations["controller"] = controller
+        assert forwarded("planner") == planner
+        assert forwarded("controller") == controller
+    context.launch_configurations["planner"] = "cbs"
+
+    for controller, expected in (
+        ("cbs_mpc_active", "True"),
+        ("cbs_mpc", "False"),
+        ("pid", "False"),
+    ):
+        context.launch_configurations["controller"] = controller
+        assert (
+            perform_substitutions(
+                context, normalize_to_list_of_substitutions(mpc_drives.value)
+            )
+            == expected
+        )
+
+
 def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
     """`mpc` gates the only trajectory_controller_a2b spawner -- it must stay False.
 
