@@ -56,6 +56,17 @@ namespace concrete_block_behavior_tree
 // satisfy it; kSettledMaxAge then covers the producer that dies mid-move, where
 // the JTC still runs its last trajectory to the end and would otherwise arrive
 // under the last verdict of a dead estimator.
+//
+// SETTLE-ONLY, THE ACTION ARM (issue 220). On `pid` / `mpc` / `cbs_mpc` the
+// FollowJointTrajectory goal is the commander and the arrival test, but it
+// tests positions and a goal_time -- never the load. Nothing on that arm damps
+// sway either, so the tree used to descend into a swinging block. A second
+// instance of this node runs *after* the goal with `settle_only`, which drops
+// the profile gate and the plan-duration wait (the goal already played the
+// plan) and leaves the half the goal never had. It needs a live
+// /crane/sway_settled, and crane_mpc is its only publisher: on bare
+// `controller:=pid` nothing answers and this instance times out. See
+// wiki/commissioning.md on which switch the lab-day fallback actually is.
 class WaitForMoveComplete : public BT::StatefulActionNode
 {
 public:
@@ -90,6 +101,10 @@ public:
       // ROS parameter. The sibling FollowJointTrajectory action is _skipIf'd on
       // it, so exactly one of the two commands any given move.
       BT::OutputPort<bool>("mpc_drives", "Whether crane_mpc, not the action, drives"),
+      // Which half of the move this instance is, fixed by the XML. False: the
+      // whole oracle, on the MPC arm only. True: the settle half, after the
+      // action goal on every other arm.
+      BT::InputPort<bool>("settle_only", false, "True: the goal arrived; wait for the load"),
     };
   }
 
@@ -120,6 +135,12 @@ private:
   // Eight times that is still inside this bound, which is why the bound is not
   // written as a multiple of a cycle time that moved once already.
   static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
+  // Before this, "no verdict yet" is indistinguishable from "the producer has not
+  // been discovered". After it, zero publishers means there is no producer: fail
+  // instead of spending the whole timeout on a question nothing will answer. The
+  // subscription is built at tree load, long before any move starts, so this is
+  // generous by a wide margin.
+  static constexpr std::chrono::milliseconds kProducerGrace{3000};
   // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
   // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
   // points, and the block slid 5 cm on touchdown.
@@ -133,6 +154,7 @@ private:
   std::optional<std::chrono::steady_clock::time_point> settled_since_;
 
   bool mpc_drives_{false};
+  bool settle_only_{false};
   double sway_bound_{0.0};
   JointTrajectory trajectory_;
   std::vector<std::string> joints_;

@@ -51,7 +51,10 @@
 
      WaitForMoveComplete is the completion oracle the action goal used to be. It is not a
      like-for-like replacement: it also requires /crane/sway_settled to read SETTLED_YES,
-     which no goal ever checked. See the node's header.
+     which no goal ever checked. See the node's header. The action arm gets that half back
+     from a second instance with `settle_only` after the goal (issue 220), so both arms
+     leave the load still, and both therefore need crane_mpc alive to publish the verdict,
+     in shadow mode if it is not driving.
 
      epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
 <root BTCPP_format="4">
@@ -104,6 +107,29 @@
                   goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
                 <AlwaysSuccess _skipIf="!ex_until_landed"/>
               </Fallback>
+              <!-- The settle half the goal never had (issue 220). The goal tests positions
+                   and a goal_time; nothing on this arm damps sway, so a tree that moved on
+                   from the goal descended into a swinging block. Same node, same
+                   /crane/sway_settled hold, `settle_only` dropping the profile gate and the
+                   plan-duration wait the goal already served. Not on a landing descent:
+                   WaitForLoadOff ends those and the load is on the ground.
+                   30 s, not 120: the move is over, only the ~5 s decay is left.
+                   crane_mpc is the only publisher of the verdict, so `controller:=pid`
+                   alone cannot pass this; wiki/commissioning.md §8a.
+                   Nested for the same reason PublishMpcReference above is: a single script
+                   reading `mpc_drives || ex_until_landed` reads both sides, and on a landing
+                   descent the first WaitForMoveComplete is skipped, so mpc_drives can be
+                   unset. The outer skip reads only what every caller sets. -->
+              <Sequence _skipIf="ex_until_landed">
+                <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
+                  _skipIf="mpc_drives"
+                  trajectory="{trajectory}"
+                  joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+                  goal_tolerance="{ex_goal_tolerance}"
+                  sway_bound="{ex_sway_bound}"
+                  timeout_ms="30000"
+                  mpc_drives="{mpc_drives}"/>
+              </Sequence>
               <Sleep msec="600000" _skipIf="!ex_until_landed"/>
             </Sequence>
             <!-- 0.7, not 0.25: at 0.25 the jaws opened with ~60 % of the block still on

@@ -50,12 +50,16 @@ WaitForMoveComplete::WaitForMoveComplete(
   mpc_drives_ = node_->has_parameter("a2b_mpc_drives")
     ? node_->get_parameter("a2b_mpc_drives").as_bool()
     : node_->declare_parameter<bool>("a2b_mpc_drives", false);
+  // Tree structure, not state: which half of the move this instance is.
+  getInput("settle_only", settle_only_);
   // Logged because a silent failure to read it is the two-commander state this
   // node exists to prevent, and it reads as an ordinary move until the JTC log
   // is grepped for goal tolerances.
   RCLCPP_INFO(
-    node_->get_logger(), "WaitForMoveComplete: a2b_mpc_drives=%s, so the commander is %s",
-    mpc_drives_ ? "true" : "false", mpc_drives_ ? "crane_mpc" : "the action goal");
+    node_->get_logger(), "WaitForMoveComplete: a2b_mpc_drives=%s, so the commander is %s; "
+    "this instance is %s",
+    mpc_drives_ ? "true" : "false", mpc_drives_ ? "crane_mpc" : "the action goal",
+    settle_only_ ? "the settle wait after it" : "the arrival oracle");
 
   std::string joint_states_topic;
   std::string settled_topic;
@@ -98,7 +102,7 @@ WaitForMoveComplete::WaitForMoveComplete(
 BT::NodeStatus WaitForMoveComplete::onStart()
 {
   setOutput("mpc_drives", mpc_drives_);
-  if (!mpc_drives_) {
+  if (!mpc_drives_ && !settle_only_) {
     // The action goal is still the commander and still the arrival test.
     return BT::NodeStatus::SKIPPED;
   }
@@ -147,13 +151,16 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     joint_state_.reset();
   }
   start_time_ = std::chrono::steady_clock::now();
-  plan_end_ = node_->now() + rclcpp::Duration(trajectory_.points.back().time_from_start);
+  // settle_only runs after the goal returned, so the plan has already been
+  // played; waiting its duration a second time would double every move.
+  plan_end_ = settle_only_
+    ? node_->now()
+    : node_->now() + rclcpp::Duration(trajectory_.points.back().time_from_start);
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "Waiting for the MPC-driven move to arrive | joints=%zu tolerance=%.3f plan=%.1fs "
-    "timeout_ms=%d",
-    joints_.size(), goal_tolerance_,
+    "Waiting for the move to %s | joints=%zu tolerance=%.3f plan=%.1fs timeout_ms=%d",
+    settle_only_ ? "settle" : "arrive", joints_.size(), goal_tolerance_,
     rclcpp::Duration(trajectory_.points.back().time_from_start).seconds(), timeout_ms_);
 
   return onRunning();
@@ -171,6 +178,26 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
 
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::steady_clock::now() - start_time_).count();
+  // A profile that starts no crane_mpc has no verdict publisher at all, and no
+  // amount of waiting makes one: the whole timeout spent in front of a
+  // motionless machine, with the controller active and the operator holding the
+  // deadman, is the worst way to learn that. Say it once the subscription has
+  // had time to discover a producer that does exist.
+  bool heard_a_verdict;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    heard_a_verdict = settled_.has_value();
+  }
+  if (!heard_a_verdict && elapsed_ms > kProducerGrace.count() &&
+    settled_sub_->get_publisher_count() == 0)
+  {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "Nothing publishes %s, so whether the load is still is unknowable: start crane_mpc "
+      "(shadow is enough) or do not run this tree",
+      settled_sub_->get_topic_name());
+    return BT::NodeStatus::FAILURE;
+  }
   if (elapsed_ms > timeout_ms_) {
     RCLCPP_WARN(node_->get_logger(), "Move did not complete: %s", reason.c_str());
     return BT::NodeStatus::FAILURE;

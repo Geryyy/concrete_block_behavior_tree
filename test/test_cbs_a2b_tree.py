@@ -138,6 +138,36 @@ def test_cbs_a2b_subtree_lets_exactly_one_commander_run_a_move():
     assert server_params["a2b_mpc_drives"] is False
 
 
+def test_cbs_a2b_subtree_waits_for_the_load_to_settle_after_the_action():
+    """Issue 220: the action arm has to leave the load still too.
+
+    The FollowJointTrajectory goal returns on positions and a goal_time, and
+    nothing on this arm damps sway, so the tree descended into a swinging block.
+    The settle half is the same node with `settle_only`, placed after the goal.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    waits = list(root.iter("WaitForMoveComplete"))
+    settle = [node for node in waits if node.get("settle_only") == "true"]
+    assert len(settle) == 1, "exactly one settle wait, and it is not a new node type"
+    settle = settle[0]
+
+    # Not on the MPC arm: the oracle before the goal already holds the settle
+    # check there. Not on a landing descent either -- WaitForLoadOff ends those
+    # with the block on the ground -- and that half has to be the *outer* skip,
+    # because a landing descent skips the oracle and leaves mpc_drives unset,
+    # which a single `mpc_drives || ex_until_landed` script would still read.
+    assert settle.get("_skipIf") == "mpc_drives"
+    assert settle.get("sway_bound") == "{ex_sway_bound}"
+    guard = next(node for node in root.iter("Sequence") if settle in list(node))
+    assert guard.get("_skipIf") == "ex_until_landed"
+
+    # After the goal, not before: before it, the plan has not run.
+    parent = next(node for node in root.iter("Sequence") if guard in list(node))
+    children = list(parent)
+    goal = next(node for node in children if node.tag == "Fallback")
+    assert children.index(guard) > children.index(goal)
+
+
 def test_cbs_move_empty_uses_the_cbs_subtree():
     root = ElementTree.parse(CBS_MOVE_EMPTY).getroot()
 

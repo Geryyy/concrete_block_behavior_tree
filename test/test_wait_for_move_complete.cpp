@@ -4,7 +4,9 @@
 // load, so the cases below are driven against the real node over real topics:
 // arrived and settled, arrived and swinging, arrived and unknown, never arrived
 // -- plus the three ways it could say "arrived" about a move that did not
-// happen, and the profile gate that keeps the action path for `pid`.
+// happen, and the profile gate that keeps the action path for `pid`. On that
+// path the same node runs again after the goal as the settle wait (issue 220),
+// so the tree below is the subtree's shape, both instances included.
 
 #include <gtest/gtest.h>
 
@@ -65,39 +67,68 @@ struct Outcome
   std::chrono::milliseconds elapsed;
 };
 
+// The subtree's shape: the arrival oracle, the action goal that runs instead of
+// it off the MPC arm, and the settle wait that follows that goal (issue 220).
+constexpr char kTree[] =
+  R"(<root BTCPP_format="4">
+       <BehaviorTree ID="T">
+         <Sequence>
+           <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
+             joints="JOINTS" timeout_ms="TIMEOUT" mpc_drives="{mpc_drives}"/>
+           <Script _skipIf="mpc_drives" code="commanded := 1"/>
+           <Sequence _skipIf="ex_until_landed">
+             <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
+               joints="JOINTS" timeout_ms="TIMEOUT" mpc_drives="{mpc_drives}"
+               settle_only="true" _skipIf="mpc_drives"/>
+           </Sequence>
+         </Sequence>
+       </BehaviorTree>
+     </root>)";
+
+// Both placeholders stand twice: the two instances share every port but
+// settle_only.
+std::string tree_text(int timeout_ms)
+{
+  std::string text = kTree;
+  const auto substitute = [&text](const std::string & token, const std::string & value) {
+      for (size_t at = text.find(token); at != std::string::npos; at = text.find(token, at)) {
+        text.replace(at, token.size(), value);
+        at += value.size();
+      }
+    };
+  substitute("JOINTS", kCheckedJoints);
+  substitute("TIMEOUT", std::to_string(timeout_ms));
+  return text;
+}
+
 // `settled_ticks` < 0 publishes the verdict for the whole run; otherwise the
 // verdict stream stops after that many ticks, and `state` only starts being
 // published after `arrive_after_ticks` -- a producer that died mid-move.
 Outcome run(
   bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
-  int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2)
+  int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
+  bool until_landed = false, bool with_producer = true)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
 
   auto state_pub = node->create_publisher<JointState>("/joint_states", rclcpp::QoS(10));
-  auto settled_pub = node->create_publisher<SwaySettled>("/crane/sway_settled", rclcpp::QoS(10));
+  // No publisher at all is a different case from one that says nothing: it is
+  // every profile that starts no crane_mpc.
+  auto settled_pub = with_producer
+    ? node->create_publisher<SwaySettled>("/crane/sway_settled", rclcpp::QoS(10))
+    : nullptr;
 
   auto blackboard = BT::Blackboard::create();
   blackboard->set<rclcpp::Node::SharedPtr>("node", node);
   blackboard->set<JointTrajectory>("trajectory", goal_trajectory(plan_seconds));
   blackboard->set<int>("commanded", 0);
+  // Every caller of the subtree sets this before the SubTree call.
+  blackboard->set<bool>("ex_until_landed", until_landed);
 
   BT::BehaviorTreeFactory factory;
   factory.registerNodeType<WaitForMoveComplete>("WaitForMoveComplete");
-  auto tree = factory.createTreeFromText(
-    R"(<root BTCPP_format="4">
-         <BehaviorTree ID="T">
-           <Sequence>
-             <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
-               joints=")" + std::string(kCheckedJoints) + R"("
-               timeout_ms=")" + std::to_string(timeout_ms) + R"("
-               mpc_drives="{mpc_drives}"/>
-             <Script _skipIf="mpc_drives" code="commanded := 1"/>
-           </Sequence>
-         </BehaviorTree>
-       </root>)",
-    blackboard);
+  auto tree = factory.createTreeFromText(tree_text(timeout_ms), blackboard);
 
   SwaySettled verdict;
   verdict.settled = settled_value;
@@ -107,7 +138,7 @@ Outcome run(
   BT::NodeStatus status = BT::NodeStatus::RUNNING;
   for (int tick = 0; std::chrono::steady_clock::now() < deadline; ++tick) {
     state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
-    if (settled_ticks < 0 || tick < settled_ticks) {
+    if (settled_pub && (settled_ticks < 0 || tick < settled_ticks)) {
       settled_pub->publish(verdict);
     }
     status = tree.tickExactlyOnce();
@@ -120,6 +151,13 @@ Outcome run(
     status, blackboard->get<int>("commanded"),
     std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - started)};
+}
+
+// Arrived, still, and nothing on the topic to say so.
+Outcome run_without_a_verdict_producer(int timeout_ms)
+{
+  return run(
+    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, timeout_ms, -1, 0, 0.2, false, false);
 }
 
 }  // namespace
@@ -185,11 +223,55 @@ TEST(WaitForMoveComplete, fails_instead_of_hanging_when_the_move_never_arrives)
 
 TEST(WaitForMoveComplete, stands_aside_where_the_action_goal_is_still_the_commander)
 {
-  // pid / mpc / cbs_mpc: this node skips itself and the action runs unchanged,
-  // even though nothing here is arrived or settled.
-  const auto outcome = run(false, measured(0.0, 0.0), SwaySettled::SETTLED_UNKNOWN, 900);
+  // pid / mpc / cbs_mpc: the arrival oracle skips itself and the action runs
+  // unchanged. Commanding is all it gives up there -- the settle wait after the
+  // goal is the same node.
+  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 6000);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(outcome.commanded, 1);
+}
+
+TEST(WaitForMoveComplete, does_not_let_the_action_arm_move_on_from_a_swinging_load)
+{
+  // Issue 220, and the whole reason the settle wait exists: the goal returns on
+  // positions and a goal_time, and nothing on this arm damps sway, so the tree
+  // used to descend into a swinging block the instant the goal came back.
+  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(outcome.commanded, 1);
+}
+
+TEST(WaitForMoveComplete, leaves_a_landing_descent_to_wait_for_load_off)
+{
+  // A landing descent is ended by WaitForLoadOff with the block on the ground,
+  // and the oracle before the goal is skipped there too -- so `mpc_drives` is
+  // whatever the move before left on the blackboard. Gating a touchdown on sway
+  // would fail the landing the Parallel's sibling is still deciding, and would
+  // read an unset key on any tree that reached a descent first.
+  const auto outcome =
+    run(false, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900, -1, 0, 0.2, true);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(outcome.commanded, 1);
+}
+
+TEST(WaitForMoveComplete, fails_at_once_when_nothing_publishes_the_verdict)
+{
+  // controller:=pid starts no crane_mpc, so the topic has no publisher at all.
+  // Spending the whole budget on that -- controller active, deadman held, machine
+  // motionless -- is the worst way to find out, so it goes after kProducerGrace.
+  const auto outcome = run_without_a_verdict_producer(20000);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(outcome.commanded, 1);
+  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(12000));
+}
+
+TEST(WaitForMoveComplete, does_not_replay_the_plan_duration_after_the_goal_arrived)
+{
+  // The goal already played the plan. Anchoring the settle wait's plan end on
+  // its own onStart would add the whole plan to every move on this arm, which
+  // is a 20 s plan inside an 8 s budget here.
+  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 20.0);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
 }
 
 int main(int argc, char ** argv)
