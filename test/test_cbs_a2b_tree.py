@@ -161,11 +161,43 @@ def test_cbs_a2b_subtree_waits_for_the_load_to_settle_after_the_action():
     guard = next(node for node in root.iter("Sequence") if settle in list(node))
     assert guard.get("_skipIf") == "ex_until_landed"
 
-    # After the goal, not before: before it, the plan has not run.
+    # After the goal, not before: before it, the plan has not run. And after the
+    # deactivate (issue 234): held, the loaded tip mode does not decay at all --
+    # the position hold rings at its frequency and feeds it -- while deactivated it
+    # decays with tau = 21 s. A settle gate waited out under the hold cannot pass.
     parent = next(node for node in root.iter("Sequence") if guard in list(node))
     children = list(parent)
-    goal = next(node for node in children if node.tag == "Fallback")
+    goal = next(node for node in children if node.tag == "Parallel")
+    off = next(
+        node
+        for node in children
+        if node.get("deactivate_controllers") == "trajectory_controller_a2b"
+    )
     assert children.index(guard) > children.index(goal)
+    assert children.index(guard) > children.index(off)
+
+
+def test_a_carrying_lift_asks_for_a_slower_ramp_and_gives_it_back():
+    """Issue 234: the 5 s lift is an impulse on the loaded tip mode.
+
+    1.5 m in 5 s is 1.7 periods of the 0.35 Hz carried mode and leaves 0.22 rad/s,
+    which the settle gate's 30 s cannot absorb at the mode's 21 s decay. The
+    override has to be carrying-only and it has to be restored: a leaked value
+    slows every move after the lift, and the place descent reads `slow_down` too.
+    """
+    root = ElementTree.parse(TREE_DIR / "subtree_lift.xml").getroot()
+    sets = [node for node in root.iter("SetBlackboard")]
+    slower = [node for node in sets if node.get("output_key") == "slow_down"]
+
+    override = [node for node in slower if node.get("value") not in (None, "")]
+    assert [node.get("value") for node in override] == ["3.0", "{lf_sd_saved}"], (
+        "one carrying-only override, then the caller's value back"
+    )
+    assert override[0].get("_skipIf") == "lf_carries != 'true'"
+    assert override[1].get("_skipIf") is None, "the restore must be unconditional"
+    assert [
+        node.get("value") for node in sets if node.get("output_key") == "lf_sd_saved"
+    ] == ["{slow_down}"]
 
 
 def test_cbs_move_empty_uses_the_cbs_subtree():

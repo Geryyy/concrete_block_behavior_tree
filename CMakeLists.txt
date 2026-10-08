@@ -101,6 +101,7 @@ install(PROGRAMS
   scripts/gazebo_block_spawner.py
   scripts/gazebo_grasp_weld.py
   scripts/gazebo_block_oracle.py
+  scripts/sim_loaded_hold_probe.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

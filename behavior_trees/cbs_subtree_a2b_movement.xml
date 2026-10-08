@@ -107,29 +107,6 @@
                   goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
                 <AlwaysSuccess _skipIf="!ex_until_landed"/>
               </Fallback>
-              <!-- The settle half the goal never had (issue 220). The goal tests positions
-                   and a goal_time; nothing on this arm damps sway, so a tree that moved on
-                   from the goal descended into a swinging block. Same node, same
-                   /crane/sway_settled hold, `settle_only` dropping the profile gate and the
-                   plan-duration wait the goal already served. Not on a landing descent:
-                   WaitForLoadOff ends those and the load is on the ground.
-                   30 s, not 120: the move is over, only the ~5 s decay is left.
-                   crane_mpc is the only publisher of the verdict, so `controller:=pid`
-                   alone cannot pass this; wiki/commissioning.md §8a.
-                   Nested for the same reason PublishMpcReference above is: a single script
-                   reading `mpc_drives || ex_until_landed` reads both sides, and on a landing
-                   descent the first WaitForMoveComplete is skipped, so mpc_drives can be
-                   unset. The outer skip reads only what every caller sets. -->
-              <Sequence _skipIf="ex_until_landed">
-                <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
-                  _skipIf="mpc_drives"
-                  trajectory="{trajectory}"
-                  joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
-                  goal_tolerance="{ex_goal_tolerance}"
-                  sway_bound="{ex_sway_bound}"
-                  timeout_ms="30000"
-                  mpc_drives="{mpc_drives}"/>
-              </Sequence>
               <Sleep msec="600000" _skipIf="!ex_until_landed"/>
             </Sequence>
             <!-- 0.7, not 0.25: at 0.25 the jaws opened with ~60 % of the block still on
@@ -145,6 +122,47 @@
             deactivate_controllers="trajectory_controller_a2b"
             server_timeout="1000"
             service_name="/controller_manager/switch_controller"/>
+          <!-- The settle half the goal never had (issue 220). The goal tests positions
+               and a goal_time; nothing on this arm damps sway, so a tree that moved on
+               from the goal descended into a swinging block. Same node, same
+               /crane/sway_settled hold, `settle_only` dropping the profile gate and the
+               plan-duration wait the goal already served. Not on a landing descent:
+               WaitForLoadOff ends those and the load is on the ground.
+               crane_mpc is the only publisher of the verdict, so `controller:=pid`
+               alone cannot pass this; wiki/commissioning.md 8a.
+               Nested for the same reason PublishMpcReference above is: a single script
+               reading `mpc_drives || ex_until_landed` reads both sides, and on a landing
+               descent the first WaitForMoveComplete is skipped, so mpc_drives can be
+               unset. The outer skip reads only what every caller sets.
+
+               AFTER THE DEACTIVATE, NOT INSIDE THE MOVE (issue 234). Held, the loaded
+               0.35 Hz tip mode does not decay at all: 60 s of hold with the A2B JTC
+               active grew the swing 0.181 to 0.204 rad peak-to-peak, with the actuated
+               commands ringing at the tip's own frequency (arm 0.004 rad/s at
+               0.350 Hz). Deactivated, the same mode decays monotonically with
+               tau = 21 s. The position hold is a pump, not a brake, so the gate has to
+               be waited out with the controller off. The machine already stands with
+               this controller inactive between every pair of moves, so this adds no
+               state it does not already see; a failure here leaves it inactive too,
+               which is where the ForceFailure branch would have put it.
+               60 s, was 30: the 30 s was sized on an empty hook's ~5 s decay and a
+               loaded mode has no such decay. Measured on the slowed lift of
+               subtree_lift.xml, the gate is reached at ~33 s (arrival 0.092 rad/s,
+               0.05 rad/s bound, 0.0522 rad/s still left at 30 s and the 2.7 s dwell
+               on top), so 30 s missed it by a hair. 60 s is twice the measured
+               time to the bound. A settled arrival still leaves in ~3 s, which
+               is what every empty move does, so this is a bound on the bad case and
+               not a dwell. -->
+          <Sequence _skipIf="ex_until_landed">
+            <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
+              _skipIf="mpc_drives"
+              trajectory="{trajectory}"
+              joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+              goal_tolerance="{ex_goal_tolerance}"
+              sway_bound="{ex_sway_bound}"
+              timeout_ms="60000"
+              mpc_drives="{mpc_drives}"/>
+          </Sequence>
         </Sequence>
       </Decorator>
       <Decorator ID="ForceFailure">

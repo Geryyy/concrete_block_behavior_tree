@@ -12,12 +12,29 @@
            and the tilt measurement averages it out. -->
       <SetBlackboard output_key="ex_sway_bound" value="0.05"/>
       <Script code="ex_publish_reference := true; ex_until_landed := false"/>
+      <!-- Carrying only: the 5 s default ramp is grip_traj_server_simple's
+           duration_lift times slow_down, and 1.5 m of it in 5 s is 1.7 periods of the
+           loaded 0.35 Hz tip mode, i.e. a near-impulse. Measured (issue 234) it
+           leaves 0.20 rad peak-to-peak, 0.22 rad/s, which is 4x the gate below.
+           3.0 stretches the ramp to 15 s, 5.2 periods, and cuts the arrival to
+           0.073 rad / 0.092 rad/s, i.e. a factor 2.4 for a factor 3 of ramp and
+           10 s a block. Not more: the residual is not all ramp shaping. The weight
+           transfers to the hook the instant the block leaves the ground, and that
+           step is in the plant, not in the profile, so the sway has a floor a slower
+           ramp does not reach under. An empty lift keeps the caller's value: it
+           decays in ~5 s and has no gate to miss.
+           lf_sd_saved, not place_block's sd_saved: that one is live across its own
+           descent and this subtree is called from inside the same tree. -->
+      <SetBlackboard output_key="lf_sd_saved" value="{slow_down}"/>
+      <SetBlackboard output_key="slow_down" value="3.0"
+        _skipIf="lf_carries != 'true'"/>
       <Action ID="CalcGripMovement" name="Plan lift"
         carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
+      <SetBlackboard output_key="slow_down" value="{lf_sd_saved}"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{lf_carries}" mass="{payload_mass}"
