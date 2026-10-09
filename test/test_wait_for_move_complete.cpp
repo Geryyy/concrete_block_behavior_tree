@@ -104,15 +104,20 @@ std::string tree_text(int timeout_ms)
 // `settled_ticks` < 0 publishes the verdict for the whole run; otherwise the
 // verdict stream stops after that many ticks, and `state` only starts being
 // published after `arrive_after_ticks` -- a producer that died mid-move.
+// `horizon_ticks` is the same for the MPC's command: < 0 drives the whole run,
+// and a count is the MPC falling silent that many ticks in.
 Outcome run(
   bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
   int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
-  bool until_landed = false, bool with_producer = true)
+  bool until_landed = false, bool with_producer = true, int horizon_ticks = -1)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
 
   auto state_pub = node->create_publisher<JointState>("/joint_states", rclcpp::QoS(10));
+  // The move is only driven while this flows; nothing reads the content.
+  auto horizon_pub = node->create_publisher<JointTrajectory>(
+    "/crane/mpc/horizon", rclcpp::QoS(1));
   // No publisher at all is a different case from one that says nothing: it is
   // every profile that starts no crane_mpc.
   auto settled_pub = with_producer
@@ -138,6 +143,9 @@ Outcome run(
   BT::NodeStatus status = BT::NodeStatus::RUNNING;
   for (int tick = 0; std::chrono::steady_clock::now() < deadline; ++tick) {
     state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
+    if (horizon_ticks < 0 || tick < horizon_ticks) {
+      horizon_pub->publish(JointTrajectory());
+    }
     if (settled_pub && (settled_ticks < 0 || tick < settled_ticks)) {
       settled_pub->publish(verdict);
     }
@@ -263,6 +271,32 @@ TEST(WaitForMoveComplete, fails_at_once_when_nothing_publishes_the_verdict)
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 1);
   EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(12000));
+}
+
+TEST(WaitForMoveComplete, fails_at_once_when_the_mpc_stops_driving_the_move)
+{
+  // Issue 239. crane_mpc goes silent `max_reference_age` after the plan on
+  // /crane/reference ends and the JTC then holds its own last horizon point, so
+  // the arrival error freezes: this move is 0.8 rad short of its goal and will
+  // stay there. It used to spend the rest of the window -- 90 s live -- and then
+  // report the tolerance miss from 90 s earlier.
+  const auto outcome = run(
+    true, measured(0.2, 2.0), SwaySettled::SETTLED_YES, 60000, -1, 0, 0.2, false, true, 20);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(8000));
+}
+
+TEST(WaitForMoveComplete, lets_a_move_the_last_horizon_still_finishes_finish)
+{
+  // The other half of 239: the stream stopping is not the machine stopping. The
+  // JTC has up to N Ts = 3.6 s of horizon left to run and the load swings whoever
+  // holds the joints, so a move that reaches tolerance -- or completes its settled
+  // dwell -- inside that is over, not failed. Horizon stops at ~1.8 s and the joints
+  // arrive at ~4.0 s: at a 1 s bound this failed at 3.0 s, a second before the
+  // arrival it was already driving towards.
+  const auto outcome = run(
+    true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 200, 0.2, false, true, 90);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
 }
 
 TEST(WaitForMoveComplete, does_not_replay_the_plan_duration_after_the_goal_arrived)

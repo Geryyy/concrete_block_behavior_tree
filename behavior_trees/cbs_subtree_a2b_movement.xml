@@ -92,6 +92,15 @@
                 <Action ID="PublishMpcReference" trajectory="{trajectory}"
                   _skipIf="!mpc_drives"/>
               </Sequence>
+              <!-- 120 s is the stalled-clock backstop, not the window (issue 239). What
+                   bounds this wait is crane_mpc's own hold: the node watches
+                   /crane/mpc/horizon and fails the move the moment the MPC stops driving
+                   it, which is `max_reference_age` (20 s) past the end of the plan on
+                   /crane/reference. Past that the JTC holds the last horizon point and
+                   neither gate can change, so the 120 s was spent on a question nothing
+                   would answer: measured 90 s of it, on every move, in all four runs of
+                   issue 238. The value stays, because it is reached only if /clock stalls and
+                   lowering it would cap the plan durations this tree does not own. -->
               <WaitForMoveComplete trajectory="{trajectory}" _skipIf="ex_until_landed"
                 joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
                 goal_tolerance="{ex_goal_tolerance}"

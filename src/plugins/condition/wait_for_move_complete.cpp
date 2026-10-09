@@ -63,8 +63,10 @@ WaitForMoveComplete::WaitForMoveComplete(
 
   std::string joint_states_topic;
   std::string settled_topic;
+  std::string horizon_topic;
   getInput("joint_states_topic", joint_states_topic);
   getInput("settled_topic", settled_topic);
+  getInput("horizon_topic", horizon_topic);
 
   callback_group_ = node_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive,
@@ -97,6 +99,17 @@ WaitForMoveComplete::WaitForMoveComplete(
       }
     },
     options);
+  // Only where the MPC is the commander: this is the one instance whose gates the
+  // MPC's silence freezes. The settle wait runs off that arm, after the goal.
+  if (mpc_drives_ && !settle_only_) {
+    horizon_sub_ = node_->create_subscription<JointTrajectory>(
+      horizon_topic, rclcpp::QoS(1),
+      [this](JointTrajectory::SharedPtr) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        horizon_received_ = std::chrono::steady_clock::now();
+      },
+      options);
+  }
 }
 
 BT::NodeStatus WaitForMoveComplete::onStart()
@@ -151,6 +164,7 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     joint_state_.reset();
   }
   start_time_ = std::chrono::steady_clock::now();
+  horizon_received_ = start_time_;
   // settle_only runs after the goal returned, so the plan has already been
   // played; waiting its duration a second time would double every move.
   plan_end_ = settle_only_
@@ -184,9 +198,28 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
   // deadman, is the worst way to learn that. Say it once the subscription has
   // had time to discover a producer that does exist.
   bool heard_a_verdict;
+  std::chrono::milliseconds horizon_quiet;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     heard_a_verdict = settled_.has_value();
+    horizon_quiet = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - horizon_received_);
+  }
+  // The commander stopping is the end of this move, not a reason to keep waiting:
+  // past `max_reference_age` the JTC has run the last horizon out and holds its last
+  // point, so the arrival error freezes there. The gates are read first and the bound
+  // outlasts both the horizon and the dwell, so a move that can still end on its own
+  // has already succeeded by here. Reported with the reason it had not, because that
+  // pair is what says which half the move was short of when the driving stopped.
+  if (horizon_sub_ && horizon_quiet > kHorizonMaxAge && elapsed_ms > kProducerGrace.count()) {
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "Nothing has arrived on %s for %d ms, so crane_mpc has stopped driving this move and "
+      "the JTC is holding its last horizon point: %s, and nothing can change that now. Its "
+      "own log says which gate it fell silent on -- max_reference_age past the end of the "
+      "plan on /crane/reference, most often",
+      horizon_sub_->get_topic_name(), static_cast<int>(horizon_quiet.count()), reason.c_str());
+    return BT::NodeStatus::FAILURE;
   }
   if (!heard_a_verdict && elapsed_ms > kProducerGrace.count() &&
     settled_sub_->get_publisher_count() == 0)

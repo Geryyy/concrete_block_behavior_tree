@@ -57,6 +57,17 @@ namespace concrete_block_behavior_tree
 // the JTC still runs its last trajectory to the end and would otherwise arrive
 // under the last verdict of a dead estimator.
 //
+// AND THE COMMANDER HAS TO STILL BE COMMANDING (issue 239). On the MPC arm this
+// node also watches `horizon_topic`, and fails the move when it goes quiet for
+// kHorizonMaxAge. crane_mpc stops publishing `max_reference_age` (20 s) after the
+// plan on /crane/reference ends, which on a 5-15 s plan is ~25-35 s into this
+// node's window; the JTC runs that last horizon out and then holds *its own last
+// point*, not the plan's end, so the arrival error freezes there and no later tick
+// can change it. Without this the move spent the rest of `timeout_ms` -- measured
+// 90 s -- and then reported a tolerance miss from 90 s earlier. So
+// `timeout_ms` is not the bound on the MPC arm: the MPC's own hold is, and this
+// is what makes the two one decision instead of two constants in two repos.
+//
 // SETTLE-ONLY, THE ACTION ARM (issue 220). On `pid` / `mpc` / `cbs_mpc` the
 // FollowJointTrajectory goal is the commander and the arrival test, but it
 // tests positions and a goal_time -- never the load. Nothing on that arm damps
@@ -94,6 +105,9 @@ public:
       BT::InputPort<int>("timeout_ms", 120000, "Give up and fail after this long"),
       BT::InputPort<std::string>("joint_states_topic", "/joint_states", "Measured joint state"),
       BT::InputPort<std::string>("settled_topic", "/crane/sway_settled", "Sway verdict"),
+      // Watched, not consumed: what the MPC drives the JTC with, so this node can
+      // see its own commander stop. Subscribed on the MPC arm only.
+      BT::InputPort<std::string>("horizon_topic", "/crane/mpc/horizon", "The MPC's command"),
       // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
       // a decaying sway that nothing after it needs that still.
       BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),
@@ -128,6 +142,9 @@ private:
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   rclcpp::Subscription<JointState>::SharedPtr joint_state_sub_;
   rclcpp::Subscription<SwaySettled>::SharedPtr settled_sub_;
+  // Null off the MPC arm, where the action goal is the commander and the horizon
+  // is nobody's business.
+  rclcpp::Subscription<JointTrajectory>::SharedPtr horizon_sub_;
 
   // crane_mpc decimates this stream by 2 and publishes every change, so a live
   // producer is quiet for two of its cycles at most: 120 ms on the 0.06 s grid
@@ -141,6 +158,22 @@ private:
   // subscription is built at tree load, long before any move starts, so this is
   // generous by a wide margin.
   static constexpr std::chrono::milliseconds kProducerGrace{3000};
+  // The MPC re-goals the JTC every Ts (0.06 s), so this is not a late cycle: it is
+  // `max_reference_age` spent past the plan's end, or any other gate crane_mpc falls
+  // silent on. Not a multiple of Ts, though -- it is how long the *machine* outlives
+  // the stream, because the move can still end on its own inside that:
+  //  - the last horizon is N Ts = 3.6 s long (horizon_length 60, Ts 0.06), which
+  //    crane_mpc_parameters.yaml calls "the fault-tolerance budget: that many missed
+  //    solves before the receiver's buffer runs dry". Until it is spent the JTC is
+  //    still driving the plan and the joints can still reach tolerance.
+  //  - the sway gates never needed a commander at all: a pendulum swings whoever
+  //    holds the joints, so a kSettledMinHold dwell that began before the silence
+  //    finishes after it.
+  // At 1000 ms both were cut off: two wall_assembly moves failed on "has not read
+  // settled for long enough" with every other gate met, 1.7 s short of the dwell.
+  // kProducerGrace covers the other end, where "not driving yet" and "never will"
+  // are the same reading.
+  static constexpr std::chrono::milliseconds kHorizonMaxAge{3700};
   // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
   // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
   // points, and the block slid 5 cm on touchdown.
@@ -152,6 +185,9 @@ private:
   std::chrono::steady_clock::time_point settled_received_;
   // When the current unbroken run of SETTLED_YES began.
   std::optional<std::chrono::steady_clock::time_point> settled_since_;
+  // When the newest horizon arrived, seeded at onStart so that "never published"
+  // and "stopped publishing" are one bound.
+  std::chrono::steady_clock::time_point horizon_received_;
 
   bool mpc_drives_{false};
   bool settle_only_{false};
