@@ -317,7 +317,7 @@ TEST(WaitForMoveComplete, fails_at_once_when_the_mpc_stops_driving_the_move)
 TEST(WaitForMoveComplete, lets_a_move_the_last_horizon_still_finishes_finish)
 {
   // The other half of 239: the stream stopping is not the machine stopping. The
-  // JTC has up to N Ts = 3.6 s of horizon left to run and the load swings whoever
+  // JTC keeps its last trajectory for `topic_timeout` and the load swings whoever
   // holds the joints, so a move that reaches tolerance -- or completes its settled
   // dwell -- inside that is over, not failed. Horizon stops at ~1.8 s and the joints
   // arrive at ~4.0 s: at a 1 s bound this failed at 3.0 s, a second before the

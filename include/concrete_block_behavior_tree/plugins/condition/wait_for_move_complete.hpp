@@ -17,7 +17,7 @@ namespace concrete_block_behavior_tree
 
 // Arrival oracle for an A2B move nobody holds an action goal for (issue 148).
 //
-// With crane_mpc in active mode the JTC is re-goaled by topic every 40 ms, so the
+// With crane_mpc in active mode the JTC is re-goaled by topic every T_s (0.12 s), so the
 // tree must not also hold a FollowJointTrajectory goal. The goal was the only
 // arrival test in the loop -- goal_time plus constraints.<joint>.goal -- and a
 // topic-driven trajectory carries none. This node is that test, plus the one the
@@ -155,10 +155,10 @@ private:
   rclcpp::Subscription<JointTrajectory>::SharedPtr horizon_sub_;
 
   // crane_mpc decimates this stream by 2 and publishes every change, so a live
-  // producer is quiet for two of its cycles at most: 120 ms on the 0.06 s grid
+  // producer is quiet for two of its cycles at most: 240 ms on the 0.12 s grid
   // it ships today, and a few hundred on a box loaded enough to overrun it.
-  // Eight times that is still inside this bound, which is why the bound is not
-  // written as a multiple of a cycle time that moved once already.
+  // Four times that is still inside this bound, which is why the bound is not
+  // written as a multiple of a cycle time that has moved twice already.
   static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
   // Before this, "no verdict yet" is indistinguishable from "the producer has not
   // been discovered". After it, zero publishers means there is no producer: fail
@@ -166,26 +166,50 @@ private:
   // subscription is built at tree load, long before any move starts, so this is
   // generous by a wide margin.
   static constexpr std::chrono::milliseconds kProducerGrace{3000};
-  // The MPC re-goals the JTC every Ts (0.06 s), so this is not a late cycle: it is
+  // The MPC re-goals the JTC every Ts, so this is not a late cycle: it is
   // `max_reference_age` spent past the plan's end, or any other gate crane_mpc falls
   // silent on. Not a multiple of Ts, though -- it is how long the *machine* outlives
-  // the stream, because the move can still end on its own inside that:
-  //  - the last horizon is N Ts = 3.6 s long (horizon_length 60, Ts 0.06), which
-  //    crane_mpc_parameters.yaml calls "the fault-tolerance budget: that many missed
-  //    solves before the receiver's buffer runs dry". Until it is spent the JTC is
-  //    still driving the plan and the joints can still reach tolerance.
-  //  - the sway gates never needed a commander at all: a pendulum swings whoever
-  //    holds the joints, so a kSettledMinHold dwell that began before the silence
-  //    finishes after it.
-  // At 1000 ms both were cut off: two wall_assembly moves failed on "has not read
-  // settled for long enough" with every other gate met, 1.7 s short of the dwell.
-  // kProducerGrace covers the other end, where "not driving yet" and "never will"
-  // are the same reading.
-  static constexpr std::chrono::milliseconds kHorizonMaxAge{3700};
+  // the stream, because the move can still end on its own inside that. The sway gates
+  // never needed a commander at all: a pendulum swings whoever holds the joints, so a
+  // kSettledMinHold dwell that began before the silence finishes after it. At 1000 ms
+  // that was cut off: two wall_assembly moves failed on "has not read settled for long
+  // enough" with every other gate met, 1.7 s short of the dwell. kProducerGrace covers
+  // the other end, where "not driving yet" and "never will" are the same reading.
+  //
+  // Derived from the horizon and not carried as a total (issue 247): it was
+  // 3700 ms for 239's 60 x 0.06 s and sat a whole second inside 240's 80 x 0.06,
+  // so the tree ended MPC-driven moves before their last horizon was spent. These
+  // two must track crane_mpc.yaml's `horizon_length` and `Ts`; there is no runtime
+  // path from that file to this one, so a knot change is an edit here as well.
+  //
+  // **The reach is the generous bound here, not the binding one, and 239's reason for
+  // it was wrong.** 239 and crane_mpc_parameters.yaml both say the JTC keeps driving
+  // the plan until the last horizon is spent; it does not. `topic_timeout` on the a2b
+  // JTC (0.24 s) converts the stale trajectory to a zero-velocity hold long before
+  // that, so the joints stop moving ~0.24 s into the silence and no later tick can
+  // change the arrival error. What actually has to fit inside this bound is the sway
+  // dwell plus one verdict age -- kSettledMinHold + kSettledMaxAge = 3700 ms, which is
+  // exactly the number 239 landed on by the other argument. The grid derivation below
+  // is a superset of that and is what issue 247 asked for; its cost is that an
+  // MPC-death-mid-move holds the operator on the deadman for the full bound rather
+  // than for the ~1.2 s the machine is actually still moving. Whether this should
+  // instead read `kSettledMinHold + kSettledMaxAge` and stop tracking the grid at all
+  // is a live question -- see 247's notes.
+  static constexpr int kMpcHorizonKnots{40};
+  static constexpr std::chrono::milliseconds kMpcKnot{120};
+  // One knot of slack past the reach: the stream can fall silent just after a
+  // horizon lands, so the bound covers the reach plus one re-goal.
+  static constexpr std::chrono::milliseconds kHorizonMaxAge{
+    (kMpcHorizonKnots + 1) * kMpcKnot};
   // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
   // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
   // points, and the block slid 5 cm on touchdown.
   static constexpr std::chrono::milliseconds kSettledMinHold{2700};
+  // The requirement above, now that the bound no longer states it: whatever the grid
+  // does, a dwell begun before the silence has to be able to finish inside it.
+  static_assert(
+    kHorizonMaxAge >= kSettledMinHold + kSettledMaxAge,
+    "kHorizonMaxAge must outlast a sway dwell that began before the silence");
 
   mutable std::mutex mutex_;
   std::optional<JointState> joint_state_;

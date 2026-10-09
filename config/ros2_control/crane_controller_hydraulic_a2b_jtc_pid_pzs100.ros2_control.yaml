@@ -11,15 +11,25 @@ trajectory_controller_a2b:
     effort_field_is_feedforward: true
 
     # Freshness watchdog of ~/joint_trajectory. On `cbs_mpc_active` that topic is remapped onto
-    # /crane/mpc/horizon, so it is a stream: crane_mpc republishes one horizon per Ts = 0.06 s
-    # (crane_mpc.yaml; measured 16.7 Hz, i.e. one per 0.06 s). Silence means the MPC escalated,
+    # /crane/mpc/horizon, so it is a stream: crane_mpc republishes one horizon per Ts = 0.12 s
+    # (crane_mpc.yaml; 8.3 Hz). Silence means the MPC escalated,
     # raised, crashed or was switched away, and without this the JTC plays the stale horizon
-    # open-loop for the rest of its 80 x 0.06 s = 4.8 s and then holds its last knot -- velocity
+    # open-loop for the rest of its 40 x 0.12 s = 4.8 s and then holds its last knot -- velocity
     # *and* effort, which is a feed-forward velocity here, so the axes keep moving.
-    # 3 x Ts = 0.18 s: two lost horizons are tolerated, the third stops the machine.
+    # 0.24 s, and **sized on the measured gap distribution, not on a count of cycles**
+    # (issue 247). What this number buys is an open-loop run at `effort` -- a feed-forward
+    # velocity -- so it is a duration times a velocity, i.e. metres of tip travel with
+    # nobody in the loop; a rule written in cycles doubles that every time Ts doubles.
+    # Measured over two headless basic_pick_and_place runs at Ts 0.12, 1108 horizons:
+    # inter-arrival p50/p90 120/126-128 ms, worst gap *while driving* 168 and 176 ms, and
+    # then nothing until 510 ms -- the gaps above that are the MPC legitimately not driving
+    # between moves, where firing is correct. So 0.24 s is 36 % clear of the worst observed
+    # in-move gap and tolerates one lost horizon; the old 0.18 s was 2 % clear of it and
+    # would have fired mid-move on a slightly worse run, which is why it could not simply be
+    # left alone. The second run ran at this value and never fired it mid-move.
     # cmd_timeout cannot do this, it counts from the trajectory's last point and must exceed
     # constraints.goal_time (5.0 s below), so it would fire 4.8 + 5 s too late.
-    topic_timeout: 0.18
+    topic_timeout: 0.24
 
     # These are a velocity PI, despite the names. No controller_plugin is set, so the JTC runs
     # PidTrajectoryPlugin, whose law is

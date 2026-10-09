@@ -42,7 +42,7 @@
      ways: the action goal below, and `~/joint_trajectory`, whose documented behaviour is
      "always replace old msg with new one". A live goal does not close the topic path, because
      JTC sets `subscriber_is_active_` in on_activate/on_deactivate only, so an MPC re-goaling
-     by topic every 40 ms would run against this goal's `goal_time` and per-joint tolerances.
+     by topic every T_s would run against this goal's `goal_time` and per-joint tolerances.
      146 landed that remap, so issue 148 closes this: exactly one of the two children runs per
      move, and which one is bound at launch, not in this file. WaitForMoveComplete reads the
      `a2b_mpc_drives` ROS parameter (true only on controller:=cbs_mpc_active), writes it to

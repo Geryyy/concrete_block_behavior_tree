@@ -31,7 +31,8 @@
            depth: 0.067 rad of yaw against a square neighbour, 0.033 if the neighbour is yawed
            the same way. It stays at 0.02 because every reading above that came from a move
            crane_mpc stopped driving mid flight, where the residual is a frozen mid move error
-           and not an arrival (issue 243: kHorizonMaxAge 3.7 s now lags N Ts 4.74 s). -->
+           and not an arrival (issue 243 read this as kHorizonMaxAge 3.7 s lagging N Ts
+           4.74 s; 247 made the bound follow the grid, so it no longer lags). -->
       <!-- Carrying only: the pickup approach needs no accuracy, the grasp tolerates it. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02" _skipIf="mv_carries != 'true'"/>
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05" _skipIf="mv_carries == 'true'"/>
