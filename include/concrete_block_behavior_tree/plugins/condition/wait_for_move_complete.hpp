@@ -41,6 +41,15 @@ namespace concrete_block_behavior_tree
 //    where the tool would settle" and are read out through an uncalibrated
 //    offset. The MPC does not track them either -- /crane/reference is the six
 //    actuated columns -- and the sway half below is what covers them.
+//  - every joint in `joints` has |dq_a| <= `dq_a_bound` continuously for
+//    kSettledMinHold (issue 249). Position alone said arrived while the crane was
+//    still running: a quiet-planned A2B approach ended 0.032 rad inside the 0.05
+//    tolerance with slew at -0.04 rad/s and the rotator at -0.09, and the grip
+//    trajectory that followed referenced -0.058 -> 0 in one step. That stopped the
+//    machine in ~0.5 s and threw 0.16 rad/s of empty tilt, with the MPC already
+//    off the move and nothing left to damp it. The dwell is the same one the sway
+//    half needs and for a weaker reason -- the rate is read off an encoder
+//    difference, so a single sample under the bound is a sample, not a stop.
 //  - /crane/sway_settled has read SETTLED_YES continuously for kSettledMinHold,
 //    and the newest verdict is no older than kSettledMaxAge.
 // SETTLED_UNKNOWN is not success: a bracketing IMU that stopped answering makes
@@ -111,6 +120,17 @@ public:
       // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
       // a decaying sway that nothing after it needs that still.
       BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),
+      // Read off the holds of bag ~/Documents/sim_captures/2026-10-09-wall-assembly.
+      // Over the 1285 s of its /joint_states where the actuated positions move less
+      // than 1e-3 rad per 2 s -- a stillness criterion that does not use the rate
+      // channel it is sizing -- max|dq_a| across the actuated five is p99 0.0008 and
+      // p99.9 0.0034 rad/s. 0.01 is three times that floor and a quarter of the
+      // 0.04 rad/s slew this gate exists to refuse, so it needs no per-joint map and
+      // no campaign to size. Replaying the gate over that bag costs 2.72-2.74 s per
+      // hold -- the dwell and nothing more; no standing sample there restarted it.
+      // Sim is noisier: over the seven arrivals of a headless basic_pick_and_place the
+      // worst dwell peaked at 0.0079, so in Gazebo this is 20 % of headroom, not 3x.
+      BT::InputPort<double>("dq_a_bound", 0.01, "Actuated joint rate bound [rad/s|m/s]"),
       // True only where this node is the commander, from the `a2b_mpc_drives`
       // ROS parameter. The sibling FollowJointTrajectory action is _skipIf'd on
       // it, so exactly one of the two commands any given move.
@@ -144,6 +164,10 @@ private:
   std::string joint_errors_text() const;
   // The verdict's YES, or, with a sway_bound, its rates against that. UNKNOWN never is.
   bool still(const SwaySettled & verdict) const;
+  // The checked joints over dq_a_bound, with their rates; empty when every one of
+  // them is under it. A joint /joint_states carries no rate for is listed too --
+  // "no rate" is not "not moving". Caller holds mutex_.
+  std::string moving_joints_text(const JointState & state) const;
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
@@ -217,6 +241,10 @@ private:
   std::chrono::steady_clock::time_point settled_received_;
   // When the current unbroken run of SETTLED_YES began.
   std::optional<std::chrono::steady_clock::time_point> settled_since_;
+  // Same, for the actuated rates. Kept on the /joint_states stream and not on the
+  // tick, so the dwell runs through the plan instead of starting at its end: a move
+  // that was already standing still arrives without paying 2.7 s for it.
+  std::optional<std::chrono::steady_clock::time_point> dq_a_still_since_;
   // When the newest horizon arrived, seeded at onStart so that "never published"
   // and "stopped publishing" are one bound.
   std::chrono::steady_clock::time_point horizon_received_;
@@ -224,6 +252,7 @@ private:
   bool mpc_drives_{false};
   bool settle_only_{false};
   double sway_bound_{0.0};
+  double dq_a_bound_{0.01};
   JointTrajectory trajectory_;
   std::vector<std::string> joints_;
   double goal_tolerance_{0.05};

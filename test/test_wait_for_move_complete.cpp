@@ -2,7 +2,8 @@
 //
 // No sim run tells you this one is wrong until a block is placed on a swinging
 // load, so the cases below are driven against the real node over real topics:
-// arrived and settled, arrived and swinging, arrived and unknown, never arrived
+// arrived and settled, arrived and still running, arrived and swinging, arrived
+// and unknown, never arrived
 // -- plus the three ways it could say "arrived" about a move that did not
 // happen, and the profile gate that keeps the action path for `pid`. On that
 // path the same node runs again after the goal as the settle wait (issue 220),
@@ -49,13 +50,16 @@ JointTrajectory goal_trajectory(double plan_seconds)
 // Deliberately neither the order nor the width of the trajectory: the two stacks
 // publish different /joint_states name sets in different orders, so a node that
 // matches by index reads the wrong axis here. theta6 is parked far from its
-// planned value, where an uncalibrated pendulum reading would sit.
-JointState measured(double theta1, double theta2)
+// planned value, where an uncalibrated pendulum reading would sit, and swings at
+// 0.3 rad/s throughout: the passive rates are the sway verdict's business, not
+// this node's rate gate.
+JointState measured(double theta1, double theta2, double dq_theta1 = 0.0)
 {
   JointState state;
   state.name = {"q9_left_rail_joint", "theta6_tip_joint", "theta2_boom_joint",
     "theta1_slewing_joint"};
   state.position = {0.7, 0.4, theta2, theta1};
+  state.velocity = {0.0, 0.3, 0.0, dq_theta1};
   return state;
 }
 
@@ -204,6 +208,21 @@ TEST(WaitForMoveComplete, does_not_accept_a_single_turning_point_reading_as_sett
   // instant; it must not carry the move.
   const auto outcome = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 900, 10);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+}
+
+TEST(WaitForMoveComplete, does_not_call_a_move_over_while_the_actuated_joints_still_run)
+{
+  // Issue 249. Every position inside tolerance and the load settled, but the slew
+  // is still turning at the -0.04 rad/s the live run measured 0.032 rad off its
+  // goal. Arriving there hands a moving crane to a trajectory that starts from
+  // zero velocity, which brakes it in ~0.5 s and throws the sway the MPC is no
+  // longer on the move to damp.
+  // The same 6 s window the success case above gets, not the 900 ms the other
+  // failures get: inside 900 ms the sway dwell has not completed either, so a
+  // short window fails with or without this gate and would pin nothing.
+  const auto outcome = run(true, measured(1.0, 2.0, -0.04), SwaySettled::SETTLED_YES, 6000);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(outcome.commanded, 0);
 }
 
 TEST(WaitForMoveComplete, fails_when_the_joints_arrived_but_the_load_is_swinging)

@@ -83,6 +83,12 @@ WaitForMoveComplete::WaitForMoveComplete(
     [this](JointState::SharedPtr msg) {
       std::lock_guard<std::mutex> lock(mutex_);
       joint_state_ = *msg;
+      // Same shape as the sway dwell below: any sample over the bound restarts it.
+      if (!moving_joints_text(*msg).empty()) {
+        dq_a_still_since_.reset();
+      } else if (!dq_a_still_since_) {
+        dq_a_still_since_ = std::chrono::steady_clock::now();
+      }
     },
     options);
   // crane_mpc publishes the verdict RELIABLE/VOLATILE, depth 1.
@@ -139,6 +145,7 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     std::lock_guard<std::mutex> lock(mutex_);
     sway_bound_ = 0.0;
     getInput("sway_bound", sway_bound_);
+    getInput("dq_a_bound", dq_a_bound_);
   }
   getInput("timeout_ms", timeout_ms_);
 
@@ -162,6 +169,7 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     std::lock_guard<std::mutex> lock(mutex_);
     settled_.reset();
     settled_since_.reset();
+    dq_a_still_since_.reset();
     joint_state_.reset();
   }
   start_time_ = std::chrono::steady_clock::now();
@@ -246,6 +254,7 @@ void WaitForMoveComplete::onHalted()
   std::lock_guard<std::mutex> lock(mutex_);
   settled_.reset();
   settled_since_.reset();
+  dq_a_still_since_.reset();
   joint_state_.reset();
 }
 
@@ -287,6 +296,17 @@ std::string WaitForMoveComplete::not_arrived_reason() const
            joint_errors_text();
   }
 
+  // Inside the tolerance is not stopped (issue 249): a quiet plan reaches its last
+  // point with the joints still running, and whatever runs next starts from zero
+  // velocity and brakes the machine into a swing nothing is left to damp.
+  const std::string moving = moving_joints_text(*joint_state_);
+  if (!moving.empty()) {
+    return "actuated joints still moving, bound " + std::to_string(dq_a_bound_) + ": " + moving;
+  }
+  if (!dq_a_still_since_ || now - *dq_a_still_since_ < kSettledMinHold) {
+    return "the actuated joints have not held still for long enough to have stopped";
+  }
+
   if (!settled_ || now - settled_received_ > kSettledMaxAge) {
     return "no fresh sway verdict";
   }
@@ -323,6 +343,24 @@ std::string WaitForMoveComplete::joint_errors_text() const
   std::string text;
   for (const auto & joint : joints_) {
     text += (text.empty() ? "" : ", ") + joint + " " + std::to_string(joint_error(joint));
+  }
+  return text;
+}
+
+std::string WaitForMoveComplete::moving_joints_text(const JointState & state) const
+{
+  std::string text;
+  for (const auto & joint : joints_) {
+    // By name, same as the positions: the i-th state is not the i-th planned joint.
+    const size_t j = index_of(state.name, joint);
+    if (j >= state.velocity.size()) {
+      text += (text.empty() ? "" : ", ") + joint + " no rate";
+      continue;
+    }
+    // Negated <=: a NaN rate must not read as stopped.
+    if (!(std::abs(state.velocity[j]) <= dq_a_bound_)) {
+      text += (text.empty() ? "" : ", ") + joint + " " + std::to_string(state.velocity[j]);
+    }
   }
   return text;
 }
