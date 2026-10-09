@@ -124,10 +124,10 @@
               </Fallback>
               <Sleep msec="600000" _skipIf="!ex_until_landed"/>
             </Sequence>
-            <!-- 0.7, not 0.25: at 0.25 the jaws opened with ~60 % of the block still on
-                 the hook and the boom bounced 0.3 m. -->
+            <!-- 0.5, not 0.25: at 0.25 the jaws opened with ~60 % of the block still on
+                 the hook and the boom bounced 0.3 m. 0.7 cost ~1.1 s over 0.5 (issue 258). -->
             <!-- 40 s: the slow final segment is a ~10 s plan and unloads after contact. -->
-            <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed" drop_fraction="0.7"
+            <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed" drop_fraction="0.5"
               timeout_ms="40000"
               mass="{payload_mass}" target_z="{place_z}"
               s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>

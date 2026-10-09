@@ -32,8 +32,10 @@ WaitForLoadOff::WaitForLoadOff(const std::string & name, const BT::NodeConfig & 
     callback_group_, node_->get_node_base_interface());
   rclcpp::SubscriptionOptions options;
   options.callback_group = callback_group_;
+  // Keep-last 1: spin_some() per ~28 Hz tick against 100 Hz kept a deep queue full,
+  // so the gate read effort 1 s old (issue 258).
   sub_ = node_->create_subscription<JointState>(
-    "/joint_states", rclcpp::QoS(100),
+    "/joint_states", rclcpp::QoS(1),
     std::bind(&WaitForLoadOff::callback, this, std::placeholders::_1), options);
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
