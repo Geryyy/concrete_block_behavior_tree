@@ -134,6 +134,14 @@ private:
   // Why the move is not over yet, or empty when it is. The sentence is what the
   // timeout reports, so the failure says which half was missing.
   std::string not_arrived_reason() const;
+  // |measured - planned| for one joint. Caller holds mutex_ and has established
+  // that the joint is in both the plan and /joint_states.
+  double joint_error(const std::string & joint) const;
+  // Every checked joint's error, logged on arrival as well as on a miss: the
+  // arrival residuals per axis are what a tolerance is sized on, and until
+  // issue 241 only the first offending joint of a failed move was ever reported.
+  // Caller holds mutex_.
+  std::string joint_errors_text() const;
   // The verdict's YES, or, with a sway_bound, its rates against that. UNKNOWN never is.
   bool still(const SwaySettled & verdict) const;
 

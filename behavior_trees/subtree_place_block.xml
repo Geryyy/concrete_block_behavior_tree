@@ -119,6 +119,14 @@
       <!-- 2. Angled entry from the open side to 5 cm over the slot: the gap to the neighbour
            only closes to its final 2 cm. -->
       <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.05"/>
+      <!-- 0.02, not the 0.05 place_approach set (issue 241). This is the last gate before the
+           block goes down and nothing re-measures it after here: the correction loop above is
+           upstream, and SubTreeTouchdown only descends. 0.05 rad is 0.25 to 0.35 m at the block
+           on slew, boom or arm (sensitivities in subtree_move_above.xml), against the 0.02 m
+           the gap to the placed neighbour closes to. Measured: all 11 arrivals in the issue-241
+           campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
+           0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
            mid-move leaves the crane short and this wait times out. -->
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">

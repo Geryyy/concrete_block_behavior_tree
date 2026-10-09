@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -186,22 +187,18 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
 
   const std::string reason = not_arrived_reason();
   if (reason.empty()) {
-    RCLCPP_INFO(node_->get_logger(), "Move arrived and the load is settled");
+    std::lock_guard<std::mutex> lock(mutex_);
+    RCLCPP_INFO(
+      node_->get_logger(), "Move arrived and the load is settled | %s",
+      joint_errors_text().c_str());
     return BT::NodeStatus::SUCCESS;
   }
 
   const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::steady_clock::now() - start_time_).count();
-  // A profile that starts no crane_mpc has no verdict publisher at all, and no
-  // amount of waiting makes one: the whole timeout spent in front of a
-  // motionless machine, with the controller active and the operator holding the
-  // deadman, is the worst way to learn that. Say it once the subscription has
-  // had time to discover a producer that does exist.
-  bool heard_a_verdict;
   std::chrono::milliseconds horizon_quiet;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    heard_a_verdict = settled_.has_value();
     horizon_quiet = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - horizon_received_);
   }
@@ -221,9 +218,14 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
       horizon_sub_->get_topic_name(), static_cast<int>(horizon_quiet.count()), reason.c_str());
     return BT::NodeStatus::FAILURE;
   }
-  if (!heard_a_verdict && elapsed_ms > kProducerGrace.count() &&
-    settled_sub_->get_publisher_count() == 0)
-  {
+  // No publisher means the question cannot be answered, and no amount of waiting
+  // makes one: spending the whole timeout in front of a motionless machine, with
+  // the controller active and the operator holding the deadman, is the worst way
+  // to learn that. Not gated on having heard nothing yet (issue 241): a crane_mpc
+  // that dies *mid-move* is the same dead end, and the settle wait is where it
+  // bites -- 60 s of it. kProducerGrace covers the start, where "not discovered
+  // yet" and "never will be" read the same.
+  if (elapsed_ms > kProducerGrace.count() && settled_sub_->get_publisher_count() == 0) {
     RCLCPP_WARN(
       node_->get_logger(),
       "Nothing publishes %s, so whether the load is still is unknowable: start crane_mpc "
@@ -263,9 +265,8 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   if (!joint_state_) {
     return "no joint state received";
   }
-  const auto & goal = trajectory_.points.back().positions;
+  bool missed = false;
   for (const auto & joint : joints_) {
-    const size_t i = index_of(trajectory_.joint_names, joint);
     // By name on both sides: the two stacks publish different /joint_states name
     // sets in different orders, so the i-th state is not the i-th planned joint.
     const size_t j = index_of(joint_state_->name, joint);
@@ -275,11 +276,15 @@ std::string WaitForMoveComplete::not_arrived_reason() const
     if (j >= joint_state_->position.size()) {
       return "joint " + joint + " carries no position";
     }
-    const double error = std::abs(joint_state_->position[j] - goal[i]);
     // Negated <=, not >: a NaN reading must not read as arrived.
-    if (!(error <= goal_tolerance_)) {
-      return "joint " + joint + " is " + std::to_string(error) + " from its goal";
-    }
+    missed = missed || !(joint_error(joint) <= goal_tolerance_);
+  }
+  // Every joint, not the first that misses: which axes stand off and by how much
+  // is the whole diagnosis, and one name per failed move is what left issue 241
+  // four samples from four runs to size a tolerance on.
+  if (missed) {
+    return "joints off their goal, tolerance " + std::to_string(goal_tolerance_) + ": " +
+           joint_errors_text();
   }
 
   if (!settled_ || now - settled_received_ > kSettledMaxAge) {
@@ -294,6 +299,32 @@ std::string WaitForMoveComplete::not_arrived_reason() const
     return "the load has not read settled for long enough to be still";
   }
   return {};
+}
+
+double WaitForMoveComplete::joint_error(const std::string & joint) const
+{
+  const size_t i = index_of(trajectory_.joint_names, joint);
+  const size_t j = index_of(joint_state_->name, joint);
+  // NaN, not an out-of-range read: this is also called on the arrival path, one
+  // lock later than the caller that checked, so a /joint_states message that
+  // changed its name set in between must not index past the array. NaN fails
+  // the `<=` below as a miss, which is the safe reading of an unresolvable axis.
+  if (j >= joint_state_->position.size()) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  return std::abs(joint_state_->position[j] - trajectory_.points.back().positions[i]);
+}
+
+std::string WaitForMoveComplete::joint_errors_text() const
+{
+  if (!joint_state_) {
+    return "no joint state";
+  }
+  std::string text;
+  for (const auto & joint : joints_) {
+    text += (text.empty() ? "" : ", ") + joint + " " + std::to_string(joint_error(joint));
+  }
+  return text;
 }
 
 bool WaitForMoveComplete::still(const SwaySettled & verdict) const

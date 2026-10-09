@@ -106,10 +106,14 @@ std::string tree_text(int timeout_ms)
 // published after `arrive_after_ticks` -- a producer that died mid-move.
 // `horizon_ticks` is the same for the MPC's command: < 0 drives the whole run,
 // and a count is the MPC falling silent that many ticks in.
+// `producer_dies_after_ticks` >= 0 destroys the verdict publisher that many ticks
+// in, which is a crane_mpc that exits mid-move -- not the same as a producer that
+// goes quiet, because the publisher count drops to zero.
 Outcome run(
   bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
   int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
-  bool until_landed = false, bool with_producer = true, int horizon_ticks = -1)
+  bool until_landed = false, bool with_producer = true, int horizon_ticks = -1,
+  int producer_dies_after_ticks = -1)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
@@ -145,6 +149,9 @@ Outcome run(
     state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
     if (horizon_ticks < 0 || tick < horizon_ticks) {
       horizon_pub->publish(JointTrajectory());
+    }
+    if (producer_dies_after_ticks >= 0 && tick >= producer_dies_after_ticks) {
+      settled_pub.reset();
     }
     if (settled_pub && (settled_ticks < 0 || tick < settled_ticks)) {
       settled_pub->publish(verdict);
@@ -271,6 +278,27 @@ TEST(WaitForMoveComplete, fails_at_once_when_nothing_publishes_the_verdict)
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 1);
   EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(12000));
+}
+
+TEST(WaitForMoveComplete, fails_at_once_when_the_verdict_producer_dies_mid_move)
+{
+  // Issue 241, the settle arm's sibling of 239. The joints arrived and the load
+  // reads still, but crane_mpc exits 0.6 s in -- before the 2.7 s dwell can
+  // complete -- so the publisher count drops to zero and nothing will ever
+  // finish the dwell. The check used to be gated on having heard no verdict at
+  // all, which a producer that dies *mid*-move has already defeated, so this
+  // burned the settle wait's whole 60 s in front of a motionless machine with
+  // the deadman held.
+  // 20 ticks, ~0.4 s: it has to be long enough that a verdict was heard (or the
+  // old code fails here too and this proves nothing) and short enough that the
+  // 2.7 s dwell cannot complete first (or the node legitimately succeeds). Those
+  // bound the tick period to 135 ms, against ~20 ms measured.
+  const auto outcome = run(
+    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 0, 0.2, false, true, -1, 20);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  // It is the settle wait that fails, so the goal did run.
+  EXPECT_EQ(outcome.commanded, 1);
+  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(10000));
 }
 
 TEST(WaitForMoveComplete, fails_at_once_when_the_mpc_stops_driving_the_move)

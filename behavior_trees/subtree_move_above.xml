@@ -16,10 +16,22 @@
     <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="replan_on_missed_goal">
     <Sequence name="move_above">
       <!-- 0.02, not the JTC's 0.05: 0.05 rad of slew is 0.35 m at the block, and the descent
-           was planned from there while the crane still arrived (sim, 2026-10-01). 0.01 is
-           under the MPC's standing error (0.014 seen). Without the MPC the goal aborts at it
-           when the arm stalls short on the valve dead zone, which is what fires
-           replan_on_missed_goal. -->
+           was planned from there while the crane still arrived (sim, 2026-10-01). Without the
+           MPC the goal aborts at it when the arm stalls short on the valve dead zone, which is
+           what fires replan_on_missed_goal.
+           MEASURED, NOT LOOSENED (issue 241). 21 arrivals over 4 e2e runs on these defaults:
+           median residual 1.7 to 5.5 mrad per joint, p90 slew 0.0085, boom 0.0101, arm 0.0134,
+           telescope 0.0034 m, rotator 0.0366. TCP sensitivity there (crane_model Jacobian,
+           hanging): slew 6.1 to 6.9, boom 6.3 to 7.2, arm 4.1 to 5.1 m/rad, telescope 2.0 m/m
+           (q5 mimics q4, so the travel is 2 q4), rotator 0.000 m/rad and pure tool yaw at
+           1 rad/rad. So 0.02 rad is already 0.12 to 0.14 m at the block on slew and boom: the
+           number is loose for every joint that moves the TCP, not tight, and the standing
+           offset `crane_mpc.yaml` claims (0.06 rad) is not what arrives. The rotator alone has
+           a larger own budget, the wall's 0.02 m clearance.horizontal over the block's 0.6 m
+           depth: 0.067 rad of yaw against a square neighbour, 0.033 if the neighbour is yawed
+           the same way. It stays at 0.02 because every reading above that came from a move
+           crane_mpc stopped driving mid flight, where the residual is a frozen mid move error
+           and not an arrival (issue 243: kHorizonMaxAge 3.7 s now lags N Ts 4.74 s). -->
       <!-- Carrying only: the pickup approach needs no accuracy, the grasp tolerates it. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02" _skipIf="mv_carries != 'true'"/>
       <SetBlackboard output_key="ex_goal_tolerance" value="0.05" _skipIf="mv_carries == 'true'"/>
