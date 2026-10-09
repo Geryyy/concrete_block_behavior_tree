@@ -42,7 +42,7 @@ namespace concrete_block_behavior_tree
 //    offset. The MPC does not track them either -- /crane/reference is the six
 //    actuated columns -- and the sway half below is what covers them.
 //  - every joint in `joints` has |dq_a| <= `dq_a_bound` continuously for
-//    kSettledMinHold (issue 249). Position alone said arrived while the crane was
+//    `hold_s` (issue 249). Position alone said arrived while the crane was
 //    still running: a quiet-planned A2B approach ended 0.032 rad inside the 0.05
 //    tolerance with slew at -0.04 rad/s and the rotator at -0.09, and the grip
 //    trajectory that followed referenced -0.058 -> 0 in one step. That stopped the
@@ -50,7 +50,7 @@ namespace concrete_block_behavior_tree
 //    off the move and nothing left to damp it. The dwell is the same one the sway
 //    half needs and for a weaker reason -- the rate is read off an encoder
 //    difference, so a single sample under the bound is a sample, not a stop.
-//  - /crane/sway_settled has read SETTLED_YES continuously for kSettledMinHold,
+//  - /crane/sway_settled has read SETTLED_YES continuously for `hold_s`,
 //    and the newest verdict is no older than kSettledMaxAge.
 // SETTLED_UNKNOWN is not success: a bracketing IMU that stopped answering makes
 // "settled" unknowable, and unknowable must not read as settled.
@@ -131,6 +131,18 @@ public:
       // Sim is noisier: over the seven arrivals of a headless basic_pick_and_place the
       // worst dwell peaked at 0.0079, so in Gazebo this is 20 % of headroom, not 3x.
       BT::InputPort<double>("dq_a_bound", 0.01, "Actuated joint rate bound [rad/s|m/s]"),
+      // How long both dwells have to hold (issue 255). Default kSettledMinHold, which is
+      // what a *carried* block costs: one period of the loaded pendulum. Every move paid
+      // it, and on an empty or pickup move the residual sway is nobody's gate -- nothing
+      // descends onto it and the grasp tolerates it -- so ~1.2 s per move was spent in
+      // front of a crane already standing still. The XML sets it short there and leaves
+      // the loaded A2B and the placement descents at the default.
+      // Under kSettledMaxAge it stops being a dwell on the sway half: one SETTLED_YES
+      // stays fresh for 1 s, so a 0.3 s hold can be carried by a single verdict and the
+      // turning-point argument above no longer holds. That is the trade on an empty hook
+      // and not on a loaded one, which is why the short value is XML and not the default.
+      BT::InputPort<double>(
+        "hold_s", kSettledMinHold.count() / 1000.0, "Dwell under both bounds [s]"),
       // True only where this node is the commander, from the `a2b_mpc_drives`
       // ROS parameter. The sibling FollowJointTrajectory action is _skipIf'd on
       // it, so exactly one of the two commands any given move.
@@ -227,7 +239,9 @@ private:
     (kMpcHorizonKnots + 1) * kMpcKnot};
   // One period of the carried pendulum (2.7 s, sim): a whole cycle under the rate bound
   // caps the swing at bound / omega. 1 s let a +-1.8 cm swing through near its turning
-  // points, and the block slid 5 cm on touchdown.
+  // points, and the block slid 5 cm on touchdown. Now only the `hold_s` default, i.e.
+  // the longest dwell the XML asks for; a caller that asks for more than this outlives
+  // the horizon bound below and the static_assert no longer covers it.
   static constexpr std::chrono::milliseconds kSettledMinHold{2700};
   // The requirement above, now that the bound no longer states it: whatever the grid
   // does, a dwell begun before the silence has to be able to finish inside it.
@@ -253,6 +267,7 @@ private:
   bool settle_only_{false};
   double sway_bound_{0.0};
   double dq_a_bound_{0.01};
+  std::chrono::milliseconds hold_{kSettledMinHold};
   JointTrajectory trajectory_;
   std::vector<std::string> joints_;
   double goal_tolerance_{0.05};

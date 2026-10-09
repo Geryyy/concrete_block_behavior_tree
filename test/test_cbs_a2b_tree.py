@@ -177,6 +177,50 @@ def test_cbs_a2b_subtree_waits_for_the_load_to_settle_after_the_action():
     assert children.index(guard) > children.index(off)
 
 
+def test_the_short_arrival_dwell_is_asked_for_only_where_the_hook_is_empty():
+    """Issue 255: the 2.7 s dwell is one period of the *carried* pendulum.
+
+    Both halves of the subtree read it from `ex_hold_s`, and the blackboard is
+    shared across the whole run, so the number that bites is the one a loaded move
+    inherits: a placement left on 0.3 s sets the block down on a swing. Every short
+    value is therefore paired with its carrying guard, and the placement descent
+    sets the full dwell itself rather than inheriting it -- SubTreePlaceFromHover
+    enters without the move_above that would otherwise have set it.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    waits = list(root.iter("WaitForMoveComplete"))
+    assert [node.get("hold_s") for node in waits] == ["{ex_hold_s}"] * len(waits)
+
+    for name, flag in (
+        ("subtree_move_above.xml", "mv_carries"),
+        ("subtree_lift.xml", "lf_carries"),
+    ):
+        holds = [
+            node
+            for node in ElementTree.parse(TREE_DIR / name)
+            .getroot()
+            .iter("SetBlackboard")
+            if node.get("output_key") == "ex_hold_s"
+        ]
+        assert [node.get("value") for node in holds] == ["0.3", "2.7"], name
+        assert holds[0].get("_skipIf") == f"{flag} == 'true'", name
+        assert holds[1].get("_skipIf") == f"{flag} != 'true'", name
+
+    place = ElementTree.parse(TREE_DIR / "subtree_place_block.xml").getroot()
+    approach = next(
+        tree
+        for tree in place.iter("BehaviorTree")
+        if tree.get("ID") == "SubTreePlaceApproach"
+    )
+    loaded = [
+        node
+        for node in approach.iter("SetBlackboard")
+        if node.get("output_key") == "ex_hold_s"
+    ]
+    assert [node.get("value") for node in loaded] == ["2.7"]
+    assert loaded[0].get("_skipIf") is None
+
+
 def test_a_carrying_lift_asks_for_a_slower_ramp_and_gives_it_back():
     """Issue 234: the 5 s lift is an impulse on the loaded tip mode.
 

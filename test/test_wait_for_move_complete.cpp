@@ -78,20 +78,20 @@ constexpr char kTree[] =
        <BehaviorTree ID="T">
          <Sequence>
            <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
-             joints="JOINTS" timeout_ms="TIMEOUT" mpc_drives="{mpc_drives}"/>
+             joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD" mpc_drives="{mpc_drives}"/>
            <Script _skipIf="mpc_drives" code="commanded := 1"/>
            <Sequence _skipIf="ex_until_landed">
              <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
-               joints="JOINTS" timeout_ms="TIMEOUT" mpc_drives="{mpc_drives}"
+               joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD" mpc_drives="{mpc_drives}"
                settle_only="true" _skipIf="mpc_drives"/>
            </Sequence>
          </Sequence>
        </BehaviorTree>
      </root>)";
 
-// Both placeholders stand twice: the two instances share every port but
+// Every placeholder stands twice: the two instances share every port but
 // settle_only.
-std::string tree_text(int timeout_ms)
+std::string tree_text(int timeout_ms, double hold_s)
 {
   std::string text = kTree;
   const auto substitute = [&text](const std::string & token, const std::string & value) {
@@ -102,6 +102,7 @@ std::string tree_text(int timeout_ms)
     };
   substitute("JOINTS", kCheckedJoints);
   substitute("TIMEOUT", std::to_string(timeout_ms));
+  substitute("HOLD", std::to_string(hold_s));
   return text;
 }
 
@@ -113,11 +114,13 @@ std::string tree_text(int timeout_ms)
 // `producer_dies_after_ticks` >= 0 destroys the verdict publisher that many ticks
 // in, which is a crane_mpc that exits mid-move -- not the same as a producer that
 // goes quiet, because the publisher count drops to zero.
+// `hold_s` is the dwell both arrival gates have to hold, defaulted to the loaded
+// 2.7 s so that every case above it reads as the move it was written for.
 Outcome run(
   bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
   int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
   bool until_landed = false, bool with_producer = true, int horizon_ticks = -1,
-  int producer_dies_after_ticks = -1)
+  int producer_dies_after_ticks = -1, double hold_s = 2.7)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
@@ -141,7 +144,7 @@ Outcome run(
 
   BT::BehaviorTreeFactory factory;
   factory.registerNodeType<WaitForMoveComplete>("WaitForMoveComplete");
-  auto tree = factory.createTreeFromText(tree_text(timeout_ms), blackboard);
+  auto tree = factory.createTreeFromText(tree_text(timeout_ms, hold_s), blackboard);
 
   SwaySettled verdict;
   verdict.settled = settled_value;
@@ -199,6 +202,25 @@ TEST(WaitForMoveComplete, does_not_call_a_move_over_before_the_plan_has_run)
     run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 2.0);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_GE(outcome.elapsed, std::chrono::milliseconds(2000));
+}
+
+TEST(WaitForMoveComplete, a_short_hold_does_not_pay_the_carried_pendulum_on_an_empty_move)
+{
+  // Issue 255. The 2.7 s dwell is one period of the *loaded* pendulum, and every
+  // move paid it: measured ~1.2 s of pure pause after each of the eight moves of
+  // a wall-assembly run, in front of a crane that had already stopped. An empty
+  // or pickup move has no gate on its residual sway, so the XML asks for 0.3 s
+  // there -- enough to tell a stop from one sample under the rate bound, which is
+  // all the dwell is for without a block on the hook.
+  const auto loaded = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000);
+  const auto empty = run(
+    true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true, -1, -1,
+    0.3);
+  EXPECT_EQ(loaded.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(empty.status, BT::NodeStatus::SUCCESS);
+  // 2.4 s is the difference of the two dwells; both runs pay the same 0.2 s plan
+  // and the same tick period on top, so the gap is the dwell and nothing else.
+  EXPECT_GE(loaded.elapsed - empty.elapsed, std::chrono::milliseconds(2000));
 }
 
 TEST(WaitForMoveComplete, does_not_accept_a_single_turning_point_reading_as_settled)

@@ -38,6 +38,9 @@
       </Decorator>
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
+      <!-- Empty hook: nothing descends onto the residual sway, so the arrival dwell is
+           only there to tell a stop from a single sample under the rate bound. -->
+      <SetBlackboard output_key="ex_hold_s" value="0.3"/>
       <Script code="ex_publish_reference := false; ex_until_landed := false"/>
       <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
     </Sequence>

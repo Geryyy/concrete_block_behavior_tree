@@ -11,6 +11,12 @@
       <!-- The next move need not wait out the swing: the planner starts from a measured one,
            and the tilt measurement averages it out. -->
       <SetBlackboard output_key="ex_sway_bound" value="0.05"/>
+      <!-- Dwell (issue 255): a lift away from a placed block carries nothing, so the
+           2.7 s period of the loaded pendulum buys it nothing. A carrying lift keeps it:
+           the move after it is the carry, and the block has to be hanging still before the
+           planner starts from a measured sway. -->
+      <SetBlackboard output_key="ex_hold_s" value="0.3" _skipIf="lf_carries == 'true'"/>
+      <SetBlackboard output_key="ex_hold_s" value="2.7" _skipIf="lf_carries != 'true'"/>
       <Script code="ex_publish_reference := true; ex_until_landed := false"/>
       <!-- Carrying only: the 5 s default ramp is grip_traj_server_simple's
            duration_lift times slow_down, and 1.5 m of it in 5 s is 1.7 periods of the

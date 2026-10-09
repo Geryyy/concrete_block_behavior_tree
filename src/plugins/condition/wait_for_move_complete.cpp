@@ -146,6 +146,9 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     sway_bound_ = 0.0;
     getInput("sway_bound", sway_bound_);
     getInput("dq_a_bound", dq_a_bound_);
+    double hold_s = kSettledMinHold.count() / 1000.0;
+    getInput("hold_s", hold_s);
+    hold_ = std::chrono::milliseconds(static_cast<int>(hold_s * 1000.0));
   }
   getInput("timeout_ms", timeout_ms_);
 
@@ -182,9 +185,10 @@ BT::NodeStatus WaitForMoveComplete::onStart()
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "Waiting for the move to %s | joints=%zu tolerance=%.3f plan=%.1fs timeout_ms=%d",
+    "Waiting for the move to %s | joints=%zu tolerance=%.3f plan=%.1fs hold=%.1fs timeout_ms=%d",
     settle_only_ ? "settle" : "arrive", joints_.size(), goal_tolerance_,
-    rclcpp::Duration(trajectory_.points.back().time_from_start).seconds(), timeout_ms_);
+    rclcpp::Duration(trajectory_.points.back().time_from_start).seconds(),
+    hold_.count() / 1000.0, timeout_ms_);
 
   return onRunning();
 }
@@ -303,7 +307,7 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   if (!moving.empty()) {
     return "actuated joints still moving, bound " + std::to_string(dq_a_bound_) + ": " + moving;
   }
-  if (!dq_a_still_since_ || now - *dq_a_still_since_ < kSettledMinHold) {
+  if (!dq_a_still_since_ || now - *dq_a_still_since_ < hold_) {
     return "the actuated joints have not held still for long enough to have stopped";
   }
 
@@ -313,7 +317,7 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   if (!still(*settled_)) {
     return "the load is not settled: " + settled_->message;
   }
-  if (!settled_since_ || now - *settled_since_ < kSettledMinHold) {
+  if (!settled_since_ || now - *settled_since_ < hold_) {
     // A turning point of a full-amplitude swing reads SETTLED_YES for an
     // instant, because the verdict is on the rate.
     return "the load has not read settled for long enough to be still";
