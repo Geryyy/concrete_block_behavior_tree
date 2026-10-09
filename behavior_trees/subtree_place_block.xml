@@ -83,9 +83,9 @@
              with the nominal block_grip_z_offset + tcp_z_offset = 1.05 m, while
              MeasureBlockFromGripper reads the block back through the lidar-refined grasp
              offset, 1.005 m in run2_pp. That 45 mm gap is a constant no cycle removes, so
-             the 1 cm 3-D test never fired and all 3 cycles ran for 14 s. About 30 mm of it
-             is the lidar's block-centre z bias (REFINE_BLOCK moves a block on known flat
-             ground +26..33 mm up), the rest a pickup that closed 20 mm low. -->
+             the 1 cm 3-D test never fired and all 3 cycles ran for 14 s. About 25 mm of it
+             was the sim ground slab standing 25 mm above z=0 (issue 262; the lidar itself is
+             within 4 mm), the rest a pickup that closed 20 mm low. -->
       <Script code="off_x := 0.0; off_y := 0.0; still_off := true; corr_done := false"/>
       <!-- A pass that finds the block within 1 cm leaves the Repeat instead of ticking out
            the remaining cycles: there is nothing left to measure or move. Repeat has no
