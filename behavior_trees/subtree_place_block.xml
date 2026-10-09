@@ -70,11 +70,13 @@
            still passed its joint tolerance. The measured 3-D miss at the waypoint
            accumulates in off_*, which shifts every later target, so a constant short-fall
            still converges. Under 1 cm, no move. -->
-      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0; still_off := true"/>
-      <Repeat num_cycles="3">
-        <!-- A pass after one that found the block within 1 cm measures nothing: 4 s saved. -->
-        <Fallback>
-          <ScriptCondition code="!still_off"/>
+      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0; still_off := true; corr_done := false"/>
+      <!-- A pass that finds the block within 1 cm leaves the Repeat instead of ticking out
+           the remaining cycles: there is nothing left to measure or move. Repeat has no
+           break, so convergence fails the body and corr_done tells the Fallback below which
+           failure it was, so a too-large miss_z still propagates. -->
+      <Fallback>
+        <Repeat num_cycles="3">
           <Sequence>
             <!-- The block as the lidar sees it here: the column-mounted lidar is bend-free, so
                  the boom's bend at this pose enters the offset instead of the pickup's. Without
@@ -101,14 +103,15 @@
                  retry. -->
             <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
             <Script code="still_off := miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &gt;= 0.0001"/>
-            <Sequence _skipIf="!still_off">
-              <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
-              <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
-              <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-            </Sequence>
+            <Script code="corr_done := !still_off"/>
+            <ScriptCondition code="still_off"/>
+            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
+            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
+            <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
           </Sequence>
-        </Fallback>
-      </Repeat>
+        </Repeat>
+        <ScriptCondition code="corr_done"/>
+      </Fallback>
     </Sequence>
   </BehaviorTree>
 
