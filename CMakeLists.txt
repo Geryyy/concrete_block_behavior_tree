@@ -60,6 +60,7 @@ add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evalua
 add_bt_plugin(BT_cb_evaluate_pickup_residual_action src/plugins/action/evaluate_pickup_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_publish_gripper_state_action src/plugins/action/publish_gripper_state.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_set_mpc_payload_action src/plugins/action/set_mpc_payload.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_get_slow_down_action src/plugins/action/get_slow_down.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 add_executable(gripper_grasp_detector
   src/nodes/gripper_grasp_detector.cpp

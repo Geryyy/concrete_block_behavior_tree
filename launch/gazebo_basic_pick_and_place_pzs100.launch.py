@@ -93,6 +93,16 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "slow_down",
+                default_value="1.0",
+                description=(
+                    "Pace of every planned move: the factor crane_planning stretches a "
+                    "plan's clock by. 1.0 (default) is full speed; a lab day runs 2 or "
+                    "3. Below 1.0 the planner refuses. The carrying lift and the "
+                    "touchdown multiply it, so they stay the slower legs of the run."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -205,6 +215,9 @@ def generate_launch_description():
                                 ]
                             ),
                             value_type=bool,
+                        ),
+                        "slow_down": ParameterValue(
+                            LaunchConfiguration("slow_down"), value_type=float
                         ),
                     },
                     {

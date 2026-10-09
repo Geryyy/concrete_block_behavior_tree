@@ -228,20 +228,55 @@ def test_a_carrying_lift_asks_for_a_slower_ramp_and_gives_it_back():
     which the settle gate's 30 s cannot absorb at the mode's 21 s decay. The
     override has to be carrying-only and it has to be restored: a leaked value
     slows every move after the lift, and the place descent reads `slow_down` too.
+
+    Issue 254: and it has to *multiply* the run's pace rather than assign over it,
+    or a run launched at slow_down 3 comes back to full speed on its slowest leg.
     """
     root = ElementTree.parse(TREE_DIR / "subtree_lift.xml").getroot()
-    sets = [node for node in root.iter("SetBlackboard")]
-    slower = [node for node in sets if node.get("output_key") == "slow_down"]
+    scripts = [node.get("code") for node in root.iter("Script")]
 
-    override = [node for node in slower if node.get("value") not in (None, "")]
-    assert [node.get("value") for node in override] == ["3.0", "{lf_sd_saved}"], (
-        "one carrying-only override, then the caller's value back"
+    assert "lf_sd_saved := slow_down" in scripts
+    override = next(node for node in root.iter("Script") if "* 3.0" in node.get("code"))
+    assert override.get("code") == "slow_down := lf_sd_saved * 3.0"
+    assert override.get("_skipIf") == "lf_carries != 'true'"
+    restore = next(
+        node
+        for node in root.iter("Script")
+        if node.get("code") == "slow_down := lf_sd_saved"
     )
-    assert override[0].get("_skipIf") == "lf_carries != 'true'"
-    assert override[1].get("_skipIf") is None, "the restore must be unconditional"
-    assert [
-        node.get("value") for node in sets if node.get("output_key") == "lf_sd_saved"
-    ] == ["{slow_down}"]
+    assert restore.get("_skipIf") is None, "the restore must be unconditional"
+    # SetBlackboard would create `slow_down` as a std::string, and the scripting
+    # multiplication above cannot read one.
+    assert not [
+        node
+        for node in root.iter("SetBlackboard")
+        if node.get("output_key") in ("slow_down", "lf_sd_saved")
+    ]
+
+
+def test_the_run_pace_is_a_parameter_the_slow_legs_multiply():
+    """254: fast by default, slower for a lab day, without editing a tree.
+
+    The pace enters once, from the BT server's own `slow_down` parameter, and every
+    leg that wants to be slower than the run scales it. An assignment anywhere here
+    would pin that leg to one speed whatever the run was launched at.
+    """
+    for name in ("basic_pick_and_place.xml", "wall_assembly.xml"):
+        root = ElementTree.parse(TREE_DIR / name).getroot()
+        assert [node.get("slow_down") for node in root.iter("GetSlowDown")] == [
+            "{slow_down}"
+        ], name
+
+    touchdown = next(
+        tree
+        for tree in ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
+        .getroot()
+        .iter("BehaviorTree")
+        if tree.get("ID") == "SubTreeTouchdown"
+    )
+    codes = [node.get("code") for node in touchdown.iter("Script")]
+    assert "sd_saved := slow_down; slow_down := slow_down * 2.0" in codes
+    assert "slow_down := sd_saved" in codes
 
 
 def test_cbs_move_empty_uses_the_cbs_subtree():

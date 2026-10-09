@@ -12,7 +12,11 @@
   <!-- ////////// -->
   <BehaviorTree ID="BasicPickAndPlace">
     <Sequence name="basic_pick_and_place">
-      <SetBlackboard output_key="slow_down" value="1.0"/>
+      <!-- The run's pace, from the BT server's `slow_down` parameter (launch argument of
+           the same name, 1.0 = full speed). A Script/output port, not SetBlackboard: the
+           legs that want to be slower multiply this entry, and SetBlackboard would create
+           it as a string. -->
+      <GetSlowDown slow_down="{slow_down}"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>

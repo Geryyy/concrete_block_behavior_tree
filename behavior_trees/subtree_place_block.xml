@@ -174,10 +174,11 @@
            place_z, if there is no ground. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <Script code="dz_z := place_z - 0.20; ex_until_landed := true"/>
-      <SetBlackboard output_key="sd_saved" value="{slow_down}"/>
-      <SetBlackboard output_key="slow_down" value="2.0"/>
+      <!-- Half the run's speed, not a fixed half: a run the launch already paced
+           slower stays slower through the touchdown. -->
+      <Script code="sd_saved := slow_down; slow_down := slow_down * 2.0"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-      <SetBlackboard output_key="slow_down" value="{sd_saved}"/>
+      <Script code="slow_down := sd_saved"/>
 
       <!-- 4. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"

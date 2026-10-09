@@ -31,6 +31,11 @@ lifecycle_manager:
     # `controller` by gazebo_wall_assembly_pzs100.launch.py; false everywhere
     # else, including the real-crane launch.
     a2b_mpc_drives: false
+    # Global pace, read by GetSlowDown at the top of the assembly trees: the factor
+    # `crane_planning` stretches every plan's clock by. 1.0 is full speed; a lab day
+    # raises it with the launch argument of the same name. The legs that want to be
+    # slower than the run (the carrying lift, the touchdown) multiply this.
+    slow_down: 1.0
     # Simulation test hook.  Gazebo launch arguments override these values;
     # disabled by default and never enabled by the real-crane launch.
     simulated_placement_disturbance.enabled: false
@@ -79,3 +84,4 @@ lifecycle_manager:
       - BT_cb_evaluate_pickup_residual_action
       - BT_cb_publish_gripper_state_action
       - BT_cb_set_mpc_payload_action
+      - BT_cb_get_slow_down_action

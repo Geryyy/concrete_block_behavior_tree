@@ -30,9 +30,12 @@
            ramp does not reach under. An empty lift keeps the caller's value: it
            decays in ~5 s and has no gate to miss.
            lf_sd_saved, not place_block's sd_saved: that one is live across its own
-           descent and this subtree is called from inside the same tree. -->
-      <SetBlackboard output_key="lf_sd_saved" value="{slow_down}"/>
-      <SetBlackboard output_key="slow_down" value="3.0"
+           descent and this subtree is called from inside the same tree.
+           Multiplies the run's own slow_down rather than replacing it: the factor 3
+           is this leg's shaping of the ramp, and a run already paced slower (the
+           launch argument) would otherwise come back to full speed here. -->
+      <Script code="lf_sd_saved := slow_down"/>
+      <Script code="slow_down := lf_sd_saved * 3.0"
         _skipIf="lf_carries != 'true'"/>
       <Action ID="CalcGripMovement" name="Plan lift"
         carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"
@@ -40,7 +43,7 @@
         server_timeout="40000" slowDown="{slow_down}"
         s_log_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
-      <SetBlackboard output_key="slow_down" value="{lf_sd_saved}"/>
+      <Script code="slow_down := lf_sd_saved"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{lf_carries}" mass="{payload_mass}"
