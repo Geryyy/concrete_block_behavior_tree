@@ -143,6 +143,10 @@ if(BUILD_TESTING)
     test_start_pose_is_control_safe
     test/test_start_pose_is_control_safe.py
   )
+  ament_add_pytest_test(
+    test_place_correction_tree
+    test/test_place_correction_tree.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")

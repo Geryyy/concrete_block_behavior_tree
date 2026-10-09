@@ -72,10 +72,21 @@
 
       <!-- Correct in the air, before the angled entry: the slew and rotator stop ~5 mrad short
            of any goal, and a descent knocked by a push stopped 27 cm high and
-           still passed its joint tolerance. The measured 3-D miss at the waypoint
-           accumulates in off_*, which shifts every later target, so a constant short-fall
-           still converges. Under 1 cm, no move. -->
-      <Script code="off_x := 0.0; off_y := 0.0; off_z := 0.0; still_off := true; corr_done := false"/>
+           still passed its joint tolerance. The measured lateral miss at the waypoint
+           accumulates in off_x/off_y, which shifts every later target, so a constant
+           short-fall still converges. Under 1 cm, no move.
+           Lateral only (issue 256). Two reasons, both from run2_pp:
+           - the waypoint's own z reaches nothing. SubTreePlaceFinish re-commands dz_z
+             absolutely (place_z + 0.05) and SubTreeTouchdown ends on WaitForLoadOff, so a
+             vertically corrected waypoint changes no later target.
+           - miss_z is not a move error. The grip server converts a commanded block centre
+             with the nominal block_grip_z_offset + tcp_z_offset = 1.05 m, while
+             MeasureBlockFromGripper reads the block back through the lidar-refined grasp
+             offset, 1.005 m in run2_pp. That 45 mm gap is a constant no cycle removes, so
+             the 1 cm 3-D test never fired and all 3 cycles ran for 14 s. About 30 mm of it
+             is the lidar's block-centre z bias (REFINE_BLOCK moves a block on known flat
+             ground +26..33 mm up), the rest a pickup that closed 20 mm low. -->
+      <Script code="off_x := 0.0; off_y := 0.0; still_off := true; corr_done := false"/>
       <!-- A pass that finds the block within 1 cm leaves the Repeat instead of ticking out
            the remaining cycles: there is nothing left to measure or move. Repeat has no
            break, so convergence fails the body and corr_done tells the Fallback below which
@@ -103,15 +114,22 @@
             <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
               x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
-            <!-- Vertical only: a descent that stopped 28 cm short is not corrected diagonally.
-                 A lateral miss is: steady wind holds the block 14 cm aside, the same on every
-                 retry. -->
+            <!-- Gross-failure gate, not a correction: a descent that stopped 28 cm short is
+                 not corrected laterally. A lateral miss is corrected: steady wind holds the
+                 block 14 cm aside, the same on every retry. Also the only cross-check on the
+                 whole measure chain (lidar, grasp offset, TF, pendulum) before an uncapped
+                 off_x/off_y goes into a descent that is not collision-checked, so it stays at
+                 0.08 even though miss_z carries the 40-45 mm reference bias above: a good
+                 arrival reads 0.042..0.063, and a false failure here fails place_approach
+                 with nothing yet touched down. -->
             <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
-            <Script code="still_off := miss_x * miss_x + miss_y * miss_y + miss_z * miss_z &gt;= 0.0001"/>
+            <Script code="still_off := miss_x * miss_x + miss_y * miss_y &gt;= 0.0001"/>
             <Script code="corr_done := !still_off"/>
             <ScriptCondition code="still_off"/>
-            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y; off_z := off_z + miss_z"/>
-            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.30 + off_z"/>
+            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
+            <!-- dz_z stays at the place_z + 0.30 set above: the corrective descent re-commands
+                 the same waypoint height, it does not shift it. -->
+            <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
           </Sequence>
         </Repeat>
