@@ -5,21 +5,19 @@
    <Container>
      <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
      <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
-      <DockArea name="|path error| slew/boom/arm/rotator [rad]">
+      <DockArea name="TCP path error |p_tcp - p_plan(s)| [m]">
        <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
         <range top="1" bottom="0" right="1" left="0"/>
         <limitY min="0"/>
-        <curve color="#1f77b4" name="error/abs_slew"/>
-        <curve color="#d62728" name="error/abs_boom"/>
-        <curve color="#1ac938" name="error/abs_arm"/>
-        <curve color="#ff7f0e" name="error/abs_rot"/>
+        <curve color="#1f77b4" name="/crane/mpc/tcp_path_error/data"/>
        </plot>
       </DockArea>
-      <DockArea name="|path error| telescope [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+      <DockArea name="A2B planning: solve time [s] (one dot per plan)">
+       <plot mode="TimeSeries" style="Dots" flip_x="false" flip_y="false">
         <range top="1" bottom="0" right="1" left="0"/>
         <limitY min="0"/>
-        <curve color="#1f77b4" name="error/abs_tele"/>
+        <curve color="#1f77b4" name="/crane_planner/solver_stats/crane_planner: trajectory OCP/solve_time_s"/>
+        <curve color="#d62728" name="/crane_planner/solver_stats/crane_planner: trajectory OCP/acados_time_s"/>
        </plot>
       </DockArea>
      </DockSplitter>
@@ -222,6 +220,44 @@
      </DockSplitter>
    </Container>
   </Tab>
+  <Tab containers="1" tab_name="contact">
+   <Container>
+     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="touchdown: effort drop / drop needed (WaitForLoadOff)">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="0" right="1" left="0"/>
+        <curve color="#1f77b4" name="/crane/load_off/data[0]"/>
+        <curve color="#000000" name="/crane/load_off/data[1]"/>
+       </plot>
+      </DockArea>
+      <DockArea name="touchdown: block centre above target [m]">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="0" right="1" left="0"/>
+        <curve color="#1f77b4" name="/crane/load_off/data[2]"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+      <DockArea name="grasp: |rail effort| / threshold (sim 100)">
+       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
+        <range top="1" bottom="0" right="1" left="0"/>
+        <limitY min="0"/>
+        <curve color="#1f77b4" name="contact/abs_rail_effort"/>
+        <curve color="#000000" name="limit/grasp_effort"/>
+       </plot>
+      </DockArea>
+      <DockArea name="grasp detected">
+       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
+        <range top="1" bottom="0" right="1" left="0"/>
+        <limitY min="0"/>
+        <curve color="#1f77b4" name="/gripper/grasp_detected/data"/>
+       </plot>
+      </DockArea>
+     </DockSplitter>
+     </DockSplitter>
+   </Container>
+  </Tab>
   <Tab containers="1" tab_name="operator">
    <Container>
      <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
@@ -265,7 +301,7 @@
    <max_array_size value="10"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="false"/>
-   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m"/>
+   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m;/crane/mpc/tcp_path_error;/crane_planner/solver_stats;/crane/load_off"/>
   </plugin>
  </Plugins>
  <previouslyLoaded_Datafiles/>
@@ -273,7 +309,7 @@
  <customMathEquations>
   <snippet name="limit/solve_budget_s">
    <global></global>
-   <function>return 0.06</function>
+   <function>return 0.12</function>
    <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
    <additional_sources>
    </additional_sources>
@@ -343,45 +379,17 @@
    <additional_sources>
    </additional_sources>
   </snippet>
-  <snippet name="error/abs_slew">
+  <snippet name="contact/abs_rail_effort">
    <global></global>
    <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[0]</linked_source>
+   <linked_source>/joint_states/q9_left_rail_joint/effort</linked_source>
    <additional_sources>
    </additional_sources>
   </snippet>
-  <snippet name="error/abs_boom">
+  <snippet name="limit/grasp_effort">
    <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[1]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="error/abs_arm">
-   <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[2]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="error/abs_tele">
-   <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[3]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="error/abs_rot">
-   <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[6]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="error/abs_rail">
-   <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/trajectory_controllers/controller_state/error/positions[7]</linked_source>
+   <function>return 100.0</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
    <additional_sources>
    </additional_sources>
   </snippet>
