@@ -206,6 +206,10 @@
         <curve color="#9467bd" name="/crane/mpc/solver_health/cost_term[5]"/>
         <curve color="#17becf" name="/crane/mpc/solver_health/cost_term[6]"/>
         <curve color="#bcbd22" name="/crane/mpc/solver_health/cost_term[7]"/>
+        <curve color="#8c564b" name="/crane_mpc/cost_terms/cost/lag"/>
+        <curve color="#e377c2" name="/crane_mpc/cost_terms/cost/tool"/>
+        <curve color="#7f7f7f" name="/crane_mpc/cost_terms/cost/progress"/>
+        <curve color="#aec7e8" name="/crane_mpc/cost_terms/cost/du"/>
        </plot>
       </DockArea>
       <DockArea name="outcome (1 conv, 2 budget, 3 failed) / QP iterations">
@@ -301,7 +305,7 @@
    <max_array_size value="10"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="false"/>
-   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m;/crane/mpc/tcp_path_error;/crane_planner/solver_stats;/crane/load_off"/>
+   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/cost_terms;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m;/crane/mpc/tcp_path_error;/crane_planner/solver_stats;/crane/load_off"/>
   </plugin>
  </Plugins>
  <previouslyLoaded_Datafiles/>
