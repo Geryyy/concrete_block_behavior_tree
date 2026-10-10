@@ -9,6 +9,7 @@
 #include "behaviortree_cpp/action_node.h"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
@@ -70,6 +71,8 @@ private:
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   rclcpp::Subscription<JointState>::SharedPtr sub_;
+  // /crane/load_off per tick (PlotJuggler): [reference - effort, drop needed, centre above target]
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 

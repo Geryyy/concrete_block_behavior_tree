@@ -37,6 +37,8 @@ WaitForLoadOff::WaitForLoadOff(const std::string & name, const BT::NodeConfig & 
   sub_ = node_->create_subscription<JointState>(
     "/joint_states", rclcpp::QoS(1),
     std::bind(&WaitForLoadOff::callback, this, std::placeholders::_1), options);
+  // data = [reference - effort, drop needed, centre above target [m]]
+  pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>("/crane/load_off", 10);
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
@@ -162,6 +164,9 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   fresh_ = false;
   const double r = std::hypot(centre.x - lever.x, centre.y - lever.y);
   const double threshold = drop_fraction * mass * kGravity * r;
+  std_msgs::msg::Float64MultiArray plot;
+  plot.data = {reference_ - effort_, threshold, above};
+  pub_->publish(plot);
   RCLCPP_INFO_THROTTLE(
     log, *node_->get_clock(), 1000,
     "WaitForLoadOff: effort %.0f, reference %.0f, drop needed %.0f (r %.2f m), centre %+.3f m "
