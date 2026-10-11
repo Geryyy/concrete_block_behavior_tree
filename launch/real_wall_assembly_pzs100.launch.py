@@ -161,6 +161,13 @@ def generate_launch_description():
                 description="Initial tree loaded by bt_action_server; RViz panel can switch it.",
             ),
             DeclareLaunchArgument(
+                "a2b_mpc_drives",
+                default_value="false",
+                description="true: crane_mpc (mode active) drives the A2B moves by topic and the "
+                "tree sends no FollowJointTrajectory goal (one commander, issue 148). "
+                "false: the tree's goal drives; crane_mpc must be in shadow.",
+            ),
+            DeclareLaunchArgument(
                 "place_approach_angle_deg",
                 default_value="4.0",
                 description="Pre-place lateral approach angle in degrees.",
@@ -350,6 +357,11 @@ def generate_launch_description():
                     override_bt_config,
                     {"use_sim_time": use_sim_time},
                     {"behaviortree": LaunchConfiguration("bt_xml")},
+                    {
+                        "a2b_mpc_drives": ParameterValue(
+                            LaunchConfiguration("a2b_mpc_drives"), value_type=bool
+                        )
+                    },
                 ],
                 condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
             ),
