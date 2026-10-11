@@ -41,6 +41,7 @@ endfunction()
 
 add_bt_plugin(BT_cb_get_next_assembly_task_action src/plugins/action/get_next_assembly_task.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_set_block_task_status_action src/plugins/action/set_block_task_status.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_get_block_task_status_action src/plugins/action/get_block_task_status.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_wait_for_grasp_signal_condition src/plugins/condition/wait_for_grasp_signal.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_capture_block_grasp_offset_action src/plugins/action/capture_block_grasp_offset.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_write_block_pose_from_gripper_action
@@ -147,6 +148,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_place_correction_tree
     test/test_place_correction_tree.py
+  )
+  ament_add_pytest_test(
+    test_retry_with_block_in_jaws
+    test/test_retry_with_block_in_jaws.py
   )
 endif()
 

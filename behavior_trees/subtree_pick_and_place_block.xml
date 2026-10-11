@@ -5,7 +5,19 @@
        SubTreePlaceBlock; see those files for the per-step breakdown. -->
   <BehaviorTree ID="SubTreePickAndPlaceBlock">
     <Sequence name="pick_and_place_block">
-      <SubTree ID="SubTreePickBlock" _autoremap="true"/>
+      <!-- Since 268 the plan server hands a task out again until its block is TASK_PLACED, so
+           this is also the retry path. A block that comes back TASK_MOVE is one a cancelled run
+           left mid-cycle, and the world model FK-tracks a TASK_MOVE pose off the TCP: picking it
+           up again would descend on wherever the hook happened to stop. -->
+      <GetBlockTaskStatus service_name="/world_model_node/get_coarse_blocks"
+        server_timeout="5000" block_id="{grasp_object_contains}"
+        task_status="{block_task_status}"/>
+      <IfThenElse>
+        <!-- Block.TASK_MOVE -->
+        <ScriptCondition code="block_task_status == 2"/>
+        <SubTree ID="SubTreeResumeCarry" _autoremap="true"/>
+        <SubTree ID="SubTreePickBlock" _autoremap="true"/>
+      </IfThenElse>
       <!-- A block gripped more than 3 deg crooked lands on an edge and slides 5-11 cm while
            the hook unloads, or its carry plan does not converge. -->
       <Fallback>
@@ -13,6 +25,61 @@
         <SubTree ID="SubTreeRegrip" _autoremap="true"/>
       </Fallback>
       <SubTree ID="SubTreePlaceBlock" _autoremap="true"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Take over the block the jaws already hold instead of picking it (issue 274). No gripper
+       phase and no descent here: the jaws stay closed, nothing is aimed at the stale pickup
+       pose, and the caller carries on to the place from wherever the cancel left the crane.
+       Not held: the jaws are empty and the block is loose somewhere the plan does not know, so
+       this fails rather than descend blind. GetBlockTaskStatus logs what the operator has to do
+       (put it back, reset it to TASK_FREE); the failing node's name says it too. -->
+  <BehaviorTree ID="SubTreeResumeCarry">
+    <Sequence name="resume_carry">
+      <!-- Transient_local Bool, 10 Hz: true for signal_duration_s after the jaws last squeezed
+           over effort_threshold, refreshed by every sample that still does. In sim a held block
+           keeps it true and this gate answered in 0.1 s. On the machine (4.0 s tail, threshold
+           100000) it is NOT measured whether a passively held block stays over it - characterise
+           that before trusting the resume there. 2 s only covers the publish period. -->
+      <!-- The name is what the operator sees on the failure, so it says what the signal said,
+           not what the hook holds: a block clamped under an expired signal fails here too. -->
+      <Action ID="WaitForGraspSignal"
+        name="No grasp signal for a TASK_MOVE block - check the hook before approaching"
+        topic="/gripper/grasp_detected" timeout_ms="2000"/>
+      <!-- Look at what is in the hand before anything is planned on it: the offset recovered
+           below is the belief the cancelled run held, and an abort is what shifts a load. The
+           grip_tilt the regrip gate reads comes off this. Without a detector it passes through
+           and the recovered offset stands, as it does in the pick. -->
+      <ForceSuccess>
+        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+          server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
+          timeout_s="8.0"/>
+      </ForceSuccess>
+      <!-- The world model rewrites every TASK_MOVE pose as TCP * its stored grasp offset once
+           per marker_refresh_period_s (0.5 s) and stamps it last_seen, which is the stamp this
+           node looks the TCP up at. So this recovers the offset the cancelled run captured
+           (vision-refined, if REFINE_GRASPED ran) without re-picking the block. -->
+      <Action ID="CaptureBlockGraspOffset" name="Recover grasp offset"
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+        world_frame="world" grasp_offset="{grasp_offset}"
+        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+      <!-- Same 3 cm clamp as the pick: planner and MPC assume a centred load. -->
+      <Script code="s_log_8_x := s_log_8_x &gt; 0.03 ? 0.03 : (s_log_8_x &lt; -0.03 ? -0.03 : s_log_8_x);
+                    s_log_8_y := s_log_8_y &gt; 0.03 ? 0.03 : (s_log_8_y &lt; -0.03 ? -0.03 : s_log_8_y)"/>
+      <!-- The MPC may have been restarted since, and the first move below is a carrying one. -->
+      <Action ID="SetMpcPayload" name="Set MPC payload"
+        service_name="/crane/mpc/set_payload"
+        carries="true"
+        mass="{payload_mass}"
+        s_log_8_x="{s_log_8_x}"
+        s_log_8_y="{s_log_8_y}"
+        s_log_8_z="{s_log_8_z}"/>
+      <!-- grip_tilt for the regrip gate in SubTreePickAndPlaceBlock. No lift first: SubTreeLift
+           plans from {COG}, which a fresh run has not written, and the place's own A2B approach
+           retries over a lift anyway. -->
+      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
+        tilt="{grip_tilt}"/>
     </Sequence>
   </BehaviorTree>
 
