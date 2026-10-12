@@ -168,6 +168,12 @@ def generate_launch_description():
                 "false: the tree's goal drives; crane_mpc must be in shadow.",
             ),
             DeclareLaunchArgument(
+                "mpc_horizon_topic",
+                default_value="/crane/mpc/horizon",
+                description="Topic crane_mpc drives the JTC on; WaitForMoveComplete watches it. "
+                "IPC (no spawner remap): /trajectory_controller_a2b/joint_trajectory.",
+            ),
+            DeclareLaunchArgument(
                 "place_approach_angle_deg",
                 default_value="4.0",
                 description="Pre-place lateral approach angle in degrees.",
@@ -360,7 +366,8 @@ def generate_launch_description():
                     {
                         "a2b_mpc_drives": ParameterValue(
                             LaunchConfiguration("a2b_mpc_drives"), value_type=bool
-                        )
+                        ),
+                        "mpc_horizon_topic": LaunchConfiguration("mpc_horizon_topic"),
                     },
                 ],
                 condition=IfCondition(LaunchConfiguration("start_bt_action_server")),

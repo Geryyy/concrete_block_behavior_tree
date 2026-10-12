@@ -116,7 +116,8 @@ public:
       BT::InputPort<std::string>("settled_topic", "/crane/sway_settled", "Sway verdict"),
       // Watched, not consumed: what the MPC drives the JTC with, so this node can
       // see its own commander stop. Subscribed on the MPC arm only.
-      BT::InputPort<std::string>("horizon_topic", "/crane/mpc/horizon", "The MPC's command"),
+      BT::InputPort<std::string>(
+        "horizon_topic", "", "The MPC's command; empty: ROS param mpc_horizon_topic"),
       // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
       // a decaying sway that nothing after it needs that still.
       BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),

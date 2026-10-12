@@ -68,6 +68,13 @@ WaitForMoveComplete::WaitForMoveComplete(
   getInput("joint_states_topic", joint_states_topic);
   getInput("settled_topic", settled_topic);
   getInput("horizon_topic", horizon_topic);
+  // Unset port: launch-bound like a2b_mpc_drives. The IPC's JTC listens on its own
+  // ~/joint_trajectory and crane_mpc publishes there (horizon_topic launch arg).
+  if (horizon_topic.empty()) {
+    horizon_topic = node_->has_parameter("mpc_horizon_topic")
+      ? node_->get_parameter("mpc_horizon_topic").as_string()
+      : node_->declare_parameter<std::string>("mpc_horizon_topic", "/crane/mpc/horizon");
+  }
 
   callback_group_ = node_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive,
