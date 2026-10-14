@@ -31,33 +31,31 @@ trajectory_controller_a2b:
     # constraints.goal_time (5.0 s below), so it would fire 4.8 + 5 s too late.
     topic_timeout: 0.24
 
-    # These are a velocity PI, despite the names. No controller_plugin is set, so the JTC runs
-    # PidTrajectoryPlugin, whose law is
+    # No controller_plugin is set, so the JTC runs PidTrajectoryPlugin on a velocity command:
     #   u = ff_velocity_scale*qd_dot + effort + p*e_pos + i*int(e_pos) + d*e_qdot
-    # and on a *velocity* command interface int(e_qdot) dt == e_pos. Matching terms against
-    # K_p*e_qdot + K_i*int(e_qdot) gives
-    #   p == K_I   and   d == K_P
-    # so `i` must stay 0 - it would integrate the position error a second time.
-    # Numbers are the design of record of wiki/controller_design.md 4.1 - one fixed pair per axis,
-    # margins held over the whole M_ii range and over the worst-case reading of the lag/dead-time
-    # split. Not the fitted-pose pairs: a pose-blind tuning is unstable on slewing (max|z| 1.0047)
-    # and, since the dead time was pinned common, on the arm (1.0044).
+    # Since int(e_qdot) dt == e_pos: d == K_P and p == K_I of a velocity PI, i.e. a cascade of
+    # outer position P (p/d, 1/s) over inner velocity P (d). i > 0 adds a position integral
+    # (type-2 loop: no lag on a ramp, drift-free hold against a velocity bias).
+    # Design values: wiki/controller_design.md 4.1, one fixed pair per axis, i = 0, margins held
+    # over the whole M_ii range and the worst-case lag/dead-time split. Not the fitted-pose
+    # pairs: a pose-blind tuning is unstable on slewing (max|z| 1.0047) and, since the dead time
+    # was pinned common, on the arm (1.0044). Boom, telescope, rotator hand-tuned on the machine
+    # 2026-10-12 (wiki/commissioning.md); margins not re-evaluated.
     #
     # u_clamp_* is Psi's own identified domain, from the fit itself
     # (src/_archive/crane_control/calibration/velocity_characteristic.yaml, min_x/max_x per axis);
     # wiki/compensator_map.md 3 tabulates only slewing, rotator and telescope. Commanding outside
     # it extrapolates a monotone spline past its data.
     #
-    # TWO KNOWN DEVIATIONS from wiki/control_architecture.md 2.1, both needing a plugin change:
-    # - Back-calculation there bounds the *total* command; control_toolbox clamps only the PI's
-    #   own output, and the feedforward and the effort term are added outside it. The feedforward
-    #   branch is bounded at its source instead, in crane_planning, so each branch is bounded but
-    #   their sum is not.
-    # - No `antiwindup_strategy` is set, because none would do anything: with `i: 0` the integral
-    #   term of control_toolbox::Pid is identically zero, and this loop's integral action is
-    #   `p * e_pos`. e_pos is a plant state, so it cannot be reset, clamped or back-calculated
-    #   from here. An axis held against a stall (2.1's own failure mode) therefore accumulates
-    #   e_pos at qdot_d and comes off the stall with the P term at its clamp.
+    # Two limits of the plugin (wiki/control_architecture.md 2.1), both needing a plugin change:
+    # - control_toolbox clamps only the PI's own output; the feedforward and the effort term are
+    #   added outside it. The feedforward branch is bounded at its source instead, in
+    #   crane_planning, so each branch is bounded but their sum is not.
+    # - The velocity-PI integral is `p * e_pos`, a plant state: it cannot be reset, clamped or
+    #   back-calculated from here. An axis held against a stall (2.1's own failure mode)
+    #   accumulates e_pos at qdot_d and comes off the stall with the P term at its clamp.
+    #   Only the `i` state is control_toolbox's own; it runs unclamped (no antiwindup_strategy,
+    #   i_clamp +-inf).
     gains:
       theta1_slewing_joint:
         # A trim integrator, not a velocity loop - dominant time constant 28 s. Deliberate: Psi
@@ -78,9 +76,9 @@ trajectory_controller_a2b:
         # [-0.3323,+0.2880]. Hardware runs the 2-D one. Clamp is the intersection --
         # extrapolates neither fit. Do not widen to the 2-D row without the shipped fit.
         ff_velocity_scale: 1.0
-        p: 1.30
-        i: 0.0
-        d: 0.0945
+        p: 0.05  # hand-tuned lab 2026-10-12, design 1.30
+        i: 0.01  # lab, design 0
+        d: 0.1  # lab, design 0.0945
         u_clamp_min: -0.3134   # 1-D fallback, tighter here
         u_clamp_max: 0.2880    # 2-D surface, tighter here
       theta3_arm_joint:
@@ -94,15 +92,15 @@ trajectory_controller_a2b:
         u_clamp_max: 0.3059
       q4_big_telescope:
         ff_velocity_scale: 1.0
-        p: 5.14
+        p: 1.0  # hand-tuned lab 2026-10-12, design 5.14
         i: 0.0
         d: 0.3302
         u_clamp_min: -0.5551
         u_clamp_max: 0.5849
       theta8_rotator_joint:
         ff_velocity_scale: 1.0
-        p: 2.35
-        i: 0.0
+        p: 0.5  # hand-tuned lab 2026-10-12, design 2.35
+        i: 0.01  # lab, design 0
         d: 0.1176
         u_clamp_min: -2.3969
         u_clamp_max: 2.4636
