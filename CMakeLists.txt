@@ -72,24 +72,6 @@ ament_target_dependencies(gripper_grasp_detector
   std_msgs
 )
 
-# sim only: CPU lidar gz system (Harmonic has no physics lidar), see src/sim/seyond_lidar.cpp
-find_package(gz_sim_vendor REQUIRED)
-find_package(gz-sim REQUIRED)
-find_package(gz_common_vendor REQUIRED)
-find_package(gz-common REQUIRED COMPONENTS graphics)
-find_package(gz_plugin_vendor REQUIRED)
-find_package(gz-plugin REQUIRED COMPONENTS register)
-find_package(gz_transport_vendor REQUIRED)
-find_package(gz-transport REQUIRED)
-find_package(gz_msgs_vendor REQUIRED)
-find_package(gz-msgs REQUIRED)
-find_package(Bullet REQUIRED)
-add_library(SeyondLidarSystem SHARED src/sim/seyond_lidar.cpp)
-target_include_directories(SeyondLidarSystem PRIVATE ${BULLET_INCLUDE_DIRS})
-target_link_libraries(SeyondLidarSystem
-  gz-sim::gz-sim gz-common::graphics gz-plugin::register gz-transport::core gz-msgs::core
-  ${BULLET_LIBRARIES})
-
 install(DIRECTORY
   behavior_trees
   config
@@ -109,7 +91,6 @@ install(PROGRAMS
 
 install(TARGETS
   gripper_grasp_detector
-  SeyondLidarSystem
   ${plugin_libs}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

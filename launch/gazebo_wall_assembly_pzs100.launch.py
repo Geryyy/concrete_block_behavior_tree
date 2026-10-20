@@ -146,7 +146,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "lidar_points_topic",
                 default_value="/seyond/points",
-                description="Raw PointCloud2 topic of the simulated Seyond (SeyondLidar gz system).",
+                description="Raw PointCloud2 topic of the simulated Seyond (gz_cpu_lidar system).",
             ),
             DeclareLaunchArgument(
                 "enable_placement_disturbance",
@@ -243,14 +243,14 @@ def generate_launch_description():
             # The PZS100 bringup owns the seeded world model.  The detector
             # talks to it through /concrete_block_detector/discover_blocks;
             # launching the detector directly avoids a second world model.
-            # CPU Seyond lidar (no GPU): the SeyondLidar gz system, attached to the
+            # CPU Seyond lidar (no GPU): the gz_cpu_lidar system, attached to the
             # running world, ray-casts every collision shape; bridged to ROS.
             ExecuteProcess(
                 cmd=[
                     "until gz service -s /world/default/entity/system/add"
                     " --reqtype gz.msgs.EntityPlugin_V --reptype gz.msgs.Boolean --timeout 2000"
                     ' --req \'entity: {name: "default", type: WORLD} plugins: {name:'
-                    ' "concrete_block_behavior_tree::SeyondLidar", filename: "SeyondLidarSystem",'
+                    ' "gz_cpu_lidar::CpuLidar", filename: "gz_cpu_lidar",'
                     " innerxml: \"<topic>/seyond/points</topic>\"}' | grep -q 'data: true';"
                     " do sleep 1; done"
                 ],
