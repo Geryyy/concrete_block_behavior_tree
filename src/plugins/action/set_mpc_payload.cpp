@@ -74,6 +74,9 @@ BT::NodeStatus SetMpcPayload::tick()
   double s_log_8_x = 0.0;
   double s_log_8_y = 0.0;
   double s_log_8_z = 0.0;
+  double size_x = 0.0;
+  double size_y = 0.0;
+  double size_z = 0.0;
   int timeout_ms = 2000;
 
   getInput("carries", carries);
@@ -81,6 +84,9 @@ BT::NodeStatus SetMpcPayload::tick()
   getInput("s_log_8_x", s_log_8_x);
   getInput("s_log_8_y", s_log_8_y);
   getInput("s_log_8_z", s_log_8_z);
+  getInput("size_x", size_x);
+  getInput("size_y", size_y);
+  getInput("size_z", size_z);
   getInput("timeout_ms", timeout_ms);
 
   auto request = std::make_shared<SetPayload::Request>();
@@ -94,9 +100,12 @@ BT::NodeStatus SetMpcPayload::tick()
         "an empty gripper", mass);
       return BT::NodeStatus::FAILURE;
     }
-    // shape and dimensions are discarded by crane_mpc, which carries the payload
-    // as a point mass; SHAPE_NONE is how the message says "empty hook".
+    // crane_mpc models a uniform box of these edges; SHAPE_NONE is how the message says
+    // "empty hook".
     request->payload.shape = crane_msgs::msg::Payload::SHAPE_BOX;
+    request->payload.dimensions.x = size_x;
+    request->payload.dimensions.y = size_y;
+    request->payload.dimensions.z = size_z;
     request->payload.mass = mass;
     request->payload.com.x = sanitize(s_log_8_x, "s_log_8_x");
     request->payload.com.y = sanitize(s_log_8_y, "s_log_8_y");

@@ -59,6 +59,10 @@ public:
       BT::InputPort<double>("s_log_8_x", 0.0, "Payload CoM x in K8 [m]"),
       BT::InputPort<double>("s_log_8_y", 0.0, "Payload CoM y in K8 [m]"),
       BT::InputPort<double>("s_log_8_z", 0.0, "Payload CoM z in K8 [m]"),
+      // world_model.yaml block_dimensions_m; the grasp turns the block about K8's x only
+      BT::InputPort<double>("size_x", 0.9, "Payload box edge along K8 x [m]"),
+      BT::InputPort<double>("size_y", 0.6, "Payload box edge along K8 y [m]"),
+      BT::InputPort<double>("size_z", 0.6, "Payload box edge along K8 z [m]"),
     };
   }
 
