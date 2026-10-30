@@ -311,7 +311,7 @@ def test_bt_panel_catalog_offers_the_cbs_tree_and_keeps_the_timber_ones():
             "name": "Basic pick and place",
             "path": "/behavior_trees/basic_pick_and_place.xml",
         },
-        {"name": "Wall assembly", "path": "/behavior_trees/wall_assembly.xml"},
+        {"name": "Run plan (all blocks)", "path": "/behavior_trees/wall_assembly.xml"},
         {
             "name": "Move empty (A2B to RViz goal)",
             "path": "/behavior_trees/move_empty_pzs100.xml",

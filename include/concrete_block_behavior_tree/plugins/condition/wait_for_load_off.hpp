@@ -10,6 +10,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
@@ -73,6 +74,8 @@ private:
   rclcpp::Subscription<JointState>::SharedPtr sub_;
   // /crane/load_off per tick (PlotJuggler): [reference - effort, drop needed, centre above target]
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_;
+  // /cbs/status/load_off: the same numbers as the log line, for CBSRunPanel. Latched.
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 

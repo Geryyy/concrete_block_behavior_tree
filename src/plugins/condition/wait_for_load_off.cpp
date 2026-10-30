@@ -5,6 +5,7 @@
 #include <limits>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/status_text.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "tf2/exceptions.h"
 
@@ -39,6 +40,8 @@ WaitForLoadOff::WaitForLoadOff(const std::string & name, const BT::NodeConfig & 
     std::bind(&WaitForLoadOff::callback, this, std::placeholders::_1), options);
   // data = [reference - effort, drop needed, centre above target [m]]
   pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>("/crane/load_off", 10);
+  status_ = node_->create_publisher<std_msgs::msg::String>(
+    "/cbs/status/load_off", rclcpp::QoS(1).transient_local());
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
@@ -167,6 +170,16 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   std_msgs::msg::Float64MultiArray plot;
   plot.data = {reference_ - effort_, threshold, above};
   pub_->publish(plot);
+  // Share of m g r already off the hook, against the `drop_fraction` gate: the panel's bar.
+  const double full = mass * kGravity * r;
+  const double unload = full > 0.0 ? (reference_ - effort_) / full : 0.0;
+  const auto report = [&](bool landed) {
+      std_msgs::msg::String status;
+      status.data = load_off_status(
+        effort_, reference_, threshold, unload, drop_fraction, r, above, landed);
+      status_->publish(status);
+    };
+  report(false);
   RCLCPP_INFO_THROTTLE(
     log, *node_->get_clock(), 1000,
     "WaitForLoadOff: effort %.0f, reference %.0f, drop needed %.0f (r %.2f m), centre %+.3f m "
@@ -189,6 +202,7 @@ BT::NodeStatus WaitForLoadOff::onRunning()
       "target; stopping, the jaws stay shut", lowest_);
     return BT::NodeStatus::FAILURE;
   }
+  report(true);
   RCLCPP_INFO(
     log, "WaitForLoadOff: landed | effort %.0f -> %.0f against %.0f (m g r, r %.2f m), "
     "centre %+.3f m from target", reference_, effort_, threshold, r, above);

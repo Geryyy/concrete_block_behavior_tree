@@ -10,8 +10,10 @@
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/status_text.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2/exceptions.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
@@ -30,6 +32,9 @@ public:
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    // Latched: the panel attaches mid-run and still sees the last measurement.
+    status_ = node_->create_publisher<std_msgs::msg::String>(
+      "/cbs/status/inair", rclcpp::QoS(1).transient_local());
   }
 
   static BT::PortsList providedPorts()
@@ -54,6 +59,7 @@ public:
     sum_ = tf2::Vector3(0.0, 0.0, 0.0);
     axis_sum_ = tf2::Vector3(0.0, 0.0, 0.0);
     samples_ = 0;
+    ++passes_;  // the correction loop re-ticks this node; nothing else counts the passes
     start_ = node_->now();
     return sample() ? onRunning() : BT::NodeStatus::FAILURE;
   }
@@ -75,6 +81,9 @@ public:
       node_->get_logger(),
       "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, tilt %.2f deg, %d samples",
       p.x(), p.y(), p.z(), frame_.c_str(), tilt * 180.0 / M_PI, samples_);
+    std_msgs::msg::String status;
+    status.data = inair_status(passes_, frame_, p.x(), p.y(), p.z(), tilt, samples_);
+    status_->publish(status);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -117,11 +126,13 @@ private:
   rclcpp::Node::SharedPtr node_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
   std::string frame_;
   double window_{0.0};
   tf2::Vector3 sum_;
   tf2::Vector3 axis_sum_;
   int samples_{0};
+  int passes_{0};
   rclcpp::Time start_;
 };
 

@@ -2,12 +2,12 @@ package: concrete_block_behavior_tree
 behavior_trees:
   - name: "Basic pick and place"
     path: "/behavior_trees/basic_pick_and_place.xml"
-  - name: "Wall assembly"
+  - name: "Run plan (all blocks)"
     path: "/behavior_trees/wall_assembly.xml"
   - name: "Move empty (A2B to RViz goal)"
     path: "/behavior_trees/move_empty_pzs100.xml"
   - name: "CBS move empty (A2B to RViz goal, new stack)"
     path: "/behavior_trees/cbs_move_empty_pzs100.xml"
   # Appended, not inserted: test_cbs_a2b_tree.py pins the first three entries.
-  - name: "One block step-by-step"
+  - name: "Next block, step-by-step"
     path: "/behavior_trees/operator_guided_single_block.xml"
