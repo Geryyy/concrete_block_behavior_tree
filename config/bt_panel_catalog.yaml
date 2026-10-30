@@ -8,3 +8,6 @@ behavior_trees:
     path: "/behavior_trees/move_empty_pzs100.xml"
   - name: "CBS move empty (A2B to RViz goal, new stack)"
     path: "/behavior_trees/cbs_move_empty_pzs100.xml"
+  # Appended, not inserted: test_cbs_a2b_tree.py pins the first three entries.
+  - name: "One block step-by-step"
+    path: "/behavior_trees/operator_guided_single_block.xml"
