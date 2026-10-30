@@ -20,7 +20,7 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
-      <SetBlackboard output_key="payload_mass" value="800.0"/>
+      <SetBlackboard output_key="payload_mass" value="880.0"/>
       <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base.
            z is a block resting on the ground (world 0.3, K0 at world z 1.1407). The pickup's
            own z will not do: the truck bed sits 1.32 m above it. -->

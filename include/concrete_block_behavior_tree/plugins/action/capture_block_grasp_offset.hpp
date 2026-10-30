@@ -16,7 +16,8 @@ namespace concrete_block_behavior_tree
 // Reads the block's current world-model pose via GetCoarseBlocks, looks up the
 // gripper TCP pose via tf2, composes the offset, and writes it to the
 // blackboard as a geometry_msgs::Pose for later use by
-// WriteBlockPoseFromGripper on release.
+// WriteBlockPoseFromGripper on release. s_log_8 is the same block centre in
+// k8_frame, the frame the planner, crane_mpc and WaitForLoadOff read it in.
 class CaptureBlockGraspOffset
   : public nav2_behavior_tree::BtServiceNode<
     concrete_block_world_model_interfaces::srv::GetCoarseBlocks>
@@ -39,15 +40,18 @@ public:
         BT::InputPort<std::string>("block_id", "Block ID whose offset to capture"),
         BT::InputPort<std::string>(
           "gripper_frame", "K8_tool_center_point",
-          "TF frame of the gripper TCP (on /tf; perception's elastic/ prefix lives on tf_elastic_full)"),
+          "TF frame of the gripper TCP (on /tf; perception's elastic/ prefix lives on "
+          "tf_elastic_full)"),
         BT::InputPort<std::string>(
           "world_frame", "K0_mounting_base",
           "World frame in which world_model block poses are expressed"),
+        BT::InputPort<std::string>(
+          "k8_frame", "K8_rotator_lower_part", "Frame s_log_8 is in (planner, MPC)"),
         BT::OutputPort<geometry_msgs::msg::Pose>(
           "grasp_offset", "Offset gripper_tcp <- block_center as a Pose"),
-        BT::OutputPort<double>("s_log_8_x", "Payload CoM x in K8"),
-        BT::OutputPort<double>("s_log_8_y", "Payload CoM y in K8"),
-        BT::OutputPort<double>("s_log_8_z", "Payload CoM z in K8"),
+        BT::OutputPort<double>("s_log_8_x", "Block centre x in k8_frame"),
+        BT::OutputPort<double>("s_log_8_y", "Block centre y in k8_frame"),
+        BT::OutputPort<double>("s_log_8_z", "Block centre z in k8_frame"),
       });
   }
 
@@ -57,6 +61,7 @@ private:
   std::string block_id_;
   std::string gripper_frame_;
   std::string world_frame_;
+  std::string k8_frame_;
 };
 
 }  // namespace concrete_block_behavior_tree

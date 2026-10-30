@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sim harness (issue 234): park a carried 800 kg block and hold, with no tree.
+Sim harness (issue 234): park a carried 880 kg block and hold, with no tree.
 
 Drives the same two planners the tree drives (``/a2b_movement``,
 ``/grip_traj_movement``) and the same JTC action, in the pick order of
@@ -124,7 +124,7 @@ class LoadedHoldProbe(Node):
         self.free_s = float(self.declare_parameter("free_s", 60.0).value)
         self.out_dir = self.declare_parameter("out_dir", "").value
         self.slow_down = float(self.declare_parameter("slow_down", 1.0).value)
-        self.payload_mass = float(self.declare_parameter("payload_mass", 800.0).value)
+        self.payload_mass = float(self.declare_parameter("payload_mass", 880.0).value)
         self.carry = bool(self.declare_parameter("carry_to_endpoint", True).value)
         # The tree's planner collision body for the carried block
         # (wall_assembly.xml: a cylinder around the upright 0.9 x 0.6 x 0.6 m).

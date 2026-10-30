@@ -85,10 +85,10 @@
       <!-- 5. Tell the MPC what it now carries. An unknown block is the one
            condition that leaves 174's measured mismatch envelope, and the lift
            below is the first carrying move. The COM's xy (planner and MPC alike) is clamped
-           to 3 cm: their sway equilibrium assumes a centred load, and a crooked grip's 6.4 cm
-           had every move refused as not settling. -->
-      <Script code="s_log_8_x := s_log_8_x &gt; 0.03 ? 0.03 : (s_log_8_x &lt; -0.03 ? -0.03 : s_log_8_x);
-                    s_log_8_y := s_log_8_y &gt; 0.03 ? 0.03 : (s_log_8_y &lt; -0.03 ? -0.03 : s_log_8_y)"/>
+           to 10 cm, a sanity bound on the measurement: both solve the sway equilibrium for the
+           declared off-axis load, and a tighter clamp moves the hanging block off the model. -->
+      <Script code="s_log_8_x := s_log_8_x &gt; 0.10 ? 0.10 : (s_log_8_x &lt; -0.10 ? -0.10 : s_log_8_x);
+                    s_log_8_y := s_log_8_y &gt; 0.10 ? 0.10 : (s_log_8_y &lt; -0.10 ? -0.10 : s_log_8_y)"/>
       <Action ID="SetMpcPayload" name="Set MPC payload"
         service_name="/crane/mpc/set_payload"
         carries="true"

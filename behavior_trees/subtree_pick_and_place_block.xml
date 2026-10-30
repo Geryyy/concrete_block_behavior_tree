@@ -64,9 +64,9 @@
         block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
         world_frame="world" grasp_offset="{grasp_offset}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <!-- Same 3 cm clamp as the pick: planner and MPC assume a centred load. -->
-      <Script code="s_log_8_x := s_log_8_x &gt; 0.03 ? 0.03 : (s_log_8_x &lt; -0.03 ? -0.03 : s_log_8_x);
-                    s_log_8_y := s_log_8_y &gt; 0.03 ? 0.03 : (s_log_8_y &lt; -0.03 ? -0.03 : s_log_8_y)"/>
+      <!-- Same 10 cm sanity clamp as the pick. -->
+      <Script code="s_log_8_x := s_log_8_x &gt; 0.10 ? 0.10 : (s_log_8_x &lt; -0.10 ? -0.10 : s_log_8_x);
+                    s_log_8_y := s_log_8_y &gt; 0.10 ? 0.10 : (s_log_8_y &lt; -0.10 ? -0.10 : s_log_8_y)"/>
       <!-- The MPC may have been restarted since, and the first move below is a carrying one. -->
       <Action ID="SetMpcPayload" name="Set MPC payload"
         service_name="/crane/mpc/set_payload"

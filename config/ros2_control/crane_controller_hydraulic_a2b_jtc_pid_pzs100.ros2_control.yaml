@@ -45,12 +45,10 @@ trajectory_controller_a2b:
     # u_clamp_* is Psi's own identified domain, from the fit itself
     # (src/_archive/crane_control/calibration/velocity_characteristic.yaml, min_x/max_x per axis);
     # wiki/compensator_map.md 3 tabulates only slewing, rotator and telescope. Commanding outside
-    # it extrapolates a monotone spline past its data.
+    # it extrapolates a monotone spline past its data. The plugin clamps both the PI output and
+    # the summed command (feedforward + effort + PI) to it.
     #
-    # Two limits of the plugin (wiki/control_architecture.md 2.1), both needing a plugin change:
-    # - control_toolbox clamps only the PI's own output; the feedforward and the effort term are
-    #   added outside it. The feedforward branch is bounded at its source instead, in
-    #   crane_planning, so each branch is bounded but their sum is not.
+    # A limit of the plugin (wiki/control_architecture.md 2.1), needing a plugin change:
     # - The velocity-PI integral is `p * e_pos`, a plant state: it cannot be reset, clamped or
     #   back-calculated from here. An axis held against a stall (2.1's own failure mode)
     #   accumulates e_pos at qdot_d and comes off the stall with the P term at its clamp.

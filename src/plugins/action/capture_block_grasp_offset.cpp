@@ -27,6 +27,7 @@ void CaptureBlockGraspOffset::on_tick()
   getInput("block_id", block_id_);
   getInput("gripper_frame", gripper_frame_);
   getInput("world_frame", world_frame_);
+  getInput("k8_frame", k8_frame_);
 
   if (block_id_.empty()) {
     throw std::invalid_argument("CaptureBlockGraspOffset: 'block_id' input is empty");
@@ -62,7 +63,10 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   // The TCP at the block's own stamp: the world model writes a carried block's pose from the
   // TCP at last_seen, and the latest TCP of a swinging hook moved the offset 6 cm.
   geometry_msgs::msg::TransformStamped world_tcp_tf;
+  geometry_msgs::msg::TransformStamped k8_tcp_tf;
   try {
+    k8_tcp_tf = tf_buffer_->lookupTransform(
+      k8_frame_, gripper_frame_, tf2::TimePointZero, tf2::durationFromSec(1.0));
     const rclcpp::Time seen(it->last_seen);
     try {
       world_tcp_tf = tf_buffer_->lookupTransform(
@@ -78,8 +82,8 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   } catch (const tf2::TransformException & e) {
     RCLCPP_ERROR(
       node_->get_logger(),
-      "CaptureBlockGraspOffset: tf lookup '%s' <- '%s' failed: %s",
-      world_frame_.c_str(), gripper_frame_.c_str(), e.what());
+      "CaptureBlockGraspOffset: tf lookup '%s'/'%s' <- '%s' failed: %s",
+      world_frame_.c_str(), k8_frame_.c_str(), gripper_frame_.c_str(), e.what());
     return BT::NodeStatus::FAILURE;
   }
 
@@ -106,16 +110,20 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   offset_pose.orientation.z = q.z();
   offset_pose.orientation.w = q.w();
 
+  tf2::Transform k8_tcp;
+  tf2::fromMsg(k8_tcp_tf.transform, k8_tcp);
+  const tf2::Vector3 s_log_8 = k8_tcp * tcp_block.getOrigin();
+
   setOutput("grasp_offset", offset_pose);
-  setOutput("s_log_8_x", offset_pose.position.x);
-  setOutput("s_log_8_y", offset_pose.position.y);
-  setOutput("s_log_8_z", offset_pose.position.z);
+  setOutput("s_log_8_x", s_log_8.x());
+  setOutput("s_log_8_y", s_log_8.y());
+  setOutput("s_log_8_z", s_log_8.z());
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "CaptureBlockGraspOffset: block_id='%s' offset xyz=(%.3f, %.3f, %.3f)",
-    block_id_.c_str(),
-    offset_pose.position.x, offset_pose.position.y, offset_pose.position.z);
+    "CaptureBlockGraspOffset: block_id='%s' offset xyz=(%.3f, %.3f, %.3f) s_log_8=(%.3f, %.3f, "
+    "%.3f)", block_id_.c_str(), offset_pose.position.x, offset_pose.position.y,
+    offset_pose.position.z, s_log_8.x(), s_log_8.y(), s_log_8.z());
 
   return BT::NodeStatus::SUCCESS;
 }

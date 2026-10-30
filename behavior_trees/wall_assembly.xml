@@ -24,7 +24,7 @@
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
-      <SetBlackboard output_key="payload_mass" value="800.0"/>
+      <SetBlackboard output_key="payload_mass" value="880.0"/>
       <Script code="plan_has_task := true; survey_x := 0.0; survey_y := 0.0; survey_z := 0.0; survey_yaw := 0.0"/>
       <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base:
            world (-13, 1.5), level and clear of example_wall's pickups. z is a block resting

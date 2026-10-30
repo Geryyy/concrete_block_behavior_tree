@@ -88,14 +88,14 @@ TEST(SetMpcPayload, carries_the_block_mass_on_grip_and_clears_it_on_release)
   const auto outcome = run(
     "/crane/mpc/set_payload", true,
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload" carries="true"
-         mass="800.0" s_log_8_x="0.021" s_log_8_y="-0.071" s_log_8_z="1.04"/>
+         mass="880.0" s_log_8_x="0.021" s_log_8_y="-0.071" s_log_8_z="1.04"/>
        <SetMpcPayload service_name="/crane/mpc/set_payload" carries="false"/>)");
 
   ASSERT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   ASSERT_EQ(outcome.requests.size(), 2u);
 
   EXPECT_EQ(outcome.requests[0].shape, Payload::SHAPE_BOX);
-  EXPECT_DOUBLE_EQ(outcome.requests[0].mass, 800.0);
+  EXPECT_DOUBLE_EQ(outcome.requests[0].mass, 880.0);
   EXPECT_DOUBLE_EQ(outcome.requests[0].com.x, 0.021);
   EXPECT_DOUBLE_EQ(outcome.requests[0].com.y, -0.071);
   EXPECT_DOUBLE_EQ(outcome.requests[0].com.z, 1.04);
@@ -114,7 +114,7 @@ TEST(SetMpcPayload, substitutes_a_centre_of_mass_the_grasp_never_wrote)
   const auto outcome = run(
     "/crane/mpc/set_payload_nan", true,
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload_nan" carries="true"
-         mass="800.0" s_log_8_z="nan"/>)");
+         mass="880.0" s_log_8_z="nan"/>)");
 
   ASSERT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   ASSERT_EQ(outcome.requests.size(), 1u);
@@ -139,7 +139,7 @@ TEST(SetMpcPayload, does_not_fail_a_pick_on_a_profile_that_runs_no_mpc)
   const auto outcome = run(
     "/crane/mpc/set_payload_absent", false,
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload_absent" carries="true"
-         mass="800.0"/>)");
+         mass="880.0"/>)");
 
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
 }
@@ -152,7 +152,7 @@ TEST(SetMpcPayload, stops_the_pick_when_the_mpc_that_drives_the_crane_is_not_the
   const auto outcome = run(
     "/crane/mpc/set_payload_absent", false,
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload_absent" carries="true"
-         mass="800.0"/>)", true);
+         mass="880.0"/>)", true);
 
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
 }
@@ -164,7 +164,7 @@ TEST(SetMpcPayload, treats_a_refusal_the_same_way_as_an_absent_server)
   // things about the same lift.
   const auto body =
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload_refused" carries="true"
-         mass="800.0"/>)";
+         mass="880.0"/>)";
 
   EXPECT_EQ(
     run("/crane/mpc/set_payload_refused", true, body, false, false).status,

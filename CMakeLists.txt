@@ -106,6 +106,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_set_mpc_payload test/test_set_mpc_payload.cpp)
   target_link_libraries(test_set_mpc_payload BT_cb_set_mpc_payload_action)
   ament_target_dependencies(test_set_mpc_payload ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  ament_add_gtest(test_capture_block_grasp_offset test/test_capture_block_grasp_offset.cpp)
+  target_link_libraries(test_capture_block_grasp_offset BT_cb_capture_block_grasp_offset_action)
+  ament_target_dependencies(test_capture_block_grasp_offset ${THIS_PACKAGE_INCLUDE_DEPENDS})
   ament_add_pytest_test(
     test_mpc_payload_tree
     test/test_mpc_payload_tree.py
