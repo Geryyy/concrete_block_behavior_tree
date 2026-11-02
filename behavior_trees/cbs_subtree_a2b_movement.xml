@@ -91,6 +91,9 @@
                landing and fails it past the kinematic floor or on timeout. -->
           <Parallel success_count="1" failure_count="1">
             <Sequence>
+              <!-- Landing: hold still while WaitForLoadOff takes its 500 ms reference;
+                   taken during the descent's start dip it read the block ~20 % light. -->
+              <Sleep msec="600" _skipIf="!ex_until_landed"/>
               <!-- Nested: a script reads both sides of ||, and mpc_drives is unset until
                    the first move's WaitForMoveComplete. Grip moves follow a move_above. -->
               <Sequence _skipIf="!ex_publish_reference">

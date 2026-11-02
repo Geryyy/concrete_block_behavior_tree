@@ -375,3 +375,14 @@ def test_regrip_height_comes_from_regrip_z_not_the_pickup():
             node.get("output_key", "") for node in root.iter("SetBlackboard")
         )
         assert "regrip_z" in code, name
+
+
+def test_landing_reference_is_taken_before_the_descent_moves():
+    """WaitForLoadOff's reference window must not overlap the start of the landing descent."""
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    parallel = next(root.iter("Parallel"))
+    move, gate = list(parallel)
+    first = list(move)[0]
+    assert first.tag == "Sleep" and first.get("_skipIf") == "!ex_until_landed"
+    assert int(first.get("msec")) > 500  # WaitForLoadOff's reference window
+    assert gate.get("ID") == "WaitForLoadOff"
