@@ -6,6 +6,7 @@
 
 using concrete_block_behavior_tree::inair_status;
 using concrete_block_behavior_tree::load_off_status;
+using concrete_block_behavior_tree::pose_status;
 
 TEST(StatusText, inair_carries_what_the_log_line_carries)
 {
@@ -34,4 +35,16 @@ TEST(StatusText, load_off_carries_the_gate_the_bar_is_drawn_against)
   EXPECT_NE(
     load_off_status(111000.0, 111000.0, 35367.0, 0.0, 0.8, 5.12, 0.312, false)
     .find("above=+0.312 landed=0"), std::string::npos);
+}
+
+TEST(StatusText, pose_carries_the_target_only_when_the_response_listed_it)
+{
+  const double xyz[3] = {6.0012, 2.0034, 1.05};
+  EXPECT_EQ(
+    pose_status("REFINE_BLOCK", "block_2", true, "world", xyz),
+    "mode=REFINE_BLOCK block=block_2 ok=1 frame=world x=6.001 y=2.003 z=1.050");
+  // A timeout: no response, no pose, and the line has to say it failed.
+  EXPECT_EQ(
+    pose_status("REFINE_GRASPED", "block_2", false, "", nullptr),
+    "mode=REFINE_GRASPED block=block_2 ok=0");
 }

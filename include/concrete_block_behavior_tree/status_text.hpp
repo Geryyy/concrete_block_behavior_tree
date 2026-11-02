@@ -24,6 +24,22 @@ inline std::string inair_status(
   return std::string(line);
 }
 
+/// `/cbs/status/pose` -- RunPoseEstimation's outcome; x/y/z the target's pose after it, if listed.
+inline std::string pose_status(
+  const std::string & mode, const std::string & block, bool ok, const std::string & frame,
+  const double * xyz)
+{
+  char line[320];
+  int n = std::snprintf(
+    line, sizeof(line), "mode=%s block=%s ok=%d", mode.c_str(), block.c_str(), ok ? 1 : 0);
+  if (xyz != nullptr && n > 0 && n < static_cast<int>(sizeof(line))) {
+    std::snprintf(
+      line + n, sizeof(line) - n, " frame=%s x=%.3f y=%.3f z=%.3f", frame.c_str(), xyz[0],
+      xyz[1], xyz[2]);
+  }
+  return std::string(line);
+}
+
 /// `/cbs/status/load_off` -- WaitForLoadOff per tick. `unload`/`gate` are shares of m g r.
 inline std::string load_off_status(
   double effort, double reference, double drop_needed, double unload, double gate,
