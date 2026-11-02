@@ -32,9 +32,14 @@ public:
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-    // Latched: the panel attaches mid-run and still sees the last measurement.
-    status_ = node_->create_publisher<std_msgs::msg::String>(
-      "/cbs/status/inair", rclcpp::QoS(1).transient_local());
+    // Latched, so a panel attaching mid-run still sees the last measurement, and one publisher
+    // shared by every instance, so it sees only that one and not each node's last in any order.
+    static rclcpp::Publisher<std_msgs::msg::String>::SharedPtr shared;
+    if (!shared) {
+      shared = node_->create_publisher<std_msgs::msg::String>(
+        "/cbs/status/inair", rclcpp::QoS(1).transient_local());
+    }
+    status_ = shared;
   }
 
   static BT::PortsList providedPorts()

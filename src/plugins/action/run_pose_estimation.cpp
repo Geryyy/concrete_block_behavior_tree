@@ -20,9 +20,10 @@ public:
   RunPoseEstimationService(const std::string & name, const BT::NodeConfig & config)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(name, config)
   {
-    // Latched: whether this pass was lidar or the FK fallback, which ForceSuccess hides.
+    // Whether this pass was lidar or the FK fallback, which ForceSuccess hides. Volatile: the
+    // panel pairs it with the measurement that follows, and a replay has nothing to pair with.
     status_ = node_->create_publisher<std_msgs::msg::String>(
-      "/cbs/status/pose", rclcpp::QoS(1).transient_local());
+      "/cbs/status/pose", rclcpp::QoS(10));
   }
 
   // Wraps the base tick so a timeout, which never reaches on_completion, is reported too.
