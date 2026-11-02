@@ -64,4 +64,39 @@ def test_the_approach_ends_on_a_measurement():
     assert last_descend < last_measure, order
     # And that measurement gates: 1e-4 is the 1 cm lateral miss, 6.4e-3 the miss_z band.
     codes = [code for _, code in _scripts("SubTreePlaceApproach")]
-    assert len([code for code in codes if "0.0001" in code]) == 2, codes
+    gates = [code for code in codes if "0.0001" in code and "pass_verdict" not in code]
+    assert len(gates) == 2, codes
+
+
+def test_the_in_air_loop_starts_from_the_operators_correction_and_the_auto_path_from_zero():
+    """
+    A manual hover correction must not be undone by the loop's first descent, nor counted
+    twice at the finish; with no correction the automatic tree is unchanged.
+    """
+    codes = [code for _, code in _scripts("SubTreePlaceApproach")]
+    assert codes.index(
+        next(c for c in codes if "off_x := seed_off_x" in c)
+    ) < codes.index(
+        "dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"
+    ), codes
+    # The miss stays against the unshifted waypoint, so off_x is the total shift.
+    assert any("miss_x := place_approach_x - meas_x" in c for c in codes), codes
+    assert "seed_off_x := 0.0" in _scripts("SubTreePlaceBlock")[0][1]
+
+    operator = ElementTree.parse(PLACE_TREE.parent / "operator_guided_single_block.xml")
+    correct = next(
+        e
+        for e in operator.getroot().iter("Sequence")
+        if e.get("name") == "correct_hover_by_residual"
+    )
+    assert [
+        e.get("code") for e in correct.iter("Script") if "seed_off_x" in e.get("code")
+    ] == [
+        "seed_off_x := corrected_hover_x - place_approach_x; "
+        "seed_off_y := corrected_hover_y - place_approach_y"
+    ]
+    assert not [
+        e
+        for e in correct.iter("SetBlackboard")
+        if e.get("output_key") in ("place_x", "place_y")
+    ]

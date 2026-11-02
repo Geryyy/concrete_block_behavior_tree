@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/status_text.hpp"
 
 namespace concrete_block_behavior_tree
 {
@@ -113,6 +114,14 @@ WaitForMoveComplete::WaitForMoveComplete(
       }
     },
     options);
+  // One publisher for every instance, so a late panel gets the last tick and not each
+  // instance's last in any order.
+  static rclcpp::Publisher<std_msgs::msg::String>::SharedPtr shared_status;
+  if (!shared_status) {
+    shared_status = node_->create_publisher<std_msgs::msg::String>(
+      "/cbs/status/settle", rclcpp::QoS(1).transient_local());
+  }
+  status_pub_ = shared_status;
   // Only where the MPC is the commander: this is the one instance whose gates the
   // MPC's silence freezes. The settle wait runs off that arm, after the goal.
   if (mpc_drives_ && !settle_only_) {
@@ -205,6 +214,21 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
   callback_group_executor_.spin_some();
 
   const std::string reason = not_arrived_reason();
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto now = std::chrono::steady_clock::now();
+    double rate = std::numeric_limits<double>::quiet_NaN();
+    if (settled_) {
+      rate = std::max(std::abs(settled_->velocity[0]), std::abs(settled_->velocity[1]));
+    }
+    std_msgs::msg::String line;
+    line.data = settle_status(
+      sway_bound_, rate, settled_ ? settled_->settled : 0, settled_ && still(*settled_),
+      settled_since_ ? std::chrono::duration<double>(now - *settled_since_).count() : 0.0,
+      hold_.count() / 1000.0, std::chrono::duration<double>(now - start_time_).count(),
+      reason);
+    status_pub_->publish(line);
+  }
   if (reason.empty()) {
     std::lock_guard<std::mutex> lock(mutex_);
     RCLCPP_INFO(

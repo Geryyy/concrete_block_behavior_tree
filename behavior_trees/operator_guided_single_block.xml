@@ -104,6 +104,8 @@
            pre-place hover.  "correct" re-plans from the measured crane state
            to that same hover pose, then returns here for another measurement.
            "place" is the explicit operator exit from the loop. -->
+      <!-- The hover shift the operator applied, handed to the in-air loop as its start. -->
+      <Script code="seed_off_x := 0.0; seed_off_y := 0.0"/>
       <PlacementExitAsSuccess exit_requested="{placement_exit_requested}">
         <KeepRunningUntilFailure name="placement_refinement_loop">
           <Sequence>
@@ -153,8 +155,9 @@
             <Sequence name="correct_hover_by_residual">
               <SetBlackboard output_key="mv_x" value="{corrected_hover_x}"/>
               <SetBlackboard output_key="mv_y" value="{corrected_hover_y}"/>
-              <SetBlackboard output_key="place_x" value="{corrected_place_x}"/>
-              <SetBlackboard output_key="place_y" value="{corrected_place_y}"/>
+              <!-- K0, vs the planned hover. place_x stays planned: SubTreePlaceFinish adds
+                   off_x, which starts from this seed, so a corrected place_x counted it twice. -->
+              <Script code="seed_off_x := corrected_hover_x - place_approach_x; seed_off_y := corrected_hover_y - place_approach_y"/>
               <SetBlackboard output_key="dz_x" value="{corrected_hover_x}"/>
               <SetBlackboard output_key="dz_y" value="{corrected_hover_y}"/>
               <SetBlackboard output_key="dz_z" value="{place_approach_z}"/>

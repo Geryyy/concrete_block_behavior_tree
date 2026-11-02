@@ -50,7 +50,6 @@ public:
       BT::InputPort<geometry_msgs::msg::Pose>(
         "grasp_offset", "Offset gripper_tcp <- block_center (from CaptureBlockGraspOffset)"),
       BT::InputPort<double>("window_s", 0.0, "Average over this long; 0 is one sample"),
-      BT::InputPort<bool>("report", true, "Publish /cbs/status/inair, an in-air pass"),
       BT::OutputPort<double>("x", "Block centre [m]"),
       BT::OutputPort<double>("y", "Block centre [m]"),
       BT::OutputPort<double>("z", "Block centre [m]"),
@@ -87,41 +86,15 @@ public:
       node_->get_logger(),
       "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, tilt %.2f deg, %d samples",
       p.x(), p.y(), p.z(), frame_.c_str(), tilt * 180.0 / M_PI, samples_);
-    bool report = true;
-    getInput("report", report);
-    if (report) {
-      publish_status(p, tilt);
-    }
+    std_msgs::msg::String status;
+    status.data = inair_status(passes_, frame_, p.x(), p.y(), p.z(), tilt, samples_);
+    status_->publish(status);
     return BT::NodeStatus::SUCCESS;
   }
 
   void onHalted() override {}
 
 private:
-  // Also in `world`: the task line's approach and slot are there, and `frame` is not
-  // (K0_mounting_base is turned by pi and offset in the sim).
-  void publish_status(const tf2::Vector3 & p, double tilt)
-  {
-    double world_xyz[3];
-    bool in_world = false;
-    try {
-      tf2::Transform world_frame;
-      tf2::fromMsg(
-        tf_buffer_->lookupTransform("world", frame_, tf2::TimePointZero).transform, world_frame);
-      const tf2::Vector3 w = world_frame * p;
-      world_xyz[0] = w.x();
-      world_xyz[1] = w.y();
-      world_xyz[2] = w.z();
-      in_world = true;
-    } catch (const tf2::TransformException & e) {
-      RCLCPP_WARN(node_->get_logger(), "MeasureBlockFromGripper: no world pose: %s", e.what());
-    }
-    std_msgs::msg::String status;
-    status.data = inair_status(
-      passes_, frame_, p.x(), p.y(), p.z(), tilt, samples_, in_world ? world_xyz : nullptr);
-    status_->publish(status);
-  }
-
   // One TF sample into the sum; false on a missing offset or transform.
   bool sample()
   {
@@ -168,10 +141,65 @@ private:
   rclcpp::Time start_;
 };
 
+/// One in-air correction pass as SubTreePlaceApproach decided it, onto /cbs/status/place_pass.
+/// Status only: never fails, so it cannot change the tree it reports on.
+class PublishPlacePass : public BT::SyncActionNode
+{
+public:
+  PublishPlacePass(const std::string & name, const BT::NodeConfig & conf)
+  : BT::SyncActionNode(name, conf)
+  {
+    auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    static rclcpp::Publisher<std_msgs::msg::String>::SharedPtr shared;
+    if (!shared) {
+      shared = node->create_publisher<std_msgs::msg::String>(
+        "/cbs/status/place_pass", rclcpp::QoS(1).transient_local());
+    }
+    status_ = shared;
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<double>("attempt"), BT::InputPort<double>("pass"),
+      BT::InputPort<std::string>("verdict"),  // shift | within | height | final_fail
+      BT::InputPort<double>("miss_x"), BT::InputPort<double>("miss_y"),
+      BT::InputPort<double>("miss_z"),
+      BT::InputPort<double>("off_x", "Cumulative shift before this pass"),
+      BT::InputPort<double>("off_y", "Cumulative shift before this pass"),
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    double attempt = 0.0, pass = 0.0, miss_x = 0.0, miss_y = 0.0, miss_z = 0.0;
+    double off_x = 0.0, off_y = 0.0;
+    std::string verdict;
+    getInput("attempt", attempt);
+    getInput("pass", pass);
+    getInput("verdict", verdict);
+    getInput("miss_x", miss_x);
+    getInput("miss_y", miss_y);
+    getInput("miss_z", miss_z);
+    getInput("off_x", off_x);
+    getInput("off_y", off_y);
+    std_msgs::msg::String status;
+    status.data = place_pass_status(
+      static_cast<int>(attempt), static_cast<int>(pass), verdict, miss_x, miss_y, miss_z, off_x,
+      off_y);
+    status_->publish(status);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+private:
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
+};
+
 }  // namespace concrete_block_behavior_tree
 
 BT_REGISTER_NODES(factory)
 {
   factory.registerNodeType<concrete_block_behavior_tree::MeasureBlockFromGripper>(
     "MeasureBlockFromGripper");
+  factory.registerNodeType<concrete_block_behavior_tree::PublishPlacePass>("PublishPlacePass");
 }

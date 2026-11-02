@@ -10,6 +10,7 @@
 #include "crane_msgs/msg/sway_settled.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
 namespace concrete_block_behavior_tree
@@ -187,6 +188,8 @@ private:
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   rclcpp::Subscription<JointState>::SharedPtr joint_state_sub_;
   rclcpp::Subscription<SwaySettled>::SharedPtr settled_sub_;
+  // /cbs/status/settle: the sway gate as this node applies it, per tick. Latched, shared.
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   // Null off the MPC arm, where the action goal is the commander and the horizon
   // is nobody's business.
   rclcpp::Subscription<JointTrajectory>::SharedPtr horizon_sub_;

@@ -5,6 +5,8 @@
        -> lift away empty. -->
   <BehaviorTree ID="SubTreePlaceBlock">
     <Sequence name="place_block">
+      <!-- No manual correction on this path: the in-air loop starts from the plan. -->
+      <Script code="seed_off_x := 0.0; seed_off_y := 0.0; place_attempt := 0"/>
 
       <!-- 1. Move to the pre-place approach point (above + laterally offset) -->
       <SetBlackboard output_key="mv_x" value="{place_approach_x}"/>
@@ -41,6 +43,8 @@
        carrying descent rather than issuing a second A2B approach motion. -->
   <BehaviorTree ID="SubTreePlaceFromHover">
     <Sequence name="place_from_hover">
+      <!-- seed_off_x/seed_off_y: the caller's, the shift its own hover correction applied. -->
+      <Script code="place_attempt := 0"/>
       <SubTree ID="SubTreePlaceApproach" _autoremap="true"/>
       <SubTree ID="SubTreePlaceFinish" _autoremap="true"/>
     </Sequence>
@@ -62,8 +66,10 @@
            not left to the move_above before, because SubTreePlaceFromHover enters without
            one and would inherit whatever the last move left. -->
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-      <SetBlackboard output_key="dz_x" value="{place_approach_x}"/>
-      <SetBlackboard output_key="dz_y" value="{place_approach_y}"/>
+      <!-- From the seed, not 0: a hover the operator already corrected is not undone. The miss
+           below is still against the unshifted place_approach, so off stays the total. -->
+      <Script code="off_x := seed_off_x; off_y := seed_off_y; still_off := true; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0"/>
+      <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
       <Script code="dz_z := place_z + 0.30"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
@@ -86,7 +92,6 @@
              the 1 cm 3-D test never fired and all 3 cycles ran for 14 s. About 25 mm of it
              was the sim ground slab standing 25 mm above z=0 (issue 262; the lidar itself is
              within 4 mm), the rest a pickup that closed 20 mm low. -->
-      <Script code="off_x := 0.0; off_y := 0.0; still_off := true; corr_done := false"/>
       <!-- A pass that finds the block within 1 cm leaves the Repeat instead of ticking out
            the remaining cycles: there is nothing left to measure or move. Repeat has no
            break, so convergence fails the body and corr_done tells the Fallback below which
@@ -114,6 +119,11 @@
             <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
               x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
+            <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
+            <Script code="place_pass := place_pass + 1; pass_verdict := miss_z * miss_z &gt;= 0.0064 ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
+            <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
+              verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
+              off_x="{off_x}" off_y="{off_y}"/>
             <!-- Gross-failure gate, not a correction: a descent that stopped 28 cm short is
                  not corrected laterally. A lateral miss is corrected: steady wind holds the
                  block 14 cm aside, the same on every retry. Also the only cross-check on the
@@ -163,6 +173,10 @@
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
             x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
+          <Script code="place_pass := place_pass + 1; pass_verdict := miss_z * miss_z &gt;= 0.0064 ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'final_fail')"/>
+          <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
+            verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
+            off_x="{off_x}" off_y="{off_y}"/>
           <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
           <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0001"/>
         </Sequence>
