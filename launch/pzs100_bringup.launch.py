@@ -225,9 +225,9 @@ def generate_launch_description():
                     # the single world -> K0_mounting_base conversion happens in the
                     # GetNextAssemblyTask BT plugin.
                     "world_frame": "world",
-                    # refine_grasped.tcp_frame is world_model.yaml's, which now names the
-                    # rigid TCP the BT takes the grasp offset against. Not repeated here:
-                    # two copies are how it drifted apart.
+                    # refine_grasped.tcp_frame no longer overridden: world_model.yaml names
+                    # the rigid TCP the BT takes the grasp offset against. Two copies of it
+                    # are how hardware ended up on the other frame.
                     "pipeline_mode": "idle",
                     "perception_mode": "IDLE",
                 },
