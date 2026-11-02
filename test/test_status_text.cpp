@@ -18,6 +18,16 @@ TEST(StatusText, inair_carries_what_the_log_line_carries)
     "pass=2 frame=K0_mounting_base x=4.123 y=-1.568 z=2.001 tilt_deg=1.20 samples=78");
 }
 
+TEST(StatusText, inair_also_carries_the_point_in_the_task_lines_frame)
+{
+  // The 281 sim: K0_mounting_base is world turned by pi and shifted, block_0's slot
+  // world (-15.00, -3.00) is K0 (8.06, 3.35).
+  const double world_xyz[3] = {-15.0, -3.0, 0.59};
+  EXPECT_NE(
+    inair_status(1, "K0_mounting_base", 8.06, 3.35, -0.55, 0.0, 78, world_xyz)
+    .find("samples=78 world_x=-15.000 world_y=-3.000 world_z=0.590"), std::string::npos);
+}
+
 TEST(StatusText, load_off_carries_the_gate_the_bar_is_drawn_against)
 {
   // Run 11: 111 -> 55 kN m on touchdown, 880 kg at r = 5.12 m, gate 0.8 of m g r.

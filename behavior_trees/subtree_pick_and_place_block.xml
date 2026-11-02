@@ -78,8 +78,9 @@
       <!-- grip_tilt for the regrip gate in SubTreePickAndPlaceBlock. No lift first: SubTreeLift
            plans from {COG}, which a fresh run has not written, and the place's own A2B approach
            retries over a lift anyway. -->
+      <!-- report="false": a grip-tilt read at the pickup, not an in-air pass over the slot. -->
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-        tilt="{grip_tilt}"/>
+        tilt="{grip_tilt}" report="false"/>
     </Sequence>
   </BehaviorTree>
 

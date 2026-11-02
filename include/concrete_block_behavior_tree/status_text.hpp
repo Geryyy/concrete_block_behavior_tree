@@ -12,15 +12,21 @@ namespace concrete_block_behavior_tree
 {
 
 /// `/cbs/status/inair` -- MeasureBlockFromGripper's result. `pass` counts this node's measurements.
+/// `world_xyz` the same point in `world`, the task line's frame, if TF had it.
 inline std::string inair_status(
   int pass, const std::string & frame, double x, double y, double z, double tilt_rad,
-  int samples)
+  int samples, const double * world_xyz = nullptr)
 {
   char line[320];
-  std::snprintf(
+  int n = std::snprintf(
     line, sizeof(line),
     "pass=%d frame=%s x=%.3f y=%.3f z=%.3f tilt_deg=%.2f samples=%d",
     pass, frame.c_str(), x, y, z, tilt_rad * 180.0 / M_PI, samples);
+  if (world_xyz != nullptr && n > 0 && n < static_cast<int>(sizeof(line))) {
+    std::snprintf(
+      line + n, sizeof(line) - n, " world_x=%.3f world_y=%.3f world_z=%.3f", world_xyz[0],
+      world_xyz[1], world_xyz[2]);
+  }
   return std::string(line);
 }
 

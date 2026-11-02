@@ -122,8 +122,9 @@
         s_log_8_x="{vision_s_log_8_x}"
         s_log_8_y="{vision_s_log_8_y}"
         s_log_8_z="{vision_s_log_8_z}"/>
+      <!-- report="false": a grip-tilt read at the pickup, not an in-air pass over the slot. -->
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-        tilt="{grip_tilt}"/>
+        tilt="{grip_tilt}" report="false"/>
 
     </Sequence>
   </BehaviorTree>

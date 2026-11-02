@@ -45,6 +45,7 @@ public:
       BT::InputPort<geometry_msgs::msg::Pose>(
         "grasp_offset", "Offset gripper_tcp <- block_center (from CaptureBlockGraspOffset)"),
       BT::InputPort<double>("window_s", 0.0, "Average over this long; 0 is one sample"),
+      BT::InputPort<bool>("report", true, "Publish /cbs/status/inair, an in-air pass"),
       BT::OutputPort<double>("x", "Block centre [m]"),
       BT::OutputPort<double>("y", "Block centre [m]"),
       BT::OutputPort<double>("z", "Block centre [m]"),
@@ -81,15 +82,41 @@ public:
       node_->get_logger(),
       "MeasureBlockFromGripper: block at (%.3f, %.3f, %.3f) in %s, tilt %.2f deg, %d samples",
       p.x(), p.y(), p.z(), frame_.c_str(), tilt * 180.0 / M_PI, samples_);
-    std_msgs::msg::String status;
-    status.data = inair_status(passes_, frame_, p.x(), p.y(), p.z(), tilt, samples_);
-    status_->publish(status);
+    bool report = true;
+    getInput("report", report);
+    if (report) {
+      publish_status(p, tilt);
+    }
     return BT::NodeStatus::SUCCESS;
   }
 
   void onHalted() override {}
 
 private:
+  // Also in `world`: the task line's approach and slot are there, and `frame` is not
+  // (K0_mounting_base is turned by pi and offset in the sim).
+  void publish_status(const tf2::Vector3 & p, double tilt)
+  {
+    double world_xyz[3];
+    bool in_world = false;
+    try {
+      tf2::Transform world_frame;
+      tf2::fromMsg(
+        tf_buffer_->lookupTransform("world", frame_, tf2::TimePointZero).transform, world_frame);
+      const tf2::Vector3 w = world_frame * p;
+      world_xyz[0] = w.x();
+      world_xyz[1] = w.y();
+      world_xyz[2] = w.z();
+      in_world = true;
+    } catch (const tf2::TransformException & e) {
+      RCLCPP_WARN(node_->get_logger(), "MeasureBlockFromGripper: no world pose: %s", e.what());
+    }
+    std_msgs::msg::String status;
+    status.data = inair_status(
+      passes_, frame_, p.x(), p.y(), p.z(), tilt, samples_, in_world ? world_xyz : nullptr);
+    status_->publish(status);
+  }
+
   // One TF sample into the sum; false on a missing offset or transform.
   bool sample()
   {
