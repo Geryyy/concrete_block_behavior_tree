@@ -135,6 +135,42 @@
         </Repeat>
         <ScriptCondition code="corr_done"/>
       </Fallback>
+
+      <!-- The third pass descends and the Repeat then succeeds, so the last corrective shift
+           went down unmeasured and place_approach would hand SubTreePlaceFinish a waypoint it
+           only commanded. Measure once more and fail the approach if the lateral miss is still
+           >= 1 cm. In SubTreePlaceBlock that is the retry above, which lifts and comes down
+           the collision-checked move again; SubTreePlaceFromHover has no retry and ends there,
+           as it does for the miss_z gate inside the loop.
+           Only after three passes: corr_done marks the early exit, which already left the loop
+           on a measurement. off_x/off_y are not updated, because a further shift would again
+           descend unmeasured. The same two tests as a pass of the loop, in the same order and
+           at the same waypoint height, so the same bands hold: miss_z as the cross-check on the
+           measure chain (the ForceSuccess above can leave grasp_offset stale), lateral as the
+           acceptance. Only miss_z is not corrected, hence the asymmetric bands. -->
+      <Fallback>
+        <ScriptCondition code="corr_done"/>
+        <Sequence>
+          <ForceSuccess>
+            <Sequence>
+              <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+                server_timeout="10000" mode="REFINE_GRASPED"
+                target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+              <Action ID="CaptureBlockGraspOffset"
+                service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+                block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+                world_frame="world" grasp_offset="{grasp_offset}"
+                s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+                s_log_8_z="{vision_s_log_8_z}"/>
+            </Sequence>
+          </ForceSuccess>
+          <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
+            x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+          <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
+          <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
+          <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0001"/>
+        </Sequence>
+      </Fallback>
     </Sequence>
   </BehaviorTree>
 
@@ -203,8 +239,11 @@
       <SetBlackboard output_key="lf_carries" value="false"/>
       <SubTree ID="SubTreeLift" _autoremap="true"/>
 
-      <!-- 5. The world model keeps the lidar's pose of the placed block, not FK's: the next
-           block's target is relative to it. -->
+      <!-- 5. The world model keeps the lidar's pose of the placed block, not FK's, and so does
+           the collision scene the planner avoids. Whether it is also the next block's target is
+           the plan's business: example_wall's slots are all absolute_position, fixed poses in
+           `world`, so an error there does not compound; a relative_to_world_model slot
+           (stack_block_1_on_block_2) builds on this pose. -->
       <ForceSuccess>
         <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
           server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"

@@ -225,10 +225,9 @@ def generate_launch_description():
                     # the single world -> K0_mounting_base conversion happens in the
                     # GetNextAssemblyTask BT plugin.
                     "world_frame": "world",
-                    # TCP frame for FK tracking of grasped (TASK_MOVE) blocks.
-                    # Must match the BT CaptureBlockGraspOffset gripper_frame and
-                    # exist in the sim TF tree.
-                    "refine_grasped.tcp_frame": "K8_tool_center_point",
+                    # refine_grasped.tcp_frame is world_model.yaml's, which now names the
+                    # rigid TCP the BT takes the grasp offset against. Not repeated here:
+                    # two copies are how it drifted apart.
                     "pipeline_mode": "idle",
                     "perception_mode": "IDLE",
                 },

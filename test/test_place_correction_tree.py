@@ -8,16 +8,24 @@ PLACE_TREE = (
 )
 
 
-def _scripts(tree_id):
+def _subtree(tree_id):
     root = ElementTree.parse(PLACE_TREE).getroot()
-    subtree = next(
+    return next(
         element for element in root.iter("BehaviorTree") if element.get("ID") == tree_id
     )
+
+
+def _scripts(tree_id):
     return [
         (element.tag, element.get("code"))
-        for element in subtree.iter()
+        for element in _subtree(tree_id).iter()
         if element.get("code") is not None
     ]
+
+
+def _node_order(tree_id):
+    """Node names in document order; inside the Repeat body that is also tick order."""
+    return [element.get("ID") or element.tag for element in _subtree(tree_id).iter()]
 
 
 def test_place_correction_converges_laterally_only():
@@ -37,3 +45,23 @@ def test_place_correction_converges_laterally_only():
     assert "miss_z" not in convergence[0]
     # No cycle may move the waypoint vertically, by off_z or otherwise.
     assert not [code for code in codes if "dz_z :=" in code and "off" in code]
+
+
+def test_the_approach_ends_on_a_measurement():
+    """
+    Nothing may leave place_approach after a shift that was not measured (issue 281).
+
+    `Repeat num_cycles="3"` succeeds after the third corrective descent, so the tree used to
+    hand SubTreePlaceFinish a waypoint it had only commanded. The descent is the last node of
+    the loop body, so "the last descent precedes the last measurement" holds only if a
+    measurement follows the loop.
+    """
+    order = _node_order("SubTreePlaceApproach")
+    last_descend = max(i for i, name in enumerate(order) if name == "SubTreeDescendTo")
+    last_measure = max(
+        i for i, name in enumerate(order) if name == "MeasureBlockFromGripper"
+    )
+    assert last_descend < last_measure, order
+    # And that measurement gates: 1e-4 is the 1 cm lateral miss, 6.4e-3 the miss_z band.
+    codes = [code for _, code in _scripts("SubTreePlaceApproach")]
+    assert len([code for code in codes if "0.0001" in code]) == 2, codes
