@@ -120,7 +120,7 @@
               x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
             <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
-            <Script code="place_pass := place_pass + 1; pass_verdict := miss_z * miss_z &gt;= 0.0064 ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
+            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z * miss_z &lt; 0.0064) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
             <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
               verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
               off_x="{off_x}" off_y="{off_y}"/>
@@ -173,7 +173,7 @@
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
             x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
-          <Script code="place_pass := place_pass + 1; pass_verdict := miss_z * miss_z &gt;= 0.0064 ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'final_fail')"/>
+          <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z * miss_z &lt; 0.0064) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'final_fail')"/>
           <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
             verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
             off_x="{off_x}" off_y="{off_y}"/>

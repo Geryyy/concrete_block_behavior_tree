@@ -150,10 +150,11 @@ public:
   : BT::SyncActionNode(name, conf)
   {
     auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    // Volatile: a replayed pass would land under whatever block the panel shows now.
     static rclcpp::Publisher<std_msgs::msg::String>::SharedPtr shared;
     if (!shared) {
       shared = node->create_publisher<std_msgs::msg::String>(
-        "/cbs/status/place_pass", rclcpp::QoS(1).transient_local());
+        "/cbs/status/place_pass", rclcpp::QoS(10));
     }
     status_ = shared;
   }
