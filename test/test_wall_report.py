@@ -95,9 +95,9 @@ def test_a_goal_that_aborts_mid_block_still_reports(tmp_path):
 
 
 def test_gazebo_poses_come_back_in_the_plan_frame():
-    """The spawner puts world (x, y, z, yaw) at gz (-x, -y - 6, z + 0.025, yaw + pi)."""
+    """The spawner puts world (x, y, z, yaw) at gz (-x, -y - 6, z, yaw + pi)."""
     pose = {
-        "position": {"x": 15.0, "y": -3.0, "z": 0.325},
+        "position": {"x": 15.0, "y": -3.0, "z": 0.3},
         "orientation": {"z": 1.0, "w": 0.0},
     }
     x, y, z, yaw = wall_report.gz_to_world(pose)

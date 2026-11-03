@@ -444,9 +444,9 @@ def follow() -> None:
             print(f"WallReport failed: {error!r}", flush=True)
 
 
-#: gz = Rz(yaw) * world + offset, the launch's gazebo_seed_frame_*; the ground stands 2.5 cm
-#: above the world model's z = 0 (as gazebo_block_oracle.py).
-GZ_WORLD, GZ_OFFSET, GZ_YAW, GZ_GROUND = "default", (0.0, -6.0, 0.0), math.pi, 0.025
+#: gz = Rz(yaw) * world + offset, the launch's gazebo_seed_frame_*. Ground at gz z = 0: the
+#: first course rests at 0.300 (the oracle's 0.025 slab is gone).
+GZ_WORLD, GZ_OFFSET, GZ_YAW, GZ_GROUND = "default", (0.0, -6.0, 0.0), math.pi, 0.0
 
 
 def gazebo_truth(prefix: str = "block_") -> dict:

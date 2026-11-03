@@ -144,7 +144,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     response->target_pose.pose.position.x,
     response->target_pose.pose.position.y,
     response->target_pose.pose.position.z,
-    yawFromQuaternion(response->target_pose.pose.orientation),
+    yawFromQuaternion(response->reference_pose.pose.orientation),  // block, not tool yaw
     response->message.c_str());
 
   if (!response->success || !response->has_task) {
