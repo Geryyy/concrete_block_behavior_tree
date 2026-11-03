@@ -80,7 +80,7 @@
            of any goal, and a descent knocked by a push stopped 27 cm high and
            still passed its joint tolerance. The measured lateral miss at the waypoint
            accumulates in off_x/off_y, which shifts every later target, so a constant
-           short-fall still converges. Under 5 cm, no move.
+           short-fall still converges.
            Lateral only (issue 256). Two reasons, both from run2_pp:
            - the waypoint's own z reaches nothing. SubTreePlaceFinish re-commands dz_z
              absolutely (place_z + 0.05) and SubTreeTouchdown ends on WaitForLoadOff, so a
@@ -92,8 +92,8 @@
              the 1 cm 3-D test never fired and all 3 cycles ran for 14 s. About 25 mm of it
              was the sim ground slab standing 25 mm above z=0 (issue 262; the lidar itself is
              within 4 mm), the rest a pickup that closed 20 mm low. -->
-      <!-- A pass that finds the block within 5 cm leaves the Repeat instead of ticking out
-           the remaining cycles: there is nothing left to measure or move. Repeat has no
+      <!-- A pass that finds the block within 5 cm moves out that miss once, unmeasured, and
+           leaves the Repeat instead of ticking out the remaining cycles. Repeat has no
            break, so convergence fails the body and corr_done tells the Fallback below which
            failure it was, so a too-large miss_z still propagates. -->
       <Fallback>
@@ -120,7 +120,7 @@
               x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.30 - meas_z"/>
             <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
-            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z * miss_z &lt; 0.0064) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'within' : 'shift')"/>
+            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z * miss_z &lt; 0.0064) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'shift_last' : 'shift'))"/>
             <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
               verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
               off_x="{off_x}" off_y="{off_y}"/>
@@ -134,13 +134,18 @@
                  with nothing yet touched down. -->
             <ScriptCondition code="miss_z * miss_z &lt; 0.0064"/>
             <Script code="still_off := miss_x * miss_x + miss_y * miss_y &gt;= 0.0025"/>
-            <Script code="corr_done := !still_off"/>
-            <ScriptCondition code="still_off"/>
+            <!-- Every miss of 1 cm or more is moved out; the 5 cm gate only decides whether
+                 that move is measured again. Under 1 cm, no move. corr_done only once the
+                 block is where it was sent: a failed move must fail the approach. -->
+            <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0001"/>
+            <ScriptCondition code="!corr_done"/>
             <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
             <!-- dz_z stays at the place_z + 0.30 set above: the corrective descent re-commands
                  the same waypoint height, it does not shift it. -->
             <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+            <Script code="corr_done := !still_off"/>
+            <ScriptCondition code="still_off"/>
           </Sequence>
         </Repeat>
         <ScriptCondition code="corr_done"/>
@@ -150,7 +155,7 @@
            corrective shift went down unmeasured. Measure once more and fail the approach on a
            lateral miss still >= 5 cm, which the retry in SubTreePlaceBlock takes over;
            SubTreePlaceFromHover has no retry and ends here, as it does for miss_z in the loop.
-           Skipped after an early exit (corr_done): that left the loop on a measurement.
+           Skipped after an early exit (corr_done): that last move started within 5 cm.
            off_x/off_y are not shifted again, because that descent would be unmeasured in turn.
            Same two tests as a loop pass, same order, same waypoint height, so the same bands:
            miss_z the cross-check on the measure chain, lateral the acceptance. -->

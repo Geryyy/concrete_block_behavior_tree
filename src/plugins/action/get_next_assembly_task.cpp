@@ -109,9 +109,12 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   node_->get_parameter("simulated_placement_disturbance.y_m", disturbance_y);
   node_->get_parameter("simulated_placement_disturbance.z_m", disturbance_z);
   node_->get_parameter("simulated_placement_disturbance.yaw_rad", disturbance_yaw);
-  setOutput("disturbed_approach_x", approach.pose.position.x + (disturbance_enabled ? disturbance_x : 0.0));
-  setOutput("disturbed_approach_y", approach.pose.position.y + (disturbance_enabled ? disturbance_y : 0.0));
-  setOutput("disturbed_approach_z", approach.pose.position.z + (disturbance_enabled ? disturbance_z : 0.0));
+  setOutput(
+    "disturbed_approach_x", approach.pose.position.x + (disturbance_enabled ? disturbance_x : 0.0));
+  setOutput(
+    "disturbed_approach_y", approach.pose.position.y + (disturbance_enabled ? disturbance_y : 0.0));
+  setOutput(
+    "disturbed_approach_z", approach.pose.position.z + (disturbance_enabled ? disturbance_z : 0.0));
   setOutput(
     "disturbed_approach_yaw",
     yawFromQuaternion(approach.pose.orientation) + (disturbance_enabled ? disturbance_yaw : 0.0));
@@ -124,7 +127,8 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s pickup=(%.2f,%.2f,%.2f) place=(%.2f,%.2f,%.2f) message=%s",
+    "GetNextAssemblyTask response | success=%s has_task=%s task_id=%s target=%s reference=%s "
+    "pickup=(%.2f,%.2f,%.2f) place=(%.2f,%.2f,%.2f) place_%s=(%.3f,%.3f,%.3f,%.4f) message=%s",
     response->success ? "true" : "false",
     response->has_task ? "true" : "false",
     response->task_id.c_str(),
@@ -136,6 +140,11 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     target.pose.position.x,
     target.pose.position.y,
     target.pose.position.z,
+    response->target_pose.header.frame_id.c_str(),  // the plan's own frame: wall_report reads it
+    response->target_pose.pose.position.x,
+    response->target_pose.pose.position.y,
+    response->target_pose.pose.position.z,
+    yawFromQuaternion(response->target_pose.pose.orientation),
     response->message.c_str());
 
   if (!response->success || !response->has_task) {

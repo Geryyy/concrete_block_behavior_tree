@@ -147,7 +147,8 @@ class PublishPlacePass : public BT::SyncActionNode
 {
 public:
   PublishPlacePass(const std::string & name, const BT::NodeConfig & conf)
-  : BT::SyncActionNode(name, conf)
+  : BT::SyncActionNode(name, conf),
+    logger_(config().blackboard->get<rclcpp::Node::SharedPtr>("node")->get_logger())
   {
     auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
     // Volatile: a replayed pass would land under whatever block the panel shows now.
@@ -189,11 +190,17 @@ public:
       static_cast<int>(attempt), static_cast<int>(pass), verdict, miss_x, miss_y, miss_z, off_x,
       off_y);
     status_->publish(status);
+    RCLCPP_INFO(
+      logger_,
+      "PlacePass: attempt %d pass %d %s | miss (%+.3f, %+.3f, %+.3f) m, off (%+.3f, %+.3f) m",
+      static_cast<int>(attempt), static_cast<int>(pass), verdict.c_str(), miss_x, miss_y, miss_z,
+      off_x, off_y);
     return BT::NodeStatus::SUCCESS;
   }
 
 private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
+  rclcpp::Logger logger_;
 };
 
 }  // namespace concrete_block_behavior_tree

@@ -100,3 +100,18 @@ def test_the_in_air_loop_starts_from_the_operators_correction_and_the_auto_path_
         for e in correct.iter("SetBlackboard")
         if e.get("output_key") in ("place_x", "place_y")
     ]
+
+
+def test_a_correction_counts_as_done_only_after_its_move():
+    """A failed corrective descent must fail the approach: corr_done set before it would let
+    the Fallback after the loop succeed with the block never sent."""
+    body = next(_subtree("SubTreePlaceApproach").iter("Repeat"))
+    order = [
+        (element.get("ID") or element.tag, element.get("code") or "")
+        for element in body.iter()
+    ]
+    descend = next(i for i, (name, _) in enumerate(order) if name == "SubTreeDescendTo")
+    after_move = [
+        i for i, (_, code) in enumerate(order) if "corr_done := !still_off" in code
+    ]
+    assert after_move and min(after_move) > descend, order
