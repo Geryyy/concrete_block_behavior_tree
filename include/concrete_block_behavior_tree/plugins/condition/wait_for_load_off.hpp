@@ -87,8 +87,9 @@ private:
 
   double reference_{0.0};
   bool referenced_{false};
-  std::chrono::steady_clock::time_point start_;
-  std::chrono::steady_clock::time_point dropped_since_;
+  // Node clock: sim time in sim, so a slow RTF does not eat the timeout.
+  rclcpp::Time start_;
+  rclcpp::Time dropped_since_;
   bool dropped_{false};
   double lowest_{0.0};
 };

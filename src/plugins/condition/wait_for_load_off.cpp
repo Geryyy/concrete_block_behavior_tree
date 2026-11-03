@@ -15,8 +15,8 @@ namespace concrete_block_behavior_tree
 namespace
 {
 // Block hanging still at the start of a 5 s descent; the dip has to last this long.
-constexpr std::chrono::milliseconds kReference{500};
-constexpr std::chrono::milliseconds kHold{100};
+const rclcpp::Duration kReference{std::chrono::milliseconds(500)};
+const rclcpp::Duration kHold{std::chrono::milliseconds(100)};
 // A frozen transform freezes the floor while the JTC keeps descending.
 constexpr double kMaxTfAge = 0.2;
 constexpr double kGravity = 9.81;
@@ -74,14 +74,14 @@ BT::NodeStatus WaitForLoadOff::onStart()
   dropped_ = false;
   fresh_ = false;
   lowest_ = std::numeric_limits<double>::infinity();
-  start_ = std::chrono::steady_clock::now();
+  start_ = node_->get_clock()->now();
   return BT::NodeStatus::RUNNING;
 }
 
 BT::NodeStatus WaitForLoadOff::onRunning()
 {
   callback_group_executor_.spin_some();
-  const auto now = std::chrono::steady_clock::now();
+  const auto now = node_->get_clock()->now();
   const auto log = node_->get_logger();
 
   double mass = 0.0, target_z = 0.0, drop_fraction = 0.5, max_above = 0.05, floor = 0.01;
@@ -112,7 +112,7 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   getInput("floor_below_target", floor);
   getInput("timeout_ms", timeout_ms);
 
-  if (now - start_ > std::chrono::milliseconds(timeout_ms)) {
+  if (now - start_ > rclcpp::Duration(std::chrono::milliseconds(timeout_ms))) {
     RCLCPP_WARN(log, "WaitForLoadOff: no landing within %d ms, the jaws stay shut", timeout_ms);
     return BT::NodeStatus::FAILURE;
   }
@@ -122,7 +122,7 @@ BT::NodeStatus WaitForLoadOff::onRunning()
     const auto k8 = tf_buffer_->lookupTransform(world_frame, k8_frame, tf2::TimePointZero);
     const auto pivot = tf_buffer_->lookupTransform(world_frame, lever_frame, tf2::TimePointZero);
     const double age =
-      (node_->get_clock()->now() - rclcpp::Time(k8.header.stamp)).seconds();
+      (now - rclcpp::Time(k8.header.stamp)).seconds();
     if (age > kMaxTfAge) {
       RCLCPP_ERROR(
         log, "WaitForLoadOff: %s is %.2f s old, the block height is unknown; stopping, "
