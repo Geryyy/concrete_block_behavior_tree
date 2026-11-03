@@ -6,12 +6,15 @@ Plan vs placed (vs the sim's true poses), placement passes, landings, planner, t
 Written beside launch.log as wall_report_<n>.md.
 
     wall_report.py [LOG_DIR]     # offline, every goal (default: <ros log>/latest)
-    wall_report.py --follow      # as a node: one report as each goal ends, sim truth included
+    wall_report.py --follow      # in the sim launch: one report as each goal ends, true poses
+                                 # read from Gazebo
 """
 
+import json
 import math
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -399,73 +402,89 @@ def write_reports(
 
 
 def follow() -> None:
-    """Node: watch launch.log, write the report as each goal ends, with the sim's true poses."""
-    import rclpy
-    from concrete_block_world_model_interfaces.srv import DiscoverBlocks
-
-    rclpy.init()
-    node = rclpy.create_node("wall_report")
-    service = node.declare_parameter(
-        "truth_service", "/concrete_block_detector/true_blocks"
-    ).value
+    """Watch launch.log and write the report as each wall goal ends, with the sim's true poses."""
     log_dir = Path(os.path.realpath(log_root() / "latest"))
-    client = node.create_client(DiscoverBlocks, service)
     launch, offset, pending, task = log_dir / "launch.log", 0, b"", False
+    while True:
+        time.sleep(1.0)
+        try:
+            with launch.open(
+                "rb"
+            ) as handle:  # bytes: complete lines only, exact offsets
+                handle.seek(offset)
+                pending += handle.read()
+                offset = handle.tell()
+            fresh, _, pending = pending.rpartition(b"\n")
+            fresh = ANSI.sub("", fresh.decode(errors="replace"))
+            task = task or "GetNextAssemblyTask response" in fresh
+            if not (GOAL_END.search(fresh) and task):
+                continue
+            task = False
+            truth = gazebo_truth()
+            for name, (x, y, z, yaw) in truth.items():
+                # So an offline re-run finds the truth in launch.log too.
+                print(
+                    f"WallReport truth: {name} ({x:.4f}, {y:.4f}, {z:.4f}, {yaw:.4f})",
+                    flush=True,
+                )
+            time.sleep(
+                6.0
+            )  # the planner's and world model's own logs flush behind launch.log
+            for path in write_reports(log_dir, truth, only_last=True):
+                print(f"WallReport written: {path}", flush=True)
+        except Exception as error:  # noqa: BLE001 -- a report must never stop the next one
+            print(f"WallReport failed: {error!r}", flush=True)
+
+
+#: gz = Rz(yaw) * world + offset, the launch's gazebo_seed_frame_*; the ground stands 2.5 cm
+#: above the world model's z = 0 (as gazebo_block_oracle.py).
+GZ_WORLD, GZ_OFFSET, GZ_YAW, GZ_GROUND = "default", (0.0, -6.0, 0.0), math.pi, 0.025
+
+
+def gazebo_truth(prefix: str = "block_") -> dict:
+    """Read the true block poses in `world` from one Gazebo pose/info message; {} without a sim."""
     try:
-        while rclpy.ok():
-            time.sleep(1.0)
-            try:
-                with launch.open(
-                    "rb"
-                ) as handle:  # bytes: complete lines only, exact offsets
-                    handle.seek(offset)
-                    pending += handle.read()
-                    offset = handle.tell()
-                fresh, _, pending = pending.rpartition(b"\n")
-                fresh = ANSI.sub("", fresh.decode(errors="replace"))
-                task = task or "GetNextAssemblyTask response" in fresh
-                if not (GOAL_END.search(fresh) and task):
-                    continue
-                task = False
-                truth = _truth(node, client, DiscoverBlocks)
-                time.sleep(
-                    6.0
-                )  # the planner's and world model's own logs flush behind launch.log
-                for path in write_reports(log_dir, truth, only_last=True):
-                    node.get_logger().info(f"WallReport written: {path}")
-            except Exception as error:  # noqa: BLE001 -- a report must never stop the next one
-                node.get_logger().warning(f"WallReport failed: {error!r}")
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
-
-
-def _truth(node, client, service_type) -> dict:
-    """Sim true poses from the oracle, logged so an offline re-run finds them in launch.log."""
-    truth = {}
-    if not client.wait_for_service(timeout_sec=1.0):
-        return truth  # no oracle: the real crane, or the sim running the real detector
-    import rclpy
-
-    future = client.call_async(service_type.Request())
-    rclpy.spin_until_future_complete(node, future, timeout_sec=5.0)
-    answer = future.result()
-    if answer is None or not answer.success:
-        node.get_logger().warning(
-            f"WallReport: no true poses ({answer.message if answer else 'timeout'}), "
-            "the report falls back to the placed poses"
+        line = subprocess.run(
+            [
+                "gz",
+                "topic",
+                "-e",
+                "-n",
+                "1",
+                "-t",
+                f"/world/{GZ_WORLD}/pose/info",
+                "--json-output",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30.0,
+        ).stdout.splitlines()[0]
+    except (OSError, IndexError, subprocess.TimeoutExpired):
+        print(
+            "WallReport: no Gazebo poses, the report uses the placed poses", flush=True
         )
-        return truth
-    for block in answer.blocks.blocks:
-        p, q = block.pose.position, block.pose.orientation
-        truth[block.id] = (p.x, p.y, p.z, yaw_of((q.x, q.y, q.z, q.w)))
-        node.get_logger().info(
-            f"WallReport truth: {block.id} ({p.x:.4f}, {p.y:.4f}, {p.z:.4f}, {truth[block.id][3]:.4f})"
-        )
-    return truth
+        return {}
+    return {
+        pose["name"]: gz_to_world(pose)
+        for pose in json.loads(line)["pose"]
+        if pose.get("name", "").startswith(prefix)
+    }
+
+
+def gz_to_world(pose: dict) -> tuple:
+    p, o = pose.get("position", {}), pose.get("orientation", {})
+    gx, gy = p.get("x", 0.0) - GZ_OFFSET[0], p.get("y", 0.0) - GZ_OFFSET[1]
+    c, s = math.cos(-GZ_YAW), math.sin(-GZ_YAW)
+    yaw = (
+        yaw_of((o.get("x", 0.0), o.get("y", 0.0), o.get("z", 0.0), o.get("w", 1.0)))
+        - GZ_YAW
+    )
+    return (
+        c * gx - s * gy,
+        s * gx + c * gy,
+        p.get("z", 0.0) - GZ_OFFSET[2] - GZ_GROUND,
+        yaw,
+    )
 
 
 def main() -> None:

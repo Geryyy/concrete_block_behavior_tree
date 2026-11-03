@@ -469,7 +469,7 @@ def generate_launch_description():
                         ),
                     ),
                     # wall_report_<n>.md beside launch.log as each goal ends, true poses
-                    # from the oracle's true_blocks.
+                    # read from Gazebo.
                     Node(
                         package="concrete_block_behavior_tree",
                         executable="wall_report.py",

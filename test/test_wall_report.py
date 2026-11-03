@@ -89,3 +89,14 @@ def test_a_goal_that_aborts_mid_block_still_reports(tmp_path):
     text = path.read_text()
     assert "**failed**, 0/1 blocks" in text
     assert "| block_0 | – | 0 | WaitForLoadOff: no landing within 40000 ms" in text
+
+
+def test_gazebo_poses_come_back_in_the_plan_frame():
+    """The spawner puts world (x, y, z, yaw) at gz (-x, -y - 6, z + 0.025, yaw + pi)."""
+    pose = {
+        "position": {"x": 15.0, "y": -3.0, "z": 0.325},
+        "orientation": {"z": 1.0, "w": 0.0},
+    }
+    x, y, z, yaw = wall_report.gz_to_world(pose)
+    assert (round(x, 6), round(y, 6), round(z, 6)) == (-15.0, -3.0, 0.3)
+    assert abs(wall_report._half_turn(yaw)) < 1e-9

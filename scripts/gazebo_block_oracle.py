@@ -11,7 +11,6 @@ import ctypes
 import json
 import math
 import random
-import re
 import signal
 import subprocess
 import threading
@@ -59,16 +58,11 @@ class GazeboBlockOracle(Node):
             self.declare_parameter("sigma_angle_deg", 0.5).value
         )
         self.rng = random.Random(self.declare_parameter("seed", 0).value)
-        # One streaming subscription: a one-shot `gz topic -e -n 1` per request took over 5 s
-        # under load and the refine timed out. Per block the newest message that carries it:
-        # one that does not (a block at rest) must not drop it.
-        self.heard = None
-        self.lines: dict[str, str] = {}
-        self.names = re.compile(rf'"name":\s*"({re.escape(self.prefix)}[^"]*)"')
+        # One streaming subscription, answered from its newest message: a one-shot
+        # `gz topic -e -n 1` per request took over 5 s under load and the refine timed out.
+        self.latest: tuple[float, str] | None = None
         threading.Thread(target=self._stream, daemon=True).start()
         self.create_service(DiscoverBlocks, "~/discover_blocks", self._discover)
-        # Noise-free and named: the sim's ground truth, for wall_report.
-        self.create_service(DiscoverBlocks, "~/true_blocks", self._truth)
 
     def _stream(self):
         topic = f"/world/{self.world}/dynamic_pose/info"
@@ -81,22 +75,14 @@ class GazeboBlockOracle(Node):
             )
             # Kept raw, parsed per request: parsing every message cost a quarter core.
             for line in proc.stdout:
-                self.heard = time.monotonic()
-                if self.prefix in line:  # the regex only where a block can be
-                    for name in self.names.findall(line):
-                        self.lines[name] = line
+                if f'"{self.prefix}' in line:
+                    self.latest = (time.monotonic(), line)
             time.sleep(1.0)
 
     def _gz_poses(self) -> dict:
-        if self.heard is None or time.monotonic() - self.heard > 1.0:
+        if self.latest is None or time.monotonic() - self.latest[0] > 1.0:
             raise RuntimeError("no gz pose message in the last second")
-        lines = dict(self.lines)  # one snapshot: the stream thread keeps writing
-        parsed = {line: json.loads(line)["pose"] for line in set(lines.values())}
-        poses = {
-            name: next((p for p in parsed[line] if p.get("name") == name), None)
-            for name, line in lines.items()
-        }
-        return {name: pose for name, pose in poses.items() if pose}
+        return {p["name"]: p for p in json.loads(self.latest[1])["pose"]}
 
     def _to_world(self, p):
         pos = p.get("position", {})
@@ -123,10 +109,7 @@ class GazeboBlockOracle(Node):
         )
         return xyz, _qmul(dq, q)
 
-    def _truth(self, request, response):
-        return self._discover(request, response, noise=False)
-
-    def _discover(self, request, response, noise=True):
+    def _discover(self, request, response):
         try:
             poses = self._gz_poses()
         except Exception as error:  # noqa: BLE001 -- a lost gz message is a failed pass
@@ -136,12 +119,8 @@ class GazeboBlockOracle(Node):
         response.blocks.header.frame_id = "world"
         response.blocks.header.stamp = self.get_clock().now().to_msg()
         for name in sorted(n for n in poses if n.startswith(self.prefix)):
-            xyz, q = self._to_world(poses[name])
-            if noise:
-                xyz, q = self._noisy(xyz, q)
+            xyz, q = self._noisy(*self._to_world(poses[name]))
             block = Block()
-            if not noise:
-                block.id = name
             block.pose_status = Block.POSE_PRECISE
             block.pose.position.x, block.pose.position.y, block.pose.position.z = xyz
             (
