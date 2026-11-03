@@ -86,6 +86,7 @@ install(PROGRAMS
   scripts/gazebo_grasp_weld.py
   scripts/gazebo_block_oracle.py
   scripts/sim_loaded_hold_probe.py
+  scripts/wall_report.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -126,6 +127,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_dds_sim_profile
     test/test_dds_sim_profile.py
+  )
+  ament_add_pytest_test(
+    test_wall_report
+    test/test_wall_report.py
   )
   ament_add_pytest_test(
     test_start_pose_is_control_safe

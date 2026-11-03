@@ -468,6 +468,15 @@ def generate_launch_description():
                             LaunchConfiguration("start_perception")
                         ),
                     ),
+                    # wall_report_<n>.md beside launch.log as each goal ends, true poses
+                    # from the oracle's true_blocks.
+                    Node(
+                        package="concrete_block_behavior_tree",
+                        executable="wall_report.py",
+                        name="wall_report",
+                        arguments=["--follow"],
+                        output="screen",
+                    ),
                 ],
             ),
             # ── Keyboard TUI ────────────────────────────────────────────
