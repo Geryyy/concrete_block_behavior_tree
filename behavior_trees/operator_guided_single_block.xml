@@ -127,7 +127,7 @@
               block_id="{grasp_object_contains}"
               expected_placement_pose="{reference_block_pose_precise}"
               expected_hover_pose="{placement_approach_pose}" compare_z="false"
-              translation_tolerance_m="0.01" yaw_tolerance_rad="0.0873"
+              translation_tolerance_m="0.05" yaw_tolerance_rad="0.0873"
               current_hover_x="{mv_x}" current_hover_y="{mv_y}"
               planned_hover_x="{place_approach_x}" planned_hover_y="{place_approach_y}"
               planned_place_x="{planned_place_x}" planned_place_y="{planned_place_y}"

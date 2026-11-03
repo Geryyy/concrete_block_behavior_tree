@@ -62,9 +62,9 @@ def test_the_approach_ends_on_a_measurement():
         i for i, name in enumerate(order) if name == "MeasureBlockFromGripper"
     )
     assert last_descend < last_measure, order
-    # And that measurement gates: 1e-4 is the 1 cm lateral miss, 6.4e-3 the miss_z band.
+    # And that measurement gates: 2.5e-3 is the 5 cm lateral miss, 6.4e-3 the miss_z band.
     codes = [code for _, code in _scripts("SubTreePlaceApproach")]
-    gates = [code for code in codes if "0.0001" in code and "pass_verdict" not in code]
+    gates = [code for code in codes if "0.0025" in code and "pass_verdict" not in code]
     assert len(gates) == 2, codes
 
 
