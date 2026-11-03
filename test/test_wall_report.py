@@ -25,6 +25,9 @@ def test_a_goal_reports_true_deviations_along_and_across_the_wall(tmp_path):
         "\n".join(
             [
                 "1.0 [INFO] [world_model_node-26]: process started with pid [77]",
+                _task(9.0, 1, "block_9", -15.0).replace(
+                    "success=true", "success=false"
+                ),
                 _task(10.0, 1, "block_0", -15.0),
                 f"11.0 {BT} PlacePass: attempt 1 pass 1 within | miss (+0.020, -0.010, +0.040) m, "
                 "off (+0.000, +0.000) m",
@@ -40,9 +43,9 @@ def test_a_goal_reports_true_deviations_along_and_across_the_wall(tmp_path):
                 "world_pose=(-14.100, -3.050, 0.310) task_status=3 pose_status=2",
                 "23.0 [bt_action_server-34] [INFO] [0.0] [bt_action_server]: Goal succeeded",
                 "24.0 [wall_report.py-40] [INFO] [0.0] [wall_report]: WallReport truth: "
-                "block_0 (-15.0000, -3.0000, 0.3000, 0.0000)",
+                "gz_block_a (-15.0000, -3.0000, 0.3000, 0.0000)",
                 "24.0 [wall_report.py-40] [INFO] [0.0] [wall_report]: WallReport truth: "
-                "block_1 (-14.1100, -3.0400, 0.3000, 3.1416)",
+                "gz_block_b (-14.1100, -3.0400, 0.3000, 3.1416)",
             ]
         )
         + "\n"

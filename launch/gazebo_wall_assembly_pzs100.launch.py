@@ -475,7 +475,7 @@ def generate_launch_description():
                         executable="wall_report.py",
                         name="wall_report",
                         arguments=["--follow"],
-                        output="screen",
+                        output="both",  # launch.log keeps the truth lines for offline re-runs
                     ),
                 ],
             ),

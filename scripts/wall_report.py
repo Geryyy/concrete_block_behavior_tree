@@ -26,7 +26,9 @@ LEVEL = re.compile(r"^\[(INFO|WARN|ERROR|FATAL)\] \[[\d.]+\] \[([^\]]+)\]: (.*)$
 GOAL_END = re.compile(r"\[bt_action_server\]: Goal (succeeded|failed|canceled)")
 STARTED = re.compile(r"\[([\w.\-]+)-\d+\]: process started with pid \[(\d+)\]")
 TASK = re.compile(
-    r"GetNextAssemblyTask response \| .*has_task=true task_id=(\S*) target=(\S+) .*message=(.*)$"
+    # success=false with a task is "waiting for its physical block": no task yet
+    r"GetNextAssemblyTask response \| success=true has_task=true task_id=(\S*) target=(\S+) "
+    r".*message=(.*)$"
 )
 PLACE_WORLD = re.compile(r" place_world=\(([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\)")
 PLACED = re.compile(
@@ -50,6 +52,8 @@ REFINED = re.compile(
 UNSEEN = re.compile(
     r"\[([\d.]+)\] \[world_model_node\]: REFINE_BLOCK: no detection .* of '(\S+)'"
 )
+#: Farthest a placed pose may be from the Gazebo block it is matched to.
+TRUTH_MATCH_M = 0.3
 #: After a goal ends: the follow node's truth lines, and the side logs' last flush.
 SETTLE_S = 30.0
 
@@ -136,9 +140,13 @@ def analyse(chunk: list, result: str, side: dict) -> dict:
             blocks[current]["landing_fault"] = text[:120]
         elif (m := PLACED.search(text)) and m[1] in blocks:
             blocks[m[1]]["placed"] = tuple(float(v) for v in m.groups()[1:])
-    for name, pose in side.get("truth", {}).items():
-        if name in blocks:
-            blocks[name]["truth"] = pose
+    # By position, not name: discovered blocks get world-model ids Gazebo never saw.
+    truth = side.get("truth", {})
+    for b in blocks.values():
+        if "placed" in b and truth:
+            pose = min(truth.values(), key=lambda t: math.dist(t[:2], b["placed"][:2]))
+            if math.dist(pose[:2], b["placed"][:2]) < TRUTH_MATCH_M:
+                b["truth"] = pose
     for name, later in zip(order, order[1:] + [None]):
         blocks[name]["end"] = blocks[later]["start"] if later else t1
 
