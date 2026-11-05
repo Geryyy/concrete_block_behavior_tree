@@ -21,6 +21,7 @@
            legs that want to be slower multiply this entry, and SetBlackboard would create
            it as a string. -->
       <GetSlowDown slow_down="{slow_down}"/>
+      <Script code="place_vertical := false"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>

@@ -1,30 +1,30 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
- <tabbed_widget parent="main_window" name="Main Window">
+ <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="overview">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+    <DockSplitter count="3" orientation="-" sizes="0.333708;0.332584;0.333708">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="TCP path error |p_tcp - p_plan(s)| [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="0.470518"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane/mpc/tcp_path_error/data"/>
        </plot>
       </DockArea>
       <DockArea name="A2B planning: solve time [s] (one dot per plan)">
-       <plot mode="TimeSeries" style="Dots" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries" style="Dots">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="0.558879"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane_planner/solver_stats/crane_planner: trajectory OCP/solve_time_s"/>
         <curve color="#d62728" name="/crane_planner/solver_stats/crane_planner: trajectory OCP/acados_time_s"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="|sway - hanging| tip/tilt [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="0.204999"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="sway/abs_tip_from_hanging"/>
         <curve color="#d62728" name="sway/abs_tilt_from_hanging"/>
@@ -32,8 +32,8 @@
        </plot>
       </DockArea>
       <DockArea name="|sway rate| tip/tilt [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="1.025000"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="sway/abs_tip_rate"/>
         <curve color="#d62728" name="sway/abs_tilt_rate"/>
@@ -43,10 +43,10 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="pump flow Q_pump / Q_pump_max (sim)">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="1.001250"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane_mpc/pump_flow/pump/Q_pump_share"/>
         <curve color="#000000" name="limit/pump_share"/>
@@ -54,32 +54,32 @@
        </plot>
       </DockArea>
       <DockArea name="MPC solve time [s]">
-       <plot mode="TimeSeries" style="Dots" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries" style="Dots">
+        <range bottom="0.000000" left="767.969863" right="3291.323070" top="0.122843"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane/mpc/solver_health/solve_time"/>
         <curve color="#000000" name="limit/solve_budget_s"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     </DockSplitter>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="joints">
    <Container>
-     <DockSplitter orientation="-" count="5" sizes="0.200000;0.200000;0.200000;0.200000;0.200000">
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+    <DockSplitter count="5" orientation="-" sizes="0.2;0.2;0.2;0.2;0.2">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="slew position: ref / meas">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.671937" left="1102.285224" right="3291.320626" top="0.240355"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[0]"/>
         <curve color="#d62728" name="/joint_states/theta1_slewing_joint/position"/>
        </plot>
       </DockArea>
       <DockArea name="slew velocity: ref / meas / cmd">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.255663" left="1102.285224" right="3291.320626" top="0.240048"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[0]"/>
         <curve color="#d62728" name="/joint_states/theta1_slewing_joint/velocity"/>
@@ -87,18 +87,18 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="boom position: ref / meas">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.835403" left="1102.285224" right="3291.320626" top="1.040787"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[1]"/>
         <curve color="#d62728" name="/joint_states/theta2_boom_joint/position"/>
        </plot>
       </DockArea>
       <DockArea name="boom velocity: ref / meas / cmd">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.087008" left="1102.285224" right="3291.320626" top="0.116109"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[1]"/>
         <curve color="#d62728" name="/joint_states/theta2_boom_joint/velocity"/>
@@ -106,18 +106,18 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="arm position: ref / meas">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.089753" left="1102.285224" right="3291.320626" top="0.227857"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[2]"/>
         <curve color="#d62728" name="/joint_states/theta3_arm_joint/position"/>
        </plot>
       </DockArea>
       <DockArea name="arm velocity: ref / meas / cmd">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.144354" left="1102.285224" right="3291.320626" top="0.151667"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[2]"/>
         <curve color="#d62728" name="/joint_states/theta3_arm_joint/velocity"/>
@@ -125,18 +125,18 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="telescope position: ref / meas">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.458233" left="1102.285224" right="3291.320626" top="0.884516"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[3]"/>
         <curve color="#d62728" name="/joint_states/q4_big_telescope/position"/>
        </plot>
       </DockArea>
       <DockArea name="telescope velocity: ref / meas / cmd">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.408211" left="1102.285224" right="3291.320626" top="0.164524"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[3]"/>
         <curve color="#d62728" name="/joint_states/q4_big_telescope/velocity"/>
@@ -144,18 +144,18 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="rotator position: ref / meas">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.784992" left="1102.285224" right="3291.320626" top="1.807175"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[6]"/>
         <curve color="#d62728" name="/joint_states/theta8_rotator_joint/position"/>
        </plot>
       </DockArea>
       <DockArea name="rotator velocity: ref / meas / cmd">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-0.920523" left="1102.285224" right="3291.320626" top="0.306160"/>
         <limitY/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[6]"/>
         <curve color="#d62728" name="/joint_states/theta8_rotator_joint/velocity"/>
@@ -163,16 +163,16 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     </DockSplitter>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="mpc">
    <Container>
-     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+    <DockSplitter count="2" orientation="-" sizes="0.500561;0.499439">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="constraint violation: sway/sway rate/cyl force/pump">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="0.000000" right="1162.255384" top="0.186926"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane/mpc/solver_health/constraint_violation[0]"/>
         <curve color="#d62728" name="/crane/mpc/solver_health/constraint_violation[1]"/>
@@ -181,8 +181,8 @@
        </plot>
       </DockArea>
       <DockArea name="pump flow per axis [m^3/s] (sim)">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="0.000000" right="1162.255384" top="1.050000"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane_mpc/pump_flow/pump/Q.theta1_slewing_joint"/>
         <curve color="#d62728" name="/crane_mpc/pump_flow/pump/Q.theta2_boom_joint"/>
@@ -193,10 +193,10 @@
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="cost terms">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="0.000000" right="1162.255384" top="2344.439468"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane/mpc/solver_health/cost_term[0]"/>
         <curve color="#d62728" name="/crane/mpc/solver_health/cost_term[1]"/>
@@ -213,147 +213,237 @@
        </plot>
       </DockArea>
       <DockArea name="outcome (1 conv, 2 budget, 3 failed) / QP iterations">
-       <plot mode="TimeSeries" style="Dots" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries" style="Dots">
+        <range bottom="0.000000" left="0.000000" right="1162.255384" top="61.475000"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/crane/mpc/solver_health/outcome"/>
         <curve color="#d62728" name="/crane/mpc/solver_health/qp_iterations"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     </DockSplitter>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="contact">
    <Container>
-     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+    <DockSplitter count="2" orientation="-" sizes="0.500561;0.499439">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="touchdown: effort drop / drop needed (WaitForLoadOff)">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-1.050000" left="0.000000" right="3291.320626" top="1.050000"/>
+        <limitY/>
         <curve color="#1f77b4" name="/crane/load_off/data[0]"/>
         <curve color="#000000" name="/crane/load_off/data[1]"/>
        </plot>
       </DockArea>
       <DockArea name="touchdown: block centre above target [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="-1.050000" left="0.000000" right="3291.320626" top="1.050000"/>
+        <limitY/>
         <curve color="#1f77b4" name="/crane/load_off/data[2]"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="grasp: |rail effort| / threshold (sim 100)">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="0.000000" right="3291.320626" top="608.850009"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="contact/abs_rail_effort"/>
         <curve color="#000000" name="limit/grasp_effort"/>
        </plot>
       </DockArea>
       <DockArea name="grasp detected">
-       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries" style="Steps">
+        <range bottom="0.000000" left="0.000000" right="3291.320626" top="0.000000"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/gripper/grasp_detected/data"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     </DockSplitter>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="operator">
    <Container>
-     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
-      <DockArea name="pickup / placement translation error [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <limitY min="0"/>
-        <curve color="#1f77b4" name="/assembly_operator/pickup_translation_error_m/data"/>
-        <curve color="#d62728" name="/assembly_operator/placement_translation_error_m/data"/>
-        <curve color="#000000" name="/assembly_operator/placement_indicator_threshold_m/data"/>
-       </plot>
-      </DockArea>
-     <DockSplitter orientation="|" count="2" sizes="0.500000;0.500000">
+    <DockSplitter count="2" orientation="-" sizes="0.500561;0.499439">
+     <DockArea name="pickup / placement translation error [m]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="0.000000" left="0.000000" right="3291.323162" top="0.035930"/>
+       <limitY min="0"/>
+       <curve color="#1f77b4" name="/assembly_operator/pickup_translation_error_m/data"/>
+       <curve color="#d62728" name="/assembly_operator/placement_translation_error_m/data"/>
+       <curve color="#000000" name="/assembly_operator/placement_indicator_threshold_m/data"/>
+      </plot>
+     </DockArea>
+     <DockSplitter count="2" orientation="|" sizes="0.5;0.5">
       <DockArea name="grasp detected / passive settled">
-       <plot mode="TimeSeries" style="Steps" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries" style="Steps">
+        <range bottom="0.000000" left="0.000000" right="3291.323162" top="1.025000"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/gripper/grasp_detected/data"/>
         <curve color="#d62728" name="/grip_traj/passive_settled/data"/>
        </plot>
       </DockArea>
       <DockArea name="gripper rail: ref / meas [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
+       <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+        <range bottom="0.000000" left="0.000000" right="3291.323162" top="0.189385"/>
         <limitY min="0"/>
         <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/positions[7]"/>
         <curve color="#d62728" name="/joint_states/q9_left_rail_joint/position"/>
        </plot>
       </DockArea>
      </DockSplitter>
-     </DockSplitter>
+    </DockSplitter>
    </Container>
   </Tab>
-  <currentTabIndex index="0"/>
+  <currentTabIndex index="1"/>
  </tabbed_widget>
  <use_relative_time_offset enabled="1"/>
+ <streaming_buffer_size value="60"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
  <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters delimiter="0" skip_rows="0" time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad MCAP"/>
+  <plugin ID="DataLoad ROS2 bags">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value=""/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="Foxglove ROS2 Bridge">
+   <foxglove_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:8765" use_timestamp="0">
+    <topics/>
+   </foxglove_client>
+  </plugin>
+  <plugin ID="PlotJuggler Bridge">
+   <websocket_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:9090" use_timestamp="0">
+    <topics/>
+   </websocket_client>
+  </plugin>
   <plugin ID="ROS2 Topic Subscriber">
    <use_header_stamp value="false"/>
    <discard_large_arrays value="true"/>
    <max_array_size value="10"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="false"/>
-   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/crane/mpc/solver_health;/crane_mpc/cost_terms;/crane_mpc/pump_flow;/grip_traj/passive_velocity_rms;/grip_traj/passive_settled;/gripper/grasp_detected;/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_translation_error_m;/assembly_operator/placement_indicator_threshold_m;/crane/mpc/tcp_path_error;/crane_planner/solver_stats;/crane/load_off"/>
+   <selected_topics value="/assembly_operator/pickup_translation_error_m;/assembly_operator/placement_indicator_threshold_m;/assembly_operator/placement_translation_error_m;/crane/mpc/solver_health;/crane/mpc/tcp_path_error;/crane_mpc/cost_terms;/crane_planner/solver_stats;/grip_traj/passive_settled;/grip_traj/passive_velocity_rms;/gripper/grasp_detected;/joint_states;/trajectory_controllers/controller_state"/>
   </plugin>
+  <plugin ID="UDP Server"/>
+  <plugin ID="WebSocket Server"/>
+  <plugin ID="ZMQ Subscriber"/>
+  <plugin ID="CSV/Parquet Exporter"/>
+  <plugin ID="Fast Fourier Transform"/>
+  <plugin ID="Quaternion to RPY"/>
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays
+
+ new_series: a series previously created with ScatterXY.new(name)
+ prefix:     prefix of the timeseries, before the index of the array
+ suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.
+ suffix_Y:   suffix to complete the name of the series containing the Y value
+ timestamp:   usually the tracker_time variable
+              
+ Example:
+ 
+ Assuming we have multiple series in the form:
+ 
+   /trajectory/node.{X}/position/x
+   /trajectory/node.{X}/position/y
+   
+ where {N} is the index of the array (integer). We can create a reactive series from the array with:
+ 
+   new_series = ScatterXY.new(&quot;my_trajectory&quot;) 
+   CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time );
+--]]
+
+function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )
+  
+  --- clear previous values
+  new_series:clear()
+  
+  --- Append points to new_series
+  index = 0
+  while(true) do
+
+    x = index;
+    -- if not nil, get the X coordinate from a series
+    if suffix_X ~= nil then 
+      series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )
+      if series_x == nil then break end
+      x = series_x:atTime(timestamp)	 
+    end
+    
+    series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )
+    if series_y == nil then break end 
+    y = series_y:atTime(timestamp)
+    
+    new_series:push_back(x,y)
+    index = index+1
+  end
+end
+
+--[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]
+
+function GetSeriesNamesByPrefix(prefix)
+  -- GetSeriesNames(9 is a built-in function
+  all_names = GetSeriesNames()
+  filtered_names = {}
+  for i, name in ipairs(all_names)  do
+    -- check the prefix
+    if name:find(prefix, 1, #prefix) then
+      table.insert(filtered_names, name);
+    end
+  end
+  return filtered_names
+end
+
+--[[ Modify an existing series, applying offsets to all their X and Y values
+
+ series: an existing timeseries, obtained with TimeseriesView.find(name)
+ delta_x: offset to apply to each x value
+ delta_y: offset to apply to each y value 
+  
+--]]
+
+function ApplyOffsetInPlace(series, delta_x, delta_y)
+  -- use C++ indices, not Lua indices
+  for index=0, series:size()-1 do
+    x,y = series:at(index)
+    series:set(index, x + delta_x, y + delta_y)
+  end
+end
+"/>
+   <scripts/>
+  </plugin>
+  <plugin ID="ROS2 Topic Re-Publisher"/>
  </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
  <previouslyLoaded_Datafiles/>
- <previouslyLoaded_Streamer name="ROS2 Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
  <customMathEquations>
-  <snippet name="limit/solve_budget_s">
+  <snippet language="LUA" name="contact/abs_rail_effort">
    <global></global>
-   <function>return 0.12</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
+   <function>return math.abs(value)</function>
+   <linked_source>/joint_states/q9_left_rail_joint/effort</linked_source>
   </snippet>
-  <snippet name="limit/pump_share">
+  <snippet language="LUA" name="sway/abs_tilt_rate">
    <global></global>
-   <function>return 1.0</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
+   <function>return math.abs(value)</function>
+   <linked_source>/joint_states/theta7_tilt_joint/velocity</linked_source>
   </snippet>
-  <snippet name="limit/pump_share_mpc">
+  <snippet language="LUA" name="sway/abs_tip_rate">
    <global></global>
-   <function>return 0.95</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
+   <function>return math.abs(value)</function>
+   <linked_source>/joint_states/theta6_tip_joint/velocity</linked_source>
   </snippet>
-  <snippet name="limit/sway_rad">
-   <global></global>
-   <function>return 0.2</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="limit/sway_rate_tip">
-   <global></global>
-   <function>return 1.0</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="limit/sway_rate_tilt">
-   <global></global>
-   <function>return 0.5</function>
-   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="sway/abs_tip_from_hanging">
+  <snippet language="LUA" name="sway/abs_tip_from_hanging">
    <global></global>
    <function>return math.abs(value - (math.pi / 2 - v1 - v2))</function>
    <linked_source>/joint_states/theta6_tip_joint/position</linked_source>
@@ -362,41 +452,48 @@
     <v2>/joint_states/theta3_arm_joint/position</v2>
    </additional_sources>
   </snippet>
-  <snippet name="sway/abs_tilt_from_hanging">
+  <snippet language="LUA" name="limit/sway_rate_tilt">
+   <global></global>
+   <function>return 0.5</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
+  </snippet>
+  <snippet language="LUA" name="limit/sway_rate_tip">
+   <global></global>
+   <function>return 1.0</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
+  </snippet>
+  <snippet language="LUA" name="limit/sway_rad">
+   <global></global>
+   <function>return 0.2</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
+  </snippet>
+  <snippet language="LUA" name="sway/abs_tilt_from_hanging">
    <global></global>
    <function>return math.abs(value - math.pi / 2)</function>
    <linked_source>/joint_states/theta7_tilt_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
   </snippet>
-  <snippet name="sway/abs_tip_rate">
+  <snippet language="LUA" name="limit/pump_share_mpc">
    <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/joint_states/theta6_tip_joint/velocity</linked_source>
-   <additional_sources>
-   </additional_sources>
+   <function>return 0.95</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
   </snippet>
-  <snippet name="sway/abs_tilt_rate">
+  <snippet language="LUA" name="limit/pump_share">
    <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/joint_states/theta7_tilt_joint/velocity</linked_source>
-   <additional_sources>
-   </additional_sources>
+   <function>return 1.0</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
   </snippet>
-  <snippet name="contact/abs_rail_effort">
-   <global></global>
-   <function>return math.abs(value)</function>
-   <linked_source>/joint_states/q9_left_rail_joint/effort</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="limit/grasp_effort">
+  <snippet language="LUA" name="limit/grasp_effort">
    <global></global>
    <function>return 100.0</function>
    <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
-   <additional_sources>
-   </additional_sources>
+  </snippet>
+  <snippet language="LUA" name="limit/solve_budget_s">
+   <global></global>
+   <function>return 0.12</function>
+   <linked_source>/joint_states/theta1_slewing_joint/position</linked_source>
   </snippet>
  </customMathEquations>
  <snippets/>
+ <colorMaps/>
+ <!-- - - - - - - - - - - - - - - -->
 </root>

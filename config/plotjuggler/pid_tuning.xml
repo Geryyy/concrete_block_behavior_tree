@@ -1,285 +1,321 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
- <tabbed_widget parent="main_window" name="Main Window">
+ <tabbed_widget name="Main Window" parent="main_window">
   <Tab containers="1" tab_name="boom">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-      <DockArea name="boom: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[1]"/>
-        <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[1]"/>
-        <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[1]"/>
-        <curve color="#7f7f7f" name="boom/u_clamp_min"/>
-        <curve color="#7f7f7f" name="boom/u_clamp_max"/>
-       </plot>
-      </DockArea>
-      <DockArea name="boom: position error ref - meas [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[1]"/>
-       </plot>
-      </DockArea>
-      <DockArea name="boom: u - dq_ref = PI + effort feed-forward [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="boom/u_minus_dq_ref"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="3" orientation="-" sizes="0.332972;0.334056;0.332972">
+     <DockArea name="boom: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.328435" left="1793793250.075542" right="1793793310.074012" top="0.303035"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[1]"/>
+       <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[1]"/>
+       <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[1]"/>
+       <curve color="#7f7f7f" name="boom/u_clamp_min"/>
+       <curve color="#7f7f7f" name="boom/u_clamp_max"/>
+       <curve color="#1ac938" name="/controller_manager/introspection_data/values/command_interface.theta2_boom_joint/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="boom: position error ref - meas [rad]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.002794" left="1793793250.075542" right="1793793310.074012" top="-0.002323"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[1]"/>
+      </plot>
+     </DockArea>
+     <DockArea name="boom: u - dq_ref = PI + effort feed-forward [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.009535" left="1793793250.075542" right="1793793310.074012" top="-0.006760"/>
+       <limitY/>
+       <curve color="#1f77b4" name="boom/u_minus_dq_ref"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="arm">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-      <DockArea name="arm: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[2]"/>
-        <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[2]"/>
-        <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[2]"/>
-        <curve color="#7f7f7f" name="arm/u_clamp_min"/>
-        <curve color="#7f7f7f" name="arm/u_clamp_max"/>
-       </plot>
-      </DockArea>
-      <DockArea name="arm: position error ref - meas [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[2]"/>
-       </plot>
-      </DockArea>
-      <DockArea name="arm: u - dq_ref = PI + effort feed-forward [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="arm/u_minus_dq_ref"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="3" orientation="-" sizes="0.332972;0.334056;0.332972">
+     <DockArea name="arm: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.350202" left="1793793250.075542" right="1793793310.074012" top="0.321902"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[2]"/>
+       <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[2]"/>
+       <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[2]"/>
+       <curve color="#7f7f7f" name="arm/u_clamp_min"/>
+       <curve color="#7f7f7f" name="arm/u_clamp_max"/>
+       <curve color="#ff7f0e" name="/controller_manager/introspection_data/values/command_interface.theta3_arm_joint/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="arm: position error ref - meas [rad]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="0.000359" left="1793793250.075542" right="1793793310.074012" top="0.001761"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[2]"/>
+      </plot>
+     </DockArea>
+     <DockArea name="arm: u - dq_ref = PI + effort feed-forward [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.006388" left="1793793250.075542" right="1793793310.074012" top="0.002667"/>
+       <limitY/>
+       <curve color="#1f77b4" name="arm/u_minus_dq_ref"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="telescope">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-      <DockArea name="telescope: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [m/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[3]"/>
-        <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[3]"/>
-        <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[3]"/>
-        <curve color="#7f7f7f" name="telescope/u_clamp_min"/>
-        <curve color="#7f7f7f" name="telescope/u_clamp_max"/>
-       </plot>
-      </DockArea>
-      <DockArea name="telescope: position error ref - meas [m]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[3]"/>
-       </plot>
-      </DockArea>
-      <DockArea name="telescope: u - dq_ref = PI + effort feed-forward [m/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="telescope/u_minus_dq_ref"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="3" orientation="-" sizes="0.332972;0.334056;0.332972">
+     <DockArea name="telescope: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [m/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.583600" left="1793793250.075542" right="1793793310.074012" top="0.613400"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[3]"/>
+       <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[3]"/>
+       <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[3]"/>
+       <curve color="#7f7f7f" name="telescope/u_clamp_min"/>
+       <curve color="#7f7f7f" name="telescope/u_clamp_max"/>
+       <curve color="#1f77b4" name="/controller_manager/introspection_data/values/command_interface.q4_big_telescope/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="telescope: position error ref - meas [m]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.000305" left="1793793250.075542" right="1793793310.074012" top="0.000739"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[3]"/>
+      </plot>
+     </DockArea>
+     <DockArea name="telescope: u - dq_ref = PI + effort feed-forward [m/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.002859" left="1793793250.075542" right="1793793310.074012" top="0.003532"/>
+       <limitY/>
+       <curve color="#1f77b4" name="telescope/u_minus_dq_ref"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="slewing">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-      <DockArea name="slewing: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[0]"/>
-        <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[0]"/>
-        <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[0]"/>
-        <curve color="#7f7f7f" name="slewing/u_clamp_min"/>
-        <curve color="#7f7f7f" name="slewing/u_clamp_max"/>
-       </plot>
-      </DockArea>
-      <DockArea name="slewing: position error ref - meas [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[0]"/>
-       </plot>
-      </DockArea>
-      <DockArea name="slewing: u - dq_ref = PI + effort feed-forward [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="slewing/u_minus_dq_ref"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="3" orientation="-" sizes="0.332972;0.334056;0.332972">
+     <DockArea name="slewing: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-1.010980" left="1793793250.075542" right="1793793310.074012" top="0.983180"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[0]"/>
+       <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[0]"/>
+       <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[0]"/>
+       <curve color="#7f7f7f" name="slewing/u_clamp_min"/>
+       <curve color="#7f7f7f" name="slewing/u_clamp_max"/>
+       <curve color="#d62728" name="/controller_manager/introspection_data/values/command_interface.theta1_slewing_joint/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="slewing: position error ref - meas [rad]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.000187" left="1793793250.075542" right="1793793310.074012" top="0.000254"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[0]"/>
+      </plot>
+     </DockArea>
+     <DockArea name="slewing: u - dq_ref = PI + effort feed-forward [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.000029" left="1793793250.075542" right="1793793310.074012" top="0.000028"/>
+       <limitY/>
+       <curve color="#1f77b4" name="slewing/u_minus_dq_ref"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="rotator">
    <Container>
-     <DockSplitter orientation="-" count="3" sizes="0.333333;0.333333;0.333333">
-      <DockArea name="rotator: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[6]"/>
-        <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[6]"/>
-        <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[6]"/>
-        <curve color="#7f7f7f" name="rotator/u_clamp_min"/>
-        <curve color="#7f7f7f" name="rotator/u_clamp_max"/>
-       </plot>
-      </DockArea>
-      <DockArea name="rotator: position error ref - meas [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[6]"/>
-       </plot>
-      </DockArea>
-      <DockArea name="rotator: u - dq_ref = PI + effort feed-forward [rad/s]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="rotator/u_minus_dq_ref"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="3" orientation="-" sizes="0.332972;0.334056;0.332972">
+     <DockArea name="rotator: dq_ref (blue), u command (red), dq measured (green), clamp (grey) [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-2.518413" left="1793793250.075542" right="1793793310.074012" top="2.585113"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/reference/velocities[6]"/>
+       <curve color="#d62728" name="/trajectory_controllers/controller_state/output/velocities[6]"/>
+       <curve color="#2ca02c" name="/trajectory_controllers/controller_state/feedback/velocities[6]"/>
+       <curve color="#7f7f7f" name="rotator/u_clamp_min"/>
+       <curve color="#7f7f7f" name="rotator/u_clamp_max"/>
+       <curve color="#f14cc1" name="/controller_manager/introspection_data/values/command_interface.theta8_rotator_joint/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="rotator: position error ref - meas [rad]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.000435" left="1793793250.075542" right="1793793310.074012" top="0.000420"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/trajectory_controllers/controller_state/error/positions[6]"/>
+      </plot>
+     </DockArea>
+     <DockArea name="rotator: u - dq_ref = PI + effort feed-forward [rad/s]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.001309" left="1793793250.075542" right="1793793310.074012" top="0.001663"/>
+       <limitY/>
+       <curve color="#1f77b4" name="rotator/u_minus_dq_ref"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
   <Tab containers="1" tab_name="sway">
    <Container>
-     <DockSplitter orientation="-" count="2" sizes="0.500000;0.500000">
-      <DockArea name="tip / tilt rate [rad/s] (settled &lt; 0.02)">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/velocity"/>
-        <curve color="#d62728" name="/joint_states/theta7_tilt_joint/velocity"/>
-       </plot>
-      </DockArea>
-      <DockArea name="tip / tilt position [rad]">
-       <plot mode="TimeSeries" style="Lines" flip_x="false" flip_y="false">
-        <range top="1" bottom="0" right="1" left="0"/>
-        <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/position"/>
-        <curve color="#d62728" name="/joint_states/theta7_tilt_joint/position"/>
-       </plot>
-      </DockArea>
-     </DockSplitter>
+    <DockSplitter count="2" orientation="-" sizes="0.5;0.5">
+     <DockArea name="tip / tilt rate [rad/s] (settled &lt; 0.02)">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.012437" left="1793793250.075461" right="1793793310.071049" top="0.016436"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/velocity"/>
+       <curve color="#d62728" name="/joint_states/theta7_tilt_joint/velocity"/>
+      </plot>
+     </DockArea>
+     <DockArea name="tip / tilt position [rad]">
+      <plot flip_x="false" flip_y="false" line_width="1.0" mode="TimeSeries">
+       <range bottom="-0.204864" left="1793793250.075461" right="1793793310.071049" top="1.611519"/>
+       <limitY/>
+       <curve color="#1f77b4" name="/joint_states/theta6_tip_joint/position"/>
+       <curve color="#d62728" name="/joint_states/theta7_tilt_joint/position"/>
+      </plot>
+     </DockArea>
+    </DockSplitter>
    </Container>
   </Tab>
- <currentTabIndex index="0"/>
+  <currentTabIndex index="1"/>
  </tabbed_widget>
- <use_relative_time_offset enabled="1"/>
+ <use_relative_time_offset enabled="0"/>
+ <streaming_buffer_size value="60"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
  <Plugins>
+  <plugin ID="DataLoad CSV">
+   <parameters delimiter="0" skip_rows="0" time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad MCAP"/>
+  <plugin ID="DataLoad ROS2 bags">
+   <use_header_stamp value="false"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+   <boolean_strings_to_number value="true"/>
+   <remove_suffix_from_strings value="true"/>
+   <selected_topics value=""/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="Foxglove ROS2 Bridge">
+   <foxglove_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:8765" use_timestamp="0">
+    <topics/>
+   </foxglove_client>
+  </plugin>
+  <plugin ID="PlotJuggler Bridge">
+   <websocket_client clamp_large_arrays="0" max_array_size="500" url="ws://127.0.0.1:9090" use_timestamp="0">
+    <topics/>
+   </websocket_client>
+  </plugin>
   <plugin ID="ROS2 Topic Subscriber">
    <use_header_stamp value="false"/>
    <discard_large_arrays value="true"/>
    <max_array_size value="10"/>
    <boolean_strings_to_number value="true"/>
    <remove_suffix_from_strings value="false"/>
-   <selected_topics value="/joint_states;/trajectory_controllers/controller_state;/parameter_events"/>
+   <selected_topics value="/joint_states;/parameter_events;/trajectory_controllers/controller_state;/controller_manager/introspection_data/values;/controller_manager/introspection_data/names"/>
   </plugin>
+  <plugin ID="UDP Server"/>
+  <plugin ID="WebSocket Server"/>
+  <plugin ID="ZMQ Subscriber"/>
+  <plugin ID="CSV/Parquet Exporter"/>
+  <plugin ID="Fast Fourier Transform"/>
+  <plugin ID="Quaternion to RPY"/>
+  <plugin ID="Reactive Script Editor">
+   <library code="--[[ Helper function to create a series from arrays
+
+ new_series: a series previously created with ScatterXY.new(name)
+ prefix:     prefix of the timeseries, before the index of the array
+ suffix_X:   suffix to complete the name of the series containing the X value. If [nil], use the index of the array.
+ suffix_Y:   suffix to complete the name of the series containing the Y value
+ timestamp:   usually the tracker_time variable
+              
+ Example:
+ 
+ Assuming we have multiple series in the form:
+ 
+   /trajectory/node.{X}/position/x
+   /trajectory/node.{X}/position/y
+   
+ where {N} is the index of the array (integer). We can create a reactive series from the array with:
+ 
+   new_series = ScatterXY.new(&quot;my_trajectory&quot;) 
+   CreateSeriesFromArray( new_series, &quot;/trajectory/node&quot;, &quot;position/x&quot;, &quot;position/y&quot;, tracker_time );
+--]]
+
+function CreateSeriesFromArray( new_series, prefix, suffix_X, suffix_Y, timestamp )
+  
+  --- clear previous values
+  new_series:clear()
+  
+  --- Append points to new_series
+  index = 0
+  while(true) do
+
+    x = index;
+    -- if not nil, get the X coordinate from a series
+    if suffix_X ~= nil then 
+      series_x = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_X) )
+      if series_x == nil then break end
+      x = series_x:atTime(timestamp)	 
+    end
+    
+    series_y = TimeseriesView.find( string.format( &quot;%s.%d/%s&quot;, prefix, index, suffix_Y) )
+    if series_y == nil then break end 
+    y = series_y:atTime(timestamp)
+    
+    new_series:push_back(x,y)
+    index = index+1
+  end
+end
+
+--[[ Similar to the built-in function GetSeriesNames(), but select only the names with a give prefix. --]]
+
+function GetSeriesNamesByPrefix(prefix)
+  -- GetSeriesNames(9 is a built-in function
+  all_names = GetSeriesNames()
+  filtered_names = {}
+  for i, name in ipairs(all_names)  do
+    -- check the prefix
+    if name:find(prefix, 1, #prefix) then
+      table.insert(filtered_names, name);
+    end
+  end
+  return filtered_names
+end
+
+--[[ Modify an existing series, applying offsets to all their X and Y values
+
+ series: an existing timeseries, obtained with TimeseriesView.find(name)
+ delta_x: offset to apply to each x value
+ delta_y: offset to apply to each y value 
+  
+--]]
+
+function ApplyOffsetInPlace(series, delta_x, delta_y)
+  -- use C++ indices, not Lua indices
+  for index=0, series:size()-1 do
+    x,y = series:at(index)
+    series:set(index, x + delta_x, y + delta_y)
+  end
+end
+"/>
+   <scripts/>
+  </plugin>
+  <plugin ID="ROS2 Topic Re-Publisher"/>
  </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
  <previouslyLoaded_Datafiles/>
  <previouslyLoaded_Streamer name="ROS2 Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
  <customMathEquations>
-  <snippet name="boom/u_clamp_min">
-   <global></global>
-   <function>return -0.3134</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[1]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="boom/u_clamp_max">
-   <global></global>
-   <function>return 0.288</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[1]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="boom/u_minus_dq_ref">
-   <global></global>
-   <function>return value - v1</function>
-   <linked_source>/trajectory_controllers/controller_state/output/velocities[1]</linked_source>
-   <additional_sources>
-    <v1>/trajectory_controllers/controller_state/reference/velocities[1]</v1>
-   </additional_sources>
-  </snippet>
-  <snippet name="arm/u_clamp_min">
-   <global></global>
-   <function>return -0.3342</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[2]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="arm/u_clamp_max">
-   <global></global>
-   <function>return 0.3059</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[2]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="arm/u_minus_dq_ref">
-   <global></global>
-   <function>return value - v1</function>
-   <linked_source>/trajectory_controllers/controller_state/output/velocities[2]</linked_source>
-   <additional_sources>
-    <v1>/trajectory_controllers/controller_state/reference/velocities[2]</v1>
-   </additional_sources>
-  </snippet>
-  <snippet name="telescope/u_clamp_min">
-   <global></global>
-   <function>return -0.5551</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[3]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="telescope/u_clamp_max">
-   <global></global>
-   <function>return 0.5849</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[3]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="telescope/u_minus_dq_ref">
-   <global></global>
-   <function>return value - v1</function>
-   <linked_source>/trajectory_controllers/controller_state/output/velocities[3]</linked_source>
-   <additional_sources>
-    <v1>/trajectory_controllers/controller_state/reference/velocities[3]</v1>
-   </additional_sources>
-  </snippet>
-  <snippet name="slewing/u_clamp_min">
-   <global></global>
-   <function>return -0.9635</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[0]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="slewing/u_clamp_max">
-   <global></global>
-   <function>return 0.9357</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[0]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="slewing/u_minus_dq_ref">
-   <global></global>
-   <function>return value - v1</function>
-   <linked_source>/trajectory_controllers/controller_state/output/velocities[0]</linked_source>
-   <additional_sources>
-    <v1>/trajectory_controllers/controller_state/reference/velocities[0]</v1>
-   </additional_sources>
-  </snippet>
-  <snippet name="rotator/u_clamp_min">
-   <global></global>
-   <function>return -2.3969</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[6]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="rotator/u_clamp_max">
-   <global></global>
-   <function>return 2.4636</function>
-   <linked_source>/trajectory_controllers/controller_state/reference/velocities[6]</linked_source>
-   <additional_sources>
-   </additional_sources>
-  </snippet>
-  <snippet name="rotator/u_minus_dq_ref">
+  <snippet language="LUA" name="rotator/u_minus_dq_ref">
    <global></global>
    <function>return value - v1</function>
    <linked_source>/trajectory_controllers/controller_state/output/velocities[6]</linked_source>
@@ -287,6 +323,90 @@
     <v1>/trajectory_controllers/controller_state/reference/velocities[6]</v1>
    </additional_sources>
   </snippet>
+  <snippet language="LUA" name="rotator/u_clamp_max">
+   <global></global>
+   <function>return 2.4636</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[6]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="boom/u_minus_dq_ref">
+   <global></global>
+   <function>return value - v1</function>
+   <linked_source>/trajectory_controllers/controller_state/output/velocities[1]</linked_source>
+   <additional_sources>
+    <v1>/trajectory_controllers/controller_state/reference/velocities[1]</v1>
+   </additional_sources>
+  </snippet>
+  <snippet language="LUA" name="boom/u_clamp_max">
+   <global></global>
+   <function>return 0.288</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[1]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="arm/u_clamp_min">
+   <global></global>
+   <function>return -0.3342</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[2]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="arm/u_clamp_max">
+   <global></global>
+   <function>return 0.3059</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[2]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="arm/u_minus_dq_ref">
+   <global></global>
+   <function>return value - v1</function>
+   <linked_source>/trajectory_controllers/controller_state/output/velocities[2]</linked_source>
+   <additional_sources>
+    <v1>/trajectory_controllers/controller_state/reference/velocities[2]</v1>
+   </additional_sources>
+  </snippet>
+  <snippet language="LUA" name="slewing/u_clamp_max">
+   <global></global>
+   <function>return 0.9357</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[0]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="telescope/u_clamp_min">
+   <global></global>
+   <function>return -0.5551</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[3]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="telescope/u_clamp_max">
+   <global></global>
+   <function>return 0.5849</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[3]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="telescope/u_minus_dq_ref">
+   <global></global>
+   <function>return value - v1</function>
+   <linked_source>/trajectory_controllers/controller_state/output/velocities[3]</linked_source>
+   <additional_sources>
+    <v1>/trajectory_controllers/controller_state/reference/velocities[3]</v1>
+   </additional_sources>
+  </snippet>
+  <snippet language="LUA" name="slewing/u_minus_dq_ref">
+   <global></global>
+   <function>return value - v1</function>
+   <linked_source>/trajectory_controllers/controller_state/output/velocities[0]</linked_source>
+   <additional_sources>
+    <v1>/trajectory_controllers/controller_state/reference/velocities[0]</v1>
+   </additional_sources>
+  </snippet>
+  <snippet language="LUA" name="slewing/u_clamp_min">
+   <global></global>
+   <function>return -0.9635</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[0]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="boom/u_clamp_min">
+   <global></global>
+   <function>return -0.3134</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[1]</linked_source>
+  </snippet>
+  <snippet language="LUA" name="rotator/u_clamp_min">
+   <global></global>
+   <function>return -2.3969</function>
+   <linked_source>/trajectory_controllers/controller_state/reference/velocities[6]</linked_source>
+  </snippet>
  </customMathEquations>
  <snippets/>
+ <colorMaps/>
+ <!-- - - - - - - - - - - - - - - -->
 </root>

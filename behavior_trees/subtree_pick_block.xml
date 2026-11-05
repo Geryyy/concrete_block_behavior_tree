@@ -9,6 +9,8 @@
       <!-- 0. A raised pickup (truck bed, block centre over K0 z -0.5) via the start pose's
            direction, folded in: stretched out over the wall, no corridor to the bed survived
            (the joint line ran into the container); from folded, every bed spot did. -->
+      <!-- Disabled lab day 2026-11-04: also fired for a block stacked on a ground one
+           (K0 z -0.06). Re-enable for truck pickups.
       <Sequence name="truck_via" _skipIf="pickup_z &lt; -0.5">
         <SetBlackboard output_key="mv_x" value="4.114"/>
         <SetBlackboard output_key="mv_y" value="4.111"/>
@@ -17,6 +19,7 @@
         <SetBlackboard output_key="mv_carries" value="false"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
       </Sequence>
+      -->
 
       <!-- 1. Move above pickup -->
       <SetBlackboard output_key="mv_x" value="{pickup_x}"/>

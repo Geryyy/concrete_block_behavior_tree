@@ -39,7 +39,7 @@
       <!-- Sway: an empty hook need not wait out the swing to the verdict's 0.02 rad/s: ~5 s
            per move; the descent to the block lets it decay further. -->
       <SetBlackboard output_key="ex_sway_bound" value="0.0" _skipIf="mv_carries != 'true'"/>
-      <SetBlackboard output_key="ex_sway_bound" value="0.05" _skipIf="mv_carries == 'true'"/>
+      <SetBlackboard output_key="ex_sway_bound" value="0.1" _skipIf="mv_carries == 'true'"/>
       <!-- Dwell, for the same reason (issue 255): the 2.7 s is one period of the *carried*
            pendulum, and holding it on the pickup approach is ~2.4 s of pure pause in front
            of a crane that has already stopped. The grasp tolerates the swing the descent

@@ -300,7 +300,8 @@ def generate_launch_description():
                         "use_sim_time": use_sim_time,
                     },
                 ],
-                condition=IfCondition(LaunchConfiguration("start_motion_planning")),
+                # Not gated on start_motion_planning: the trees need grip_traj_movement
+                # whichever A2B planner runs; that flag is the legacy timber mp stack's.
             ),
             IncludeLaunchDescription(
                 PathSubstitution(FindPackageShare("concrete_block_detector"))

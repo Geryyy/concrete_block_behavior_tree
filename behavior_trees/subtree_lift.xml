@@ -10,7 +10,7 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.20"/>
       <!-- The next move need not wait out the swing: the planner starts from a measured one,
            and the tilt measurement averages it out. -->
-      <SetBlackboard output_key="ex_sway_bound" value="0.05"/>
+      <SetBlackboard output_key="ex_sway_bound" value="0.1"/>
       <!-- Dwell (issue 255): a lift away from a placed block carries nothing, so the
            2.7 s period of the loaded pendulum buys it nothing. A carrying lift keeps it:
            the move after it is the carry, and the block has to be hanging still before the
