@@ -30,10 +30,14 @@ namespace concrete_block_behavior_tree
 //    boom springs up as it unloads). An effort dip mid-air must not open the jaws.
 // FAILURE, which halts the descent, when the centre goes `floor_below_target`
 // under `target_z` -- the kinematic floor, for when the effort never drops --, when
-// the load comes off higher than `max_above_target`, on a non-finite or zero input,
-// on a transform older than 0.2 s, or at `timeout_ms`. None opens the jaws: the tree
-// stops for the operator. Assumes the effort falls when the hook unloads (boom,
-// sim and the 2026-08-19 bags: positive under load).
+// the load comes off higher than `max_above_target` (early ground contact), on a
+// non-finite or zero input, on a transform older than 0.2 s, or at `timeout_ms`.
+// Assumes the effort falls when the hook unloads (boom, sim and the 2026-08-19 bags:
+// positive under load).
+// `load_off` says which of the two it was: the load came off (SUCCESS, or the early
+// contact above `max_above_target`) or it never did. The tree reads it to tell early
+// contact from any other failure; run as a watch beside a descent to a waypoint,
+// `max_above_target` -1.0 makes every load-off that failure (issue 289).
 class WaitForLoadOff : public BT::StatefulActionNode
 {
 public:
@@ -57,6 +61,7 @@ public:
       BT::InputPort<double>("max_above_target", 0.20, "Highest the block may have stayed [m]"),
       BT::InputPort<double>("floor_below_target", 0.01, "Lowest block centre ever [m]"),
       BT::InputPort<int>("timeout_ms", 20000, "Give up after [ms]"),
+      BT::OutputPort<bool>("load_off", "Did the load come off, however this ended"),
     };
   }
 

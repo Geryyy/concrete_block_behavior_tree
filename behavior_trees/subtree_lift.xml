@@ -17,7 +17,7 @@
            planner starts from a measured sway. -->
       <SetBlackboard output_key="ex_hold_s" value="0.3" _skipIf="lf_carries == 'true'"/>
       <SetBlackboard output_key="ex_hold_s" value="2.7" _skipIf="lf_carries != 'true'"/>
-      <Script code="ex_publish_reference := true; ex_until_landed := false"/>
+      <Script code="ex_publish_reference := true; ex_until_landed := false; ex_watch_landed := false; load_off := false"/>
       <!-- Carrying only: the 5 s default ramp is grip_traj_server_simple's
            duration_lift times slow_down, and 1.5 m of it in 5 s is 1.7 periods of the
            loaded 0.35 Hz tip mode, i.e. a near-impulse. Measured (issue 234) it

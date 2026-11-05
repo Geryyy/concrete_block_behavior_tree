@@ -47,7 +47,13 @@ def test_grip_hands_the_mpc_the_block_the_planner_already_gets():
 
 
 def test_release_clears_the_payload_after_the_jaws_open():
-    elements = _sequence(TREE_DIR / "subtree_place_block.xml", "SubTreeTouchdown")
+    # The release is its own subtree since 289: early contact reaches it without a
+    # touchdown, and a payload left set there would drive the next move loaded.
+    elements = _sequence(TREE_DIR / "subtree_place_block.xml", "SubTreeRelease")
+    assert "SubTreeRelease" in [
+        e.get("ID")
+        for e in _sequence(TREE_DIR / "subtree_place_block.xml", "SubTreeTouchdown")
+    ]
     at = _index(elements, lambda e: e.get("ID") == "SetMpcPayload")
 
     assert elements[at].get("carries") == "false"

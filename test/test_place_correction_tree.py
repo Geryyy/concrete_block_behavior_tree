@@ -1,4 +1,4 @@
-"""Static check on the place correction loop (issue 256)."""
+"""Static check on the place correction loop (issue 256) and early ground contact (289)."""
 
 from pathlib import Path
 from xml.etree import ElementTree
@@ -6,10 +6,11 @@ from xml.etree import ElementTree
 PLACE_TREE = (
     Path(__file__).resolve().parents[1] / "behavior_trees" / "subtree_place_block.xml"
 )
+CYCLE_TREE = PLACE_TREE.parent / "subtree_pick_and_place_block.xml"
 
 
-def _subtree(tree_id):
-    root = ElementTree.parse(PLACE_TREE).getroot()
+def _subtree(tree_id, tree_file=None):
+    root = ElementTree.parse(tree_file or PLACE_TREE).getroot()
     return next(
         element for element in root.iter("BehaviorTree") if element.get("ID") == tree_id
     )
@@ -115,3 +116,180 @@ def test_a_correction_counts_as_done_only_after_its_move():
         i for i, (_, code) in enumerate(order) if "corr_done := !still_off" in code
     ]
     assert after_move and min(after_move) > descend, order
+
+
+def _ancestors(subtree):
+    """Child -> parent over one subtree, for "is this guarded anywhere above" tests."""
+    return {child: parent for parent in subtree.iter() for child in parent}
+
+
+def test_every_loaded_descent_runs_the_landed_watch():
+    """Issue 289: the ground can end any of them, not only the touchdown.
+
+    Lab day 2026-11-04: the block reached the ground 0.3-0.5 m before the waypoint and the
+    descent went on pushing, with the boom's p_A falling from 190 to 86 bar, because only
+    SubTreeTouchdown watched the load. Each of these owns a loaded descent, and exactly one
+    of them -- the touchdown -- is the descent that *ends* on landing.
+    """
+    watched = ("SubTreePlaceSimple", "SubTreePlaceApproach", "SubTreePlaceFinish")
+    for tree_id in watched:
+        codes = [code for _, code in _scripts(tree_id)]
+        assert [c for c in codes if "ex_watch_landed := true" in c], tree_id
+    setdown = [
+        node.get("code", "")
+        for node in _subtree("SubTreeSetDown", CYCLE_TREE).iter("Script")
+    ]
+    assert [c for c in setdown if "ex_watch_landed := true" in c], setdown
+
+    touchdown = [code for _, code in _scripts("SubTreeTouchdown")]
+    assert [c for c in touchdown if "ex_until_landed := true" in c], touchdown
+    for tree_id in watched:
+        codes = [code for _, code in _scripts(tree_id)]
+        assert not [c for c in codes if "ex_until_landed := true" in c], tree_id
+
+
+def test_nothing_measures_or_descends_again_after_an_early_contact():
+    """A block on the ground reads as a descent that stopped 0.3-0.8 m short.
+
+    Every pass after the contact would fail on its own height gate, and every corrective
+    descent would push into the ground. So the whole correction chain is skipped on
+    load_off: the measuring branches behind the guard, the loop bodies breaking on it.
+    """
+    for tree_id in ("SubTreePlaceSimple", "SubTreePlaceApproach"):
+        subtree = _subtree(tree_id)
+        parents = _ancestors(subtree)
+        measures = [
+            node
+            for node in subtree.iter()
+            if (node.get("ID") or node.tag)
+            in ("MeasureBlockFromGripper", "SubTreePlaceMiss")
+        ]
+        assert measures, tree_id
+        for node in measures:
+            guards = []
+            while node in parents:
+                node = parents[node]
+                guards.append(node.get("_skipIf"))
+            assert "load_off" in guards, (tree_id, guards)
+
+        # The corrective descent is the last node of the loop body, so the break after it
+        # is what keeps the next cycle from measuring. corr_done, as for convergence,
+        # tells the Fallback around the loop that this failure was benign.
+        body = next(subtree.iter("Repeat"))
+        order = [
+            (node.get("ID") or node.tag, node.get("code") or "") for node in body.iter()
+        ]
+        descend = max(
+            i for i, (name, _) in enumerate(order) if name == "SubTreeDescendTo"
+        )
+        breaks = [i for i, (_, code) in enumerate(order) if code == "!load_off"]
+        assert breaks and min(breaks) > descend, order
+        assert [code for _, code in order[descend:] if code == "corr_done := true"]
+
+
+def test_early_contact_lets_go_only_inside_the_lateral_band():
+    """The ground decides the height, the plan only the lateral position.
+
+    place_z comes from a ground-model snapshot that was 0.11 m out on the lab day, so a
+    block resting laterally on its slot is placed, however far that is from place_z. A
+    block resting anywhere else has to come off the ground again: leaving it there puts it
+    where the next block is planned, and the existing carrying lift is what clears it.
+    """
+    handler = _subtree("SubTreeEarlyContact")
+    release = next(
+        node for node in handler.iter() if node.get("ID") == "SubTreeRelease"
+    )
+    parents = _ancestors(handler)
+    band = [
+        node.get("code")
+        for node in parents[release].iter("ScriptCondition")
+        if "miss_x" in (node.get("code") or "")
+    ]
+    assert band == ["miss_x * miss_x + miss_y * miss_y < 0.0025"], band
+    # The band alone picks the branch. Under a Fallback a release that failed after the
+    # jaws opened would fall through to the lift below, which runs lf_carries true: 880 kg
+    # of feedforward onto an empty hook.
+    assert parents[release].tag == "IfThenElse"
+    _, chosen, other = list(parents[release])
+    assert chosen is release and other.get("ID") == "ForceFailure"
+    # Measured first, and against place_x/place_y, not the descent's shifted target.
+    order = [node.get("ID") or node.tag for node in handler.iter()]
+    assert order.index("MeasureBlockFromGripper") < order.index("SubTreeRelease")
+    assert [
+        node.get("code")
+        for node in handler.iter("Script")
+        if "miss_x :=" in node.get("code")
+    ] == ["miss_x := place_x - meas_x; miss_y := place_y - meas_y"]
+    # No height gate: there is nothing left to descend to, and no z to re-aim.
+    assert "SubTreeDescendTo" not in order
+    assert "SubTreeTouchdown" not in order
+    # The other branch lifts clear and still fails the place.
+    lift = next(node for node in handler.iter() if node.get("ID") == "SubTreeLift")
+    assert parents[parents[lift]].get("ID") == "ForceFailure"
+    assert [
+        node.get("value")
+        for node in handler.iter("SetBlackboard")
+        if node.get("output_key") == "lf_carries"
+    ] == ["true"]
+
+
+def test_early_contact_replaces_the_touchdown_everywhere_a_descent_is_watched():
+    """The release is the touchdown's tail, so early contact must reach it without one.
+
+    A tree that ran SubTreeTouchdown after the contact would command the final stroke to
+    place_z - 0.20 against a block already on the ground, which is the push this issue
+    removes; one that only failed would abandon a block standing on its slot.
+    """
+    for tree_id, tree_file in (
+        ("SubTreePlaceSimple", None),
+        ("SubTreePlaceFinish", None),
+        ("SubTreeSetDown", CYCLE_TREE),
+    ):
+        subtree = _subtree(tree_id, tree_file)
+        branch = next(
+            node
+            for node in subtree.iter("IfThenElse")
+            if any(child.get("ID") == "SubTreeEarlyContact" for child in node)
+        )
+        condition, early, normal = list(branch)
+        assert condition.get("code") == "load_off", tree_id
+        assert early.get("ID") == "SubTreeEarlyContact", tree_id
+        touchdowns = [
+            node for node in normal.iter() if node.get("ID") == "SubTreeTouchdown"
+        ]
+        assert len(touchdowns) == 1, tree_id
+        # And it is the only touchdown left in that path.
+        assert (
+            len(
+                [
+                    node
+                    for node in subtree.iter()
+                    if node.get("ID") == "SubTreeTouchdown"
+                ]
+            )
+            == 1
+        ), tree_id
+
+    # The angled entry is a descent too, so a contact in the approach before it has to
+    # skip it rather than fly it with the block on the ground.
+    finish = _subtree("SubTreePlaceFinish")
+    entry = next(
+        node
+        for node in finish.iter("Sequence")
+        if any(child.tag == "Decorator" for child in node)
+    )
+    assert entry.get("_skipIf") == "load_off"
+
+
+def test_the_simple_hover_clears_the_overrun():
+    """0.5 m left 4 cm: bend 0.17 plus the boom's downward overrun 0.29 (lab day 11-04).
+
+    The waypoint and the gate that measures against it are the same height by
+    construction, and the touchdown's pacing is for the stroke under it -- 0.25 m at
+    slow_down 1, so a 1.0 m stroke needs 4.0 to meet the ground at the same speed.
+    """
+    codes = [code for _, code in _scripts("SubTreePlaceSimple")]
+    assert [c for c in codes if "dz_z := place_z + 0.80" in c], codes
+    miss = [code for _, code in _scripts("SubTreePlaceMiss") if "miss_z :=" in code]
+    assert all("place_z + 0.80 - meas_z" in code for code in miss), miss
+    assert [c for c in codes if "slow_down * 4.0" in c], codes

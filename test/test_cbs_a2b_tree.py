@@ -378,11 +378,71 @@ def test_regrip_height_comes_from_regrip_z_not_the_pickup():
 
 
 def test_landing_reference_is_taken_before_the_descent_moves():
-    """WaitForLoadOff's reference window must not overlap the start of the landing descent."""
+    """WaitForLoadOff's reference window must not overlap the start of the descent."""
     root = ElementTree.parse(CBS_SUBTREE).getroot()
     parallel = next(root.iter("Parallel"))
-    move, gate = list(parallel)
+    move, gate, watch = list(parallel)
     first = list(move)[0]
-    assert first.tag == "Sleep" and first.get("_skipIf") == "!ex_until_landed"
+    assert first.tag == "Sleep"
+    # Both gates take the same 500 ms hanging reference, so both wait it out.
+    assert first.get("_skipIf") == "!ex_until_landed && !ex_watch_landed"
     assert int(first.get("msec")) > 500  # WaitForLoadOff's reference window
     assert gate.get("ID") == "WaitForLoadOff"
+    assert watch.get("ID") == "WaitForLoadOff"
+
+
+def test_a_watched_descent_fails_on_any_load_off():
+    """Issue 289: on a loaded descent to a waypoint every load-off is early ground contact.
+
+    The watch may never SUCCEED -- success_count is 1, so a success would end the move as
+    if it had arrived and the next leg would descend onto the ground -- so
+    max_above_target sits below every height the block can be at and a confirmed drop
+    becomes the failure that stops the descent. And it owns no deadline worth failing on:
+    the arrival wait is the move's oracle, while the landing gate's 40 s would fail every
+    descent slower than that.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    gates = [node for node in root.iter() if node.get("ID") == "WaitForLoadOff"]
+    assert len(gates) == 2
+    landing = next(g for g in gates if g.get("_skipIf") == "!ex_until_landed")
+    watch = next(g for g in gates if g.get("_skipIf") == "!ex_watch_landed")
+
+    assert float(watch.get("max_above_target")) < 0.0
+    assert int(watch.get("timeout_ms")) > int(landing.get("timeout_ms"))
+    # And the kinematic floor is off on the watch. It is measured from place_z while the
+    # watched descents target place_z + 0.05, so at the node's 1 cm default the lab day's
+    # own 0.3-0.5 m overrun trips it first -- and it trips with load_off false, i.e. as a
+    # plain descent failure, which RetryUntilSuccessful answers with a second descent into
+    # the ground. The touchdown keeps the floor: it is the one aiming under place_z.
+    assert float(watch.get("floor_below_target")) > 0.5
+    assert landing.get("floor_below_target") is None
+    # The same drop share: early contact may end in a release, so issue 263's reason for
+    # 0.8 -- jaws that opened on 375 kg whipped the gripper off the placed block -- holds.
+    assert watch.get("drop_fraction") == landing.get("drop_fraction")
+    for gate in gates:
+        # How the tree tells early contact from any other failure of the descent.
+        assert gate.get("load_off") == "{load_off}"
+        assert gate.get("target_z") == "{place_z}"
+
+
+def test_the_landed_watch_is_picked_wherever_the_landing_gate_is():
+    """One shared blackboard, so the footgun is a stale `true`.
+
+    An empty lift that inherited ex_watch_landed from the place before it would be watched
+    by a gate reading 880 kg leaving the hook as ground contact, and a descent whose gate
+    never ran would read the previous block's load_off. So every caller that picks the mode
+    sets all three keys in the one script, and never both gates at once.
+    """
+    seen = 0
+    for xml in TREE_DIR.glob("*.xml"):
+        for script in ElementTree.parse(xml).getroot().iter("Script"):
+            code = script.get("code") or ""
+            if "ex_until_landed :=" not in code:
+                continue
+            seen += 1
+            assert "ex_watch_landed :=" in code, (xml.name, code)
+            assert "load_off := false" in code, (xml.name, code)
+            assert not (
+                "ex_until_landed := true" in code and "ex_watch_landed := true" in code
+            ), (xml.name, code)
+    assert seen >= 8, seen

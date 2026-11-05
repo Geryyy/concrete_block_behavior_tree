@@ -44,9 +44,11 @@
     </Sequence>
   </BehaviorTree>
 
-  <!-- No neighbour (place_vertical): hover over the slot, straight down to 0.5 m over it,
-       correct laterally, land on load-off. 0.5 m clears a loaded boom's bend (~0.3 m), so
-       nothing here depends on the grasp offset's height; the ground ends the touchdown. -->
+  <!-- No neighbour (place_vertical): hover over the slot, straight down to 0.8 m over it,
+       correct laterally, land on load-off. 0.8 m clears a loaded boom's bend (~0.17 m) and
+       the boom's downward overrun (~0.29 m, issue 287), which 0.5 m left 4 cm of (lab day
+       2026-11-04); nothing here depends on the grasp offset's height, the ground ends the
+       touchdown. -->
   <BehaviorTree ID="SubTreePlaceSimple">
     <Sequence name="place_simple">
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
@@ -61,14 +63,16 @@
             <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
             <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
             <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-            <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false"/>
-            <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 0.50"/>
+            <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
+            <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 0.80"/>
             <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
             <SetBlackboard output_key="dz_carries" value="true"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
             <!-- Measure, shift out a miss of 1 cm or more, up to 3 times. Repeat has no break:
-                 convergence fails the body, and corr_done tells the Fallback it was that. -->
-            <Fallback>
+                 convergence fails the body, and corr_done tells the Fallback it was that.
+                 Skipped on early contact: the block is already down, and SubTreePlaceMiss
+                 would read it 0.8 m under the waypoint and fail on the height. -->
+            <Fallback _skipIf="load_off">
               <Repeat num_cycles="3">
                 <Sequence>
                   <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
@@ -77,12 +81,16 @@
                   <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
                   <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
                   <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+                  <!-- Early contact on a corrective descent leaves the loop the same way
+                       convergence does: corr_done tells the Fallback it was benign. -->
+                  <Script code="corr_done := true" _skipIf="!load_off"/>
+                  <ScriptCondition code="!load_off"/>
                 </Sequence>
               </Repeat>
               <ScriptCondition code="corr_done"/>
             </Fallback>
             <!-- The third shift went down unmeasured: within 5 cm or the approach fails. -->
-            <Fallback>
+            <Fallback _skipIf="load_off">
               <ScriptCondition code="corr_done"/>
               <Sequence>
                 <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
@@ -98,15 +106,22 @@
           </ForceFailure>
         </Fallback>
       </Decorator>
-      <!-- Touchdown is paced for 0.25 m; this stroke is 0.70 m (0.50 over, aimed 0.20 under). -->
-      <Script code="sd_place := slow_down; slow_down := slow_down * 2.8"/>
-      <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
-      <Script code="slow_down := sd_place"/>
+      <IfThenElse>
+        <ScriptCondition code="load_off"/>
+        <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
+        <Sequence>
+          <!-- Touchdown is paced for 0.25 m; this stroke is 1.0 m (0.80 over, aimed 0.20
+               under), ~40 s of it at slow_down 1. -->
+          <Script code="sd_place := slow_down; slow_down := slow_down * 4.0"/>
+          <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
+          <Script code="slow_down := sd_place"/>
+        </Sequence>
+      </IfThenElse>
     </Sequence>
   </BehaviorTree>
 
   <!-- Lateral miss of the carried block against place_x/y; fails on a block more than 8 cm
-       under place_z + 0.50, the only height it can hit anything at. -->
+       under place_z + 0.80, the only height it can hit anything at. -->
   <BehaviorTree ID="SubTreePlaceMiss">
     <Sequence name="place_miss">
       <ForceSuccess>
@@ -124,7 +139,7 @@
       </ForceSuccess>
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
         x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
-      <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z + 0.50 - meas_z; place_pass := place_pass + 1"/>
+      <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z + 0.80 - meas_z; place_pass := place_pass + 1"/>
       <Script code="pass_verdict := !(miss_z &lt; 0.08) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
       <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
         verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
@@ -185,7 +200,7 @@
       <Script code="dz_z := place_z + 0.30 + place_dz_bias"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
-      <Script code="ex_until_landed := false"/>
+      <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
       <!-- Correct in the air, before the angled entry: the slew and rotator stop ~5 mrad short
@@ -207,7 +222,9 @@
            leaves the Repeat instead of ticking out the remaining cycles. Repeat has no
            break, so convergence fails the body and corr_done tells the Fallback below which
            failure it was, so a too-large miss_z still propagates. -->
-      <Fallback>
+      <!-- Skipped on early contact: the block rests 0.3 m under the waypoint, which the
+           height gate below reads as a descent that stopped short. -->
+      <Fallback _skipIf="load_off">
         <Repeat num_cycles="3">
           <Sequence>
             <!-- The block as the lidar sees it here: the column-mounted lidar is bend-free, so
@@ -254,6 +271,10 @@
                  descent re-commands the same waypoint height, it does not shift it. -->
             <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+            <!-- Early contact on a corrective descent leaves the loop the same way
+                 convergence does: corr_done tells the Fallback it was benign. -->
+            <Script code="corr_done := true" _skipIf="!load_off"/>
+            <ScriptCondition code="!load_off"/>
             <Script code="corr_done := !still_off"/>
             <ScriptCondition code="still_off"/>
           </Sequence>
@@ -268,8 +289,9 @@
            Skipped after an early exit (corr_done): that last move started within 5 cm.
            off_x/off_y are not shifted again, because that descent would be unmeasured in turn.
            Same two tests as a loop pass, same order, same waypoint height, so the same bands:
-           miss_z the cross-check on the measure chain, lateral the acceptance. -->
-      <Fallback>
+           miss_z the cross-check on the measure chain, lateral the acceptance.
+           Skipped on early contact, for the height reason the loop above is. -->
+      <Fallback _skipIf="load_off">
         <ScriptCondition code="corr_done"/>
         <Sequence>
           <ForceSuccess>
@@ -299,27 +321,36 @@
     </Sequence>
   </BehaviorTree>
 
-  <!-- From the corrected waypoint: angled entry, touchdown, release, lift away. -->
+  <!-- From the corrected waypoint: angled entry, touchdown, release, lift away. Entered with
+       load_off already true when the waypoint descent itself met the ground: then there is no
+       entry left to fly and the early-contact branch decides on the spot. -->
   <BehaviorTree ID="SubTreePlaceFinish">
     <Sequence name="place_finish">
 
-      <!-- 2. Angled entry from the open side to 5 cm over the slot: the gap to the neighbour
-           only closes to its final 2 cm. -->
-      <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.05 + place_dz_bias"/>
-      <!-- 0.02, not the 0.05 place_approach set (issue 241). This is the last gate before the
-           block goes down and nothing re-measures it after here: the correction loop above is
-           upstream, and SubTreeTouchdown only descends. 0.05 rad is 0.25 to 0.35 m at the block
-           on slew, boom or arm (sensitivities in subtree_move_above.xml), against the 0.02 m
-           the gap to the placed neighbour closes to. Measured: all 11 arrivals in the issue-241
-           campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
-           0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
-      <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
-           mid-move leaves the crane short and this wait times out. -->
-      <Decorator ID="RetryUntilSuccessful" num_attempts="2">
-        <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-      </Decorator>
-      <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
+      <Sequence _skipIf="load_off">
+        <!-- 2. Angled entry from the open side to 5 cm over the slot: the gap to the neighbour
+             only closes to its final 2 cm. -->
+        <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.05 + place_dz_bias"/>
+        <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
+        <!-- 0.02, not the 0.05 place_approach set (issue 241). This is the last gate before the
+             block goes down and nothing re-measures it after here: the correction loop above is
+             upstream, and SubTreeTouchdown only descends. 0.05 rad is 0.25 to 0.35 m at the block
+             on slew, boom or arm (sensitivities in subtree_move_above.xml), against the 0.02 m
+             the gap to the placed neighbour closes to. Measured: all 11 arrivals in the issue-241
+             campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
+             0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
+        <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+        <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
+             mid-move leaves the crane short and this wait times out. -->
+        <Decorator ID="RetryUntilSuccessful" num_attempts="2">
+          <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+        </Decorator>
+      </Sequence>
+      <IfThenElse>
+        <ScriptCondition code="load_off"/>
+        <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
+        <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
+      </IfThenElse>
     </Sequence>
   </BehaviorTree>
 
@@ -334,12 +365,20 @@
            WaitForLoadOff stops it once the hook is unloaded, and at its floor, 1 cm under
            place_z, if there is no ground. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
-      <Script code="dz_z := place_z - 0.20; ex_until_landed := true"/>
+      <Script code="dz_z := place_z - 0.20; ex_until_landed := true; ex_watch_landed := false; load_off := false"/>
       <!-- Half the run's speed, not a fixed half: a run the launch already paced
            slower stays slower through the touchdown. -->
       <Script code="sd_saved := slow_down; slow_down := slow_down * 2.0"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       <Script code="slow_down := sd_saved"/>
+      <SubTree ID="SubTreeRelease" _autoremap="true"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- The block is down: write its pose, open the jaws, lift away empty. The tail of the
+       touchdown, also entered on early contact, where no touchdown ran. -->
+  <BehaviorTree ID="SubTreeRelease">
+    <Sequence name="release">
 
       <!-- 4. Write final block pose, then open gripper -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
@@ -374,6 +413,51 @@
           timeout_s="8.0"/>
       </ForceSuccess>
 
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- The load came off before the descent's target (WaitForLoadOff logs "early contact" and
+       the height): the block rests on ground the plan put lower than it is. Nothing descends
+       again from here, and no height decides anything - the ground is the better reference
+       for z than the plan, which is what the simple path already leans on. Laterally on the
+       slot, let go; otherwise lift clear and fail the place, so the block does not stay
+       where the next one is planned. -->
+  <BehaviorTree ID="SubTreeEarlyContact">
+    <Sequence name="early_contact">
+      <!-- Where it came to rest: the lidar first, the block may have slid in the jaws as the
+           hook unloaded. No detection keeps the last refined offset, as every other pass. -->
+      <ForceSuccess>
+        <Sequence>
+          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+            server_timeout="10000" mode="REFINE_GRASPED"
+            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+          <Action ID="CaptureBlockGraspOffset"
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+            world_frame="world" grasp_offset="{grasp_offset}"
+            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+            s_log_8_z="{vision_s_log_8_z}"/>
+        </Sequence>
+      </ForceSuccess>
+      <!-- 0.5 s, not the loaded 2.7: the block is down, there is no pendulum to average out. -->
+      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="0.5"
+        x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+      <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y"/>
+      <!-- IfThenElse, not a Fallback: a Fallback would also take the lift branch when the
+           release itself failed late, and that lift runs with lf_carries true, i.e. 880 kg
+           of feedforward onto a hook whose jaws are already open. The band decides which
+           branch runs; a failure inside the chosen branch fails the place. -->
+      <IfThenElse>
+        <!-- The place's own lateral band, the one its last in-air pass accepts. -->
+        <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
+        <SubTree ID="SubTreeRelease" _autoremap="true"/>
+        <Decorator ID="ForceFailure">
+          <Sequence>
+            <SetBlackboard output_key="lf_carries" value="true"/>
+            <SubTree ID="SubTreeLift" _autoremap="true"/>
+          </Sequence>
+        </Decorator>
+      </IfThenElse>
     </Sequence>
   </BehaviorTree>
 </root>

@@ -4,34 +4,42 @@
          dz_x, dz_y, dz_z, dz_yaw  - target CoG pose (world)
          dz_carries                - "true"/"false": carrying a block?
          ex_until_landed           - true: ends on landing, not arrival
+         ex_watch_landed           - true: ends on arrival, or early on load-off
        Carrying, the MPC drives it (placing); empty, a JTC goal with the MPC silent (picking).
        Produces: COG, phi (goal pose), trajectory. -->
   <BehaviorTree ID="SubTreeDescendTo">
-    <Sequence name="descend_to">
-      <Action ID="SetGoalPose" name="Set descend target"
-        yN_x="{dz_x}" yN_y="{dz_y}" yN_z="{dz_z}"
-        phiN="{dz_yaw}"
-        goal="{COG}" phi="{phi}"/>
-      <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
-      <Action ID="CalcGripMovement" name="Plan descend"
-        carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
-        phiToolN="{phi}" service_name="grip_traj_movement"
-        server_timeout="40000" slowDown="{slow_down}"
-        s_log_8_x="{s_log_8_x}"
-        trajectory="{trajectory}" yN="{COG}"/>
-      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <Action ID="PublishGripperState" name="Publish payload to MPC"
-        carries="{dz_carries}" mass="{payload_mass}"
-        log_shape_text="{log_shape_text}"
-        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <IfThenElse>
-        <ScriptCondition code="dz_carries == 'true'"/>
-        <Sequence>
-          <Script code="ex_publish_reference := true"/>
-          <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
-        </Sequence>
-        <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
-      </IfThenElse>
-    </Sequence>
+    <Fallback>
+      <Sequence name="descend_to">
+        <Action ID="SetGoalPose" name="Set descend target"
+          yN_x="{dz_x}" yN_y="{dz_y}" yN_z="{dz_z}"
+          phiN="{dz_yaw}"
+          goal="{COG}" phi="{phi}"/>
+        <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
+        <Action ID="CalcGripMovement" name="Plan descend"
+          carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
+          phiToolN="{phi}" service_name="grip_traj_movement"
+          server_timeout="40000" slowDown="{slow_down}"
+          s_log_8_x="{s_log_8_x}"
+          trajectory="{trajectory}" yN="{COG}"/>
+        <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
+        <Action ID="PublishGripperState" name="Publish payload to MPC"
+          carries="{dz_carries}" mass="{payload_mass}"
+          log_shape_text="{log_shape_text}"
+          s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+        <IfThenElse>
+          <ScriptCondition code="dz_carries == 'true'"/>
+          <Sequence>
+            <Script code="ex_publish_reference := true"/>
+            <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
+          </Sequence>
+          <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
+        </IfThenElse>
+      </Sequence>
+      <!-- Early ground contact (issue 289): the watch ended the descent on load-off, with
+           the controller deactivated, which is not a failure of the descent. The caller
+           skips the rest of its chain and decides release or lift-clear off load_off. A
+           landing descent keeps its own failures: nothing may open the jaws on one. -->
+      <ScriptCondition code="ex_watch_landed &amp;&amp; load_off"/>
+    </Fallback>
   </BehaviorTree>
 </root>

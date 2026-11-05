@@ -69,6 +69,13 @@
          ex_publish_reference  true: hand {trajectory} to the MPC (grip plans); false where
                                crane_planning already published it (A2B)
          ex_until_landed       true: done on landing (WaitForLoadOff), not on arrival
+         ex_watch_landed       true: a loaded descent to a waypoint. The same gate runs as a
+                               watch beside the arrival wait and *fails* the move on any
+                               load-off, which there is early ground contact. Exclusive with
+                               ex_until_landed; set both in every caller, the blackboard is
+                               shared and a stale `true` would watch an empty lift.
+       Writes load_off: did the load come off, however the gate ended. The caller reads it to
+       tell early contact from any other failure (issue 289).
        mpc_drives is written by WaitForMoveComplete; a landing descent skips that node and
        reads the value of the move before. -->
   <BehaviorTree ID="SubTreeCbsA2BMovement">
@@ -92,8 +99,9 @@
           <Parallel success_count="1" failure_count="1">
             <Sequence>
               <!-- Landing: hold still while WaitForLoadOff takes its 500 ms reference;
-                   taken during the descent's start dip it read the block ~20 % light. -->
-              <Sleep msec="600" _skipIf="!ex_until_landed"/>
+                   taken during the descent's start dip it read the block ~20 % light.
+                   The early-contact watch takes the same reference, so it waits too. -->
+              <Sleep msec="600" _skipIf="!ex_until_landed &amp;&amp; !ex_watch_landed"/>
               <!-- Nested: a script reads both sides of ||, and mpc_drives is unset until
                    the first move's WaitForMoveComplete. Grip moves follow a move_above. -->
               <Sequence _skipIf="!ex_publish_reference">
@@ -130,9 +138,34 @@
             <!-- 0.8: at 0.5 the jaws opened with ~375 kg still on the hook and the gripper
                  whipped off the placed block (issue 263); at 0.25 the boom bounced 0.3 m.
                  Not 0.9: the 10 s touchdown delivers ~91 %, so 0.9 risks the timeout. -->
-            <!-- 40 s: the slow final segment is a ~10 s plan and unloads after contact. -->
+            <!-- 150 s, was 40: the angled path's final segment is a ~10 s plan, but the
+                 simple path's touchdown is the whole 1.0 m stroke (issue 289) and measured
+                 ~30 s of it in sim at slow_down 1, so the 40 s was already inside a lab
+                 day's pace of 2 or 3. Only reached when the block neither lands nor
+                 reaches the floor, i.e. a descent that stopped in the air. -->
             <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed" drop_fraction="0.8"
-              timeout_ms="40000"
+              timeout_ms="150000" load_off="{load_off}"
+              mass="{payload_mass}" target_z="{place_z}"
+              s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
+            <!-- The same gate as a watch beside the arrival wait (issue 289): on a loaded
+                 descent to a waypoint every load-off is early ground contact, so
+                 max_above_target -1.0, i.e. no height here is acceptable, turns it into the
+                 failure that ends the descent, and the caller decides release or lift-clear
+                 off {load_off}. Same 0.8: on early contact the jaws may still open, so the
+                 263 reason for it holds. No deadline of its own, the arrival wait is the
+                 move's; 600 s is the stalled-clock backstop the landing Sleep also uses.
+                 floor_below_target off (10 m, i.e. unreachable): the floor is the
+                 touchdown's backstop and it is measured from place_z, while these descents
+                 target place_z + 0.05 (finish, set-down) or + 0.30 (approach). At the
+                 default 1 cm the lab day's own 0.3-0.5 m downward overrun trips it first,
+                 and it fails with load_off false, i.e. as a plain descent failure, which
+                 RetryUntilSuccessful answers by descending into the ground a second time.
+                 A waypoint descent that overran without the load coming off is the arrival
+                 check's business (issue 287), not this gate's. -->
+            <Action ID="WaitForLoadOff" name="Watch for early contact"
+              _skipIf="!ex_watch_landed" drop_fraction="0.8"
+              timeout_ms="600000" max_above_target="-1.0" floor_below_target="10.0"
+              load_off="{load_off}"
               mass="{payload_mass}" target_z="{place_z}"
               s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
           </Parallel>

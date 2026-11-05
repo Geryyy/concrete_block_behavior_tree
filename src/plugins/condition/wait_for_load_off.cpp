@@ -75,6 +75,7 @@ BT::NodeStatus WaitForLoadOff::onStart()
   fresh_ = false;
   lowest_ = std::numeric_limits<double>::infinity();
   start_ = node_->get_clock()->now();
+  setOutput("load_off", false);
   return BT::NodeStatus::RUNNING;
 }
 
@@ -195,11 +196,14 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   if (now - dropped_since_ < kHold) {
     return BT::NodeStatus::RUNNING;
   }
+  setOutput("load_off", true);
   if (lowest_ > max_above) {
-    // Resting on something higher than the plan: stop pushing, do not let go.
+    // Resting on something higher than the plan: stop pushing. Whether the jaws then
+    // open is the caller's, not this node's -- on a watched descent it is the
+    // early-contact branch that decides (issue 289).
     RCLCPP_ERROR(
-      log, "WaitForLoadOff: the load came off with the block centre %.3f m over its "
-      "target; stopping, the jaws stay shut", lowest_);
+      log, "WaitForLoadOff: early contact, the load came off with the block centre %.3f m "
+      "over its target; stopping, nothing pushes further down", lowest_);
     return BT::NodeStatus::FAILURE;
   }
   report(true);
