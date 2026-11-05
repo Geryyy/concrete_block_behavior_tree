@@ -110,11 +110,14 @@
         <ScriptCondition code="load_off"/>
         <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
         <Sequence>
-          <!-- Touchdown is paced for 0.25 m; this stroke is 1.0 m (0.80 over, aimed 0.20
-               under), ~40 s of it at slow_down 1. -->
-          <Script code="sd_place := slow_down; slow_down := slow_down * 4.0"/>
+          <!-- Touchdown is paced for 0.25 m at td_scale 2.0; this stroke is 1.0 m (0.80 over,
+               aimed 0.20 under), so 4x that scale meets the ground at the same speed, ~40 s
+               of it at slow_down 1. td_scale, not slow_down around the whole subtree: that
+               also paced the release's empty lift, ~15 s of it (issue 290). -->
+          <Script code="td_scale := 8.0"/>
+          <!-- No hover capture on this path, so the floor gets the pickup's offset. -->
+          <Script code="place_g := s_log_8_z"/>
           <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
-          <Script code="slow_down := sd_place"/>
         </Sequence>
       </IfThenElse>
     </Sequence>
@@ -346,6 +349,11 @@
           <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
         </Decorator>
       </Sequence>
+      <!-- 0.25 m of stroke plus the hover bias, against the 0.25 m td_scale 2.0 is tuned
+           for: at the measured bias 0.11-0.19 the ground is met 1.2-1.35x faster than that,
+           pre-existing and still far from the 0.25 m/s that hopped. place_g, which the
+           touchdown's floor reads, is the hover capture's. -->
+      <Script code="td_scale := 2.0"/>
       <IfThenElse>
         <ScriptCondition code="load_off"/>
         <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
@@ -362,13 +370,17 @@
            speed the block met the ground at 0.25 m/s and hopped.
            Aimed 20 cm under the slot: the MPC ends ~8 cm short of a descent's end, and
            10 cm low still left the hook carrying ~60 % of the landed block.
-           WaitForLoadOff stops it once the hook is unloaded, and at its floor, 1 cm under
-           place_z, if there is no ground. -->
+           WaitForLoadOff stops it once the hook is unloaded, and at its floor, 0.25 m
+           under place_z, if there is no ground (issue 290: 1 cm fired a cm past contact
+           once the floor measured the block with the slot's own offset). -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
       <Script code="dz_z := place_z - 0.20; ex_until_landed := true; ex_watch_landed := false; load_off := false"/>
-      <!-- Half the run's speed, not a fixed half: a run the launch already paced
-           slower stays slower through the touchdown. -->
-      <Script code="sd_saved := slow_down; slow_down := slow_down * 2.0"/>
+      <!-- td_scale (2.0 per 0.25 m of stroke) times the run's speed, not a fixed half: a run
+           the launch already paced slower stays slower through the touchdown, and a longer
+           stroke keeps the same speed at the ground. Around the descent only: the release
+           below, and the empty lift in it, run at the run's own pace. Set in every caller,
+           the blackboard is shared. -->
+      <Script code="sd_saved := slow_down; slow_down := slow_down * td_scale"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       <Script code="slow_down := sd_saved"/>
       <SubTree ID="SubTreeRelease" _autoremap="true"/>

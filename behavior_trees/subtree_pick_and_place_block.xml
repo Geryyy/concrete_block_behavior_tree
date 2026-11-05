@@ -87,7 +87,7 @@
        other blocks) and grip it again; the wall targets are kept across it.
        regrip_z, not pickup_z: the regrip spot is ground, the pickup need not be. Off the
        truck bed pickup_z is 1.32 m higher than the ground there, which set the block down
-       in mid-air (SubTreeTouchdown's floor is place_z - 0.01) and then descended the re-pick
+       in mid-air (SubTreeTouchdown's floor is place_z - 0.25) and then descended the re-pick
        onto nothing. -->
   <BehaviorTree ID="SubTreeRegrip">
     <Sequence name="regrip">
@@ -118,6 +118,9 @@
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+      <!-- 0.25 m of stroke, the pace td_scale 2.0 is tuned for; no hover capture here, so the
+           touchdown's floor gets the pickup's offset. -->
+      <Script code="td_scale := 2.0; place_g := s_log_8_z"/>
       <!-- Early contact here is the regrip spot's ground, not a wall slot: let go if the
            block is laterally where the re-pick will look for it, else lift clear and fail. -->
       <IfThenElse>

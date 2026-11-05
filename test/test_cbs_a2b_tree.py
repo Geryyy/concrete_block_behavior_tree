@@ -20,6 +20,23 @@ CATALOG = PACKAGE_DIR / "config" / "bt_panel_catalog.yaml"
 CBS_SUBTREE = TREE_DIR / "cbs_subtree_a2b_movement.xml"
 CBS_MOVE_EMPTY = TREE_DIR / "cbs_move_empty_pzs100.xml"
 
+# Every caller of SubTreeTouchdown, which owns the one landing descent. Its gate's inputs
+# are set per caller: the blackboard is shared across the whole run.
+TOUCHDOWN_CALLERS = (
+    ("subtree_place_block.xml", "SubTreePlaceSimple"),
+    ("subtree_place_block.xml", "SubTreePlaceFinish"),
+    ("subtree_pick_and_place_block.xml", "SubTreeSetDown"),
+)
+
+
+def _subtree_scripts(name, tree_id):
+    tree = next(
+        element
+        for element in ElementTree.parse(TREE_DIR / name).getroot().iter("BehaviorTree")
+        if element.get("ID") == tree_id
+    )
+    return [node.get("code") for node in tree.iter("Script")]
+
 
 def _nodes(tree_file):
     """Every element of a BT file, as (tag, ID attribute) pairs."""
@@ -275,8 +292,13 @@ def test_the_run_pace_is_a_parameter_the_slow_legs_multiply():
         if tree.get("ID") == "SubTreeTouchdown"
     )
     codes = [node.get("code") for node in touchdown.iter("Script")]
-    assert "sd_saved := slow_down; slow_down := slow_down * 2.0" in codes
+    assert "sd_saved := slow_down; slow_down := slow_down * td_scale" in codes
     assert "slow_down := sd_saved" in codes
+    # Every caller sets the scale: the blackboard is shared, and the simple path's 8.0
+    # would otherwise pace a 0.25 m stroke after it (issue 290).
+    for name, tree_id in TOUCHDOWN_CALLERS:
+        codes = _subtree_scripts(name, tree_id)
+        assert [code for code in codes if "td_scale :=" in code], tree_id
 
 
 def test_cbs_move_empty_uses_the_cbs_subtree():
@@ -359,7 +381,7 @@ def test_regrip_height_comes_from_regrip_z_not_the_pickup():
 
     Both halves took their z from `pickup_z`, invisible while every pickup was a
     block on the ground. Off the truck bed (seed z 1.62 world) that is 1.32 m of
-    air: the set-down hits `WaitForLoadOff`'s floor at `place_z - 0.01` and fails
+    air: the set-down hits `WaitForLoadOff`'s floor under `place_z` and fails
     holding the load, and the re-pick descends onto nothing.
     """
     code = " ".join(_regrip_scripts())
@@ -375,6 +397,39 @@ def test_regrip_height_comes_from_regrip_z_not_the_pickup():
             node.get("output_key", "") for node in root.iter("SetBlackboard")
         )
         assert "regrip_z" in code, name
+
+
+def test_the_landing_floor_measures_with_the_slots_own_offset():
+    """Issue 290: on the pick's offset the floor sat 0.11-0.19 m deeper than place_z - 0.01.
+
+    WaitForLoadOff puts the block centre |offset| under K8. The offset the pick measured
+    misses the loaded bend at the slot (1.16-1.24 vs nominal 1.05 m, lab day 2026-11-04),
+    so the gate reads place_g: the hover's own measurement where the path takes one, the
+    pick's where it does not.
+    """
+    landing = next(
+        node
+        for node in ElementTree.parse(CBS_SUBTREE).getroot().iter()
+        if node.get("ID") == "WaitForLoadOff"
+        and node.get("_skipIf") == "!ex_until_landed"
+    )
+    assert landing.get("s_log_8_z") == "{place_g}"
+
+    # The angled path's hover capture writes it; the other two have no hover measurement
+    # and say so by assigning the pick's offset.
+    captures = [
+        node.get("s_log_8_z")
+        for node in ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
+        .getroot()
+        .iter()
+        if node.get("ID") == "CaptureBlockGraspOffset"
+    ]
+    assert "{place_g}" in captures
+    for name, tree_id in TOUCHDOWN_CALLERS:
+        if (name, tree_id) == ("subtree_place_block.xml", "SubTreePlaceFinish"):
+            continue
+        codes = _subtree_scripts(name, tree_id)
+        assert [code for code in codes if "place_g :=" in code], tree_id
 
 
 def test_landing_reference_is_taken_before_the_descent_moves():
@@ -415,7 +470,12 @@ def test_a_watched_descent_fails_on_any_load_off():
     # plain descent failure, which RetryUntilSuccessful answers with a second descent into
     # the ground. The touchdown keeps the floor: it is the one aiming under place_z.
     assert float(watch.get("floor_below_target")) > 0.5
-    assert landing.get("floor_below_target") is None
+    # The landing gate keeps its floor, but deeper than the 0.20 m the touchdown commands
+    # under place_z and deeper than the push the 0.8 drop needs: since issue 290 it measures
+    # the block with the slot's own offset, and the node's 1 cm default then fires ~1 cm past
+    # contact, failing a landing that is going fine.
+    landing_floor = float(landing.get("floor_below_target"))
+    assert 0.20 < landing_floor < float(watch.get("floor_below_target"))
     # The same drop share: early contact may end in a release, so issue 263's reason for
     # 0.8 -- jaws that opened on 375 kg whipped the gripper off the placed block -- holds.
     assert watch.get("drop_fraction") == landing.get("drop_fraction")

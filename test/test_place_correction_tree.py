@@ -286,10 +286,13 @@ def test_the_simple_hover_clears_the_overrun():
 
     The waypoint and the gate that measures against it are the same height by
     construction, and the touchdown's pacing is for the stroke under it -- 0.25 m at
-    slow_down 1, so a 1.0 m stroke needs 4.0 to meet the ground at the same speed.
+    td_scale 2.0, so a 1.0 m stroke needs 4x that to meet the ground at the same speed.
+    Through td_scale, not slow_down: scaled around the whole subtree, the release's empty
+    lift ran at the touchdown's pace too (issue 290).
     """
     codes = [code for _, code in _scripts("SubTreePlaceSimple")]
     assert [c for c in codes if "dz_z := place_z + 0.80" in c], codes
     miss = [code for _, code in _scripts("SubTreePlaceMiss") if "miss_z :=" in code]
     assert all("place_z + 0.80 - meas_z" in code for code in miss), miss
-    assert [c for c in codes if "slow_down * 4.0" in c], codes
+    assert [c for c in codes if "td_scale := 8.0" in c], codes
+    assert not [c for c in codes if "slow_down :=" in c], codes
