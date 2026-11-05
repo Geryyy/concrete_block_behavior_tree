@@ -197,9 +197,14 @@
         block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
         k8_frame="K8_tool_center_point" world_frame="world"
         grasp_offset="{grasp_offset}" s_log_8_z="{place_g}"/>
+      <!-- The grip server's nominal TCP -> block centre: block_grip_z_offset 0.1 +
+           tcp_z_offset 0.95 in concrete_block_motion_planning/config/grip_traj_simple.yaml,
+           the one place this has to match. -->
+      <Script code="place_g_nominal := 1.05"/>
       <!-- place_g along K8's z, which hangs down. Lowers at most 10 cm: not collision-checked;
            raising is not capped. -->
-      <Script code="place_dz_bias := place_g - 1.05 &lt; -0.10 ? -0.10 : place_g - 1.05"/>
+      <Script code="place_dz_bias := place_g - place_g_nominal"/>
+      <Script code="place_dz_bias := place_dz_bias &lt; -0.10 ? -0.10 : place_dz_bias"/>
       <Script code="dz_z := place_z + 0.30 + place_dz_bias"/>
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
@@ -259,7 +264,10 @@
                  not corrected laterally. A lateral miss is corrected: steady wind holds the
                  block 14 cm aside, the same on every retry. A constant offset error cancels against
                  place_dz_bias, so this catches a descent that stopped short and a bend that
-                 changed since the hover, not a wrong offset. Low only: a block left high just lands
+                 changed since the hover, not a wrong offset. What catches a wrong offset is the
+                 load-off watch (issue 289): every descent on this path ends on the ground
+                 whatever the plan thought the height was, and the -0.10 cap bounds how far
+                 below the slot a wrong offset can aim. Low only: a block left high just lands
                  later (sim JTC sagged 33 cm under load); 0.08 low fails place_approach with
                  nothing yet touched down. -->
             <ScriptCondition code="miss_z &lt; 0.08"/>
@@ -321,6 +329,25 @@
           <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
         </Sequence>
       </Fallback>
+
+      <!-- The entry below bends with the waypoint's measurement, not the hover's: place_g
+           re-read from the pose the loop's last REFINE_GRASPED wrote, 30 cm over the slot,
+           where the boom carries the bend it will carry at the entry. get_coarse_blocks only
+           reads the world model, no detection, so this costs no lidar pass; k8_frame is the
+           TCP, as at the hover, because place_g_nominal is a TCP -> block centre distance.
+           On no detection since the hover the hover's own value stands. Skipped on early
+           contact: no entry is flown, and the block is on the ground, not hanging. -->
+      <Sequence _skipIf="load_off">
+        <ForceSuccess>
+          <Action ID="CaptureBlockGraspOffset"
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+            k8_frame="K8_tool_center_point" world_frame="world"
+            grasp_offset="{grasp_offset}" s_log_8_z="{place_g}"/>
+        </ForceSuccess>
+        <Script code="place_dz_bias := place_g - place_g_nominal"/>
+        <Script code="place_dz_bias := place_dz_bias &lt; -0.10 ? -0.10 : place_dz_bias"/>
+      </Sequence>
     </Sequence>
   </BehaviorTree>
 
@@ -336,8 +363,9 @@
         <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.05 + place_dz_bias"/>
         <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
         <!-- 0.02, not the 0.05 place_approach set (issue 241). This is the last gate before the
-             block goes down and nothing re-measures it after here: the correction loop above is
-             upstream, and SubTreeTouchdown only descends. 0.05 rad is 0.25 to 0.35 m at the block
+             block goes down and nothing corrects it after here: the correction loop above is
+             upstream, and SubTreeTouchdown only descends - what it measures after landing is
+             the offset the pose write needs, not a target. 0.05 rad is 0.25 to 0.35 m at the block
              on slew, boom or arm (sensitivities in subtree_move_above.xml), against the 0.02 m
              the gap to the placed neighbour closes to. Measured: all 11 arrivals in the issue-241
              campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
@@ -349,11 +377,12 @@
           <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
         </Decorator>
       </Sequence>
-      <!-- 0.25 m of stroke plus the hover bias, against the 0.25 m td_scale 2.0 is tuned
-           for: at the measured bias 0.11-0.19 the ground is met 1.2-1.35x faster than that,
-           pre-existing and still far from the 0.25 m/s that hopped. place_g, which the
-           touchdown's floor reads, is the hover capture's. -->
-      <Script code="td_scale := 2.0"/>
+      <!-- Paced for the stroke it really flies: the entry stops at place_z + 0.05 + the bias
+           and the touchdown aims place_z - 0.20, so 0.25 m plus the bias. 8.0 per metre is
+           the 2.0 the 0.25 m stroke was tuned at, the same per-metre scale the simple path's
+           1.0 m stroke uses. A fixed 2.0 met the ground 1.2-1.35x faster at the measured
+           bias 0.11-0.19 and 1.5x at 0.3. Bias >= -0.10, so the scale stays >= 1.2. -->
+      <Script code="td_scale := 8.0 * (0.25 + place_dz_bias)"/>
       <IfThenElse>
         <ScriptCondition code="load_off"/>
         <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
@@ -383,6 +412,26 @@
       <Script code="sd_saved := slow_down; slow_down := slow_down * td_scale"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       <Script code="slow_down := sd_saved"/>
+      <!-- The block is down and the boom has sprung back, so the loaded offset no longer
+           describes where the block is relative to FK's gripper. Re-measure it before the
+           release writes the placed pose with it: on the loaded offset that pose was a bend
+           out (0.11-0.19 m, lab day 2026-11-04), in the world model, in the collision scene
+           the lift below plans against, and as the prior the final REFINE_BLOCK has to
+           associate within (0.35 m). No detection keeps the loaded offset, as every other
+           pass. The early-contact path takes this measurement itself. -->
+      <ForceSuccess>
+        <Sequence>
+          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+            server_timeout="10000" mode="REFINE_GRASPED"
+            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+          <Action ID="CaptureBlockGraspOffset"
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+            world_frame="world" grasp_offset="{grasp_offset}"
+            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+            s_log_8_z="{vision_s_log_8_z}"/>
+        </Sequence>
+      </ForceSuccess>
       <SubTree ID="SubTreeRelease" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
@@ -392,7 +441,9 @@
   <BehaviorTree ID="SubTreeRelease">
     <Sequence name="release">
 
-      <!-- 4. Write final block pose, then open gripper -->
+      <!-- 4. Write final block pose, then open gripper. The offset this applies to FK's
+           gripper has to be one measured after the load came off - the boom springs back by
+           its bend there - so both callers re-measure it immediately before entering here. -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"

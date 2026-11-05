@@ -404,8 +404,8 @@ def test_the_landing_floor_measures_with_the_slots_own_offset():
 
     WaitForLoadOff puts the block centre |offset| under K8. The offset the pick measured
     misses the loaded bend at the slot (1.16-1.24 vs nominal 1.05 m, lab day 2026-11-04),
-    so the gate reads place_g: the hover's own measurement where the path takes one, the
-    pick's where it does not.
+    so the gate reads place_g: the angled path's own measurement where the path takes one
+    (the hover's, refreshed at the waypoint, issue 291), the pick's where it does not.
     """
     landing = next(
         node

@@ -147,9 +147,10 @@
                  reaches the floor, i.e. a descent that stopped in the air. -->
             <!-- place_g, not s_log_8_z: the floor is |offset| under K8, and the offset the
                  pick measured is 0.11-0.19 m shorter than the loaded bend at the slot (lab
-                 day 2026-11-04), so the floor sat that much deeper. place_g is the hover's
-                 own measurement where the path takes one, the pick's offset where it does
-                 not; every touchdown caller sets it (issue 290). -->
+                 day 2026-11-04), so the floor sat that much deeper. place_g is the angled
+                 path's own measurement where the path takes one - the hover's, refreshed at
+                 the waypoint (issue 291) - and the pick's offset where it does not; every
+                 touchdown caller sets it (issue 290). -->
             <!-- floor 0.25, not the node's 1 cm default, and that is the other half of the
                  offset change above. The hover shift makes the computed centre start at
                  exactly place_z + 0.05 once the offset is the slot's own, so a 1 cm floor

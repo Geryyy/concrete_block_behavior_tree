@@ -296,3 +296,82 @@ def test_the_simple_hover_clears_the_overrun():
     assert all("place_z + 0.80 - meas_z" in code for code in miss), miss
     assert [c for c in codes if "td_scale := 8.0" in c], codes
     assert not [c for c in codes if "slow_down :=" in c], codes
+
+
+def test_the_angled_touchdown_is_paced_for_the_stroke_the_bias_adds():
+    """Issue 291: the hover shift raises the entry but not the touchdown's aim.
+
+    The entry stops at place_z + 0.05 + bias and the touchdown still aims place_z - 0.20, so
+    the stroke is 0.25 m plus the bias while td_scale was a fixed 2.0, tuned for 0.25 m: at
+    the measured bias 0.11-0.19 the ground came 1.2-1.35x faster, at 0.3 1.5x. The contact
+    speed is td_scale per metre of stroke, so that is what has to be bias-free -- and the
+    same 8.0 per metre the simple path's 1.0 m stroke runs at.
+    """
+    entry = next(c for _, c in _scripts("SubTreePlaceFinish") if "dz_z :=" in c)
+    assert "dz_z := place_z + 0.05 + place_dz_bias" in entry, entry
+    aim = next(c for _, c in _scripts("SubTreeTouchdown") if "dz_z :=" in c)
+    assert aim.startswith("dz_z := place_z - 0.20"), aim
+
+    scale = next(c for _, c in _scripts("SubTreePlaceFinish") if "td_scale :=" in c)
+    expression = scale.split(":=", 1)[1]
+    per_metre = [
+        eval(expression, {"place_dz_bias": bias}) / (0.05 + bias + 0.20)  # noqa: S307
+        for bias in (0.0, 0.2)
+    ]
+    assert abs(per_metre[0] - per_metre[1]) < 1e-9, per_metre
+    assert abs(per_metre[0] - 8.0) < 1e-9, per_metre
+
+
+def test_the_entry_bends_with_the_waypoint_not_the_hover():
+    """Issue 291: place_dz_bias was captured at the carry hover and reused at the entry.
+
+    The correction loop already refines the grasped block 30 cm over the slot, where the boom
+    carries the bend it will carry at the entry, so the last word on place_g is the
+    waypoint's. 1.05 is the grip server's block_grip_z_offset + tcp_z_offset and lives in one
+    named place, not inline in each of the two bias computations.
+    """
+    order = [
+        (element.get("ID") or element.tag, element.get("code") or "")
+        for element in _subtree("SubTreePlaceApproach").iter()
+    ]
+    last_capture = max(
+        i for i, (name, _) in enumerate(order) if name == "CaptureBlockGraspOffset"
+    )
+    last_bias = max(
+        i for i, (_, code) in enumerate(order) if "place_dz_bias :=" in code
+    )
+    assert last_bias > last_capture, order
+    captures = [
+        node.get("s_log_8_z")
+        for node in _subtree("SubTreePlaceApproach").iter()
+        if node.get("ID") == "CaptureBlockGraspOffset"
+    ]
+    assert captures[0] == "{place_g}" and captures[-1] == "{place_g}", captures
+
+    # One named nominal, not 1.05 spelled into each bias computation. Prose may still cite
+    # it; what must not spread is the value.
+    root = ElementTree.parse(PLACE_TREE).getroot()
+    assert [
+        code for element in root.iter() if "1.05" in (code := element.get("code") or "")
+    ] == ["place_g_nominal := 1.05"]
+
+
+def test_the_placed_pose_is_written_from_an_offset_measured_after_the_unload():
+    """Issue 291: the boom springs back by its bend when the load reaches the ground.
+
+    WriteBlockPoseFromGripper applies the offset to FK's gripper, so the loaded offset
+    (1.16-1.24 m against a nominal 1.05, lab day 2026-11-04) put the placed block a bend out
+    of place -- in the world model, in the collision scene the empty lift plans against, and
+    as the prior the REFINE_BLOCK after the lift has to associate within 0.35 m of.
+    """
+    for tree_id in ("SubTreeTouchdown", "SubTreeEarlyContact"):
+        order = [
+            element.get("ID") or element.tag for element in _subtree(tree_id).iter()
+        ]
+        assert order.index("CaptureBlockGraspOffset") < order.index("SubTreeRelease"), (
+            order
+        )
+    # And nothing in the release re-derives it: the callers own that measurement.
+    assert "CaptureBlockGraspOffset" not in [
+        element.get("ID") for element in _subtree("SubTreeRelease").iter()
+    ]
