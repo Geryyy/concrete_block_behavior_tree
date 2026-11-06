@@ -139,6 +139,14 @@ def generate_launch_description():
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),
             DeclareLaunchArgument(
+                "compensate_elasticity",
+                # Gazebo's boom is rigid, so this only exercises the plumbing here.
+                default_value="false",
+                description="Raise a loaded place target by the bend it gains over the "
+                "pick's. The curve's payload term is extrapolated, so this is off by "
+                "default; also settable at runtime on /grip_traj_server.",
+            ),
+            DeclareLaunchArgument(
                 "start_perception",
                 default_value="false",
                 description="Start the concrete-block detector on the simulated raw LiDAR cloud.",
@@ -314,6 +322,10 @@ def generate_launch_description():
                         "lift_height": ParameterValue(
                             LaunchConfiguration("lift_height"),
                             value_type=float,
+                        ),
+                        "compensate_elasticity": ParameterValue(
+                            LaunchConfiguration("compensate_elasticity"),
+                            value_type=bool,
                         ),
                     },
                     {"use_sim_time": True},

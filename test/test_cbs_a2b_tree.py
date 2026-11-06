@@ -399,13 +399,14 @@ def test_regrip_height_comes_from_regrip_z_not_the_pickup():
         assert "regrip_z" in code, name
 
 
-def test_the_landing_floor_measures_with_the_slots_own_offset():
+def test_the_landing_floor_measures_with_the_nominal_offset():
     """Issue 290: on the pick's offset the floor sat 0.11-0.19 m deeper than place_z - 0.01.
 
-    WaitForLoadOff puts the block centre |offset| under K8. The offset the pick measured
-    misses the loaded bend at the slot (1.16-1.24 vs nominal 1.05 m, lab day 2026-11-04),
-    so the gate reads place_g: the angled path's own measurement where the path takes one
-    (the hover's, refreshed at the waypoint, issue 291), the pick's where it does not.
+    WaitForLoadOff puts the block centre |s_log_8_z| under k8_frame, so the two have to
+    agree: 1.05 is the grip server's block_grip_z_offset + tcp_z_offset, a TCP -> block
+    centre distance, while the port defaults to the rotator frame 4.9 cm above it (issue
+    294). A measured offset is no longer fed here -- since 300 the grip server corrects the
+    bend out of the target instead.
     """
     landing = next(
         node
@@ -413,23 +414,8 @@ def test_the_landing_floor_measures_with_the_slots_own_offset():
         if node.get("ID") == "WaitForLoadOff"
         and node.get("_skipIf") == "!ex_until_landed"
     )
-    assert landing.get("s_log_8_z") == "{place_g}"
-
-    # The angled path's hover capture writes it; the other two have no hover measurement
-    # and say so by assigning the pick's offset.
-    captures = [
-        node.get("s_log_8_z")
-        for node in ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
-        .getroot()
-        .iter()
-        if node.get("ID") == "CaptureBlockGraspOffset"
-    ]
-    assert "{place_g}" in captures
-    for name, tree_id in TOUCHDOWN_CALLERS:
-        if (name, tree_id) == ("subtree_place_block.xml", "SubTreePlaceFinish"):
-            continue
-        codes = _subtree_scripts(name, tree_id)
-        assert [code for code in codes if "place_g :=" in code], tree_id
+    assert landing.get("s_log_8_z") == "1.05"
+    assert landing.get("k8_frame") == "K8_tool_center_point"
 
 
 def test_landing_reference_is_taken_before_the_descent_moves():

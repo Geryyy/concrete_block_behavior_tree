@@ -183,6 +183,13 @@ def generate_launch_description():
                 default_value="1.0",
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
             ),
+            DeclareLaunchArgument(
+                "compensate_elasticity",
+                default_value="false",
+                description="Raise a loaded place target by the bend it gains over the "
+                "pick's. The curve's payload term is extrapolated, so this is off by "
+                "default; also settable at runtime on /grip_traj_server.",
+            ),
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
                 value="concrete_block_behavior_tree",
@@ -296,6 +303,10 @@ def generate_launch_description():
                         "lift_height": ParameterValue(
                             LaunchConfiguration("lift_height"),
                             value_type=float,
+                        ),
+                        "compensate_elasticity": ParameterValue(
+                            LaunchConfiguration("compensate_elasticity"),
+                            value_type=bool,
                         ),
                         "use_sim_time": use_sim_time,
                     },

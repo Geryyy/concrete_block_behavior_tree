@@ -118,9 +118,8 @@
       <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
       <SetBlackboard output_key="dz_carries" value="true"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-      <!-- 0.25 m of stroke, the pace td_scale 2.0 is tuned for; no hover capture here, so the
-           touchdown's floor gets the pickup's offset. -->
-      <Script code="td_scale := 2.0; place_g := s_log_8_z"/>
+      <!-- 0.25 m of stroke, the pace td_scale 2.0 is tuned for. -->
+      <Script code="td_scale := 2.0"/>
       <!-- Early contact here is the regrip spot's ground, not a wall slot: let go if the
            block is laterally where the re-pick will look for it, else lift clear and fail. -->
       <IfThenElse>

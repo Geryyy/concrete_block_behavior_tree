@@ -69,8 +69,8 @@
          ex_publish_reference  true: hand {trajectory} to the MPC (grip plans); false where
                                crane_planning already published it (A2B)
          ex_until_landed       true: done on landing (WaitForLoadOff), not on arrival. That
-                               gate also reads place_g, the K8 -> block-centre offset it puts
-                               the block's height at.
+                               gate puts the block's height at the nominal TCP -> block-centre
+                               offset below the TCP; see there.
          ex_watch_landed       true: a loaded descent to a waypoint. The same gate runs as a
                                watch beside the arrival wait and *fails* the move on any
                                load-off, which there is early ground contact. Exclusive with
@@ -145,26 +145,30 @@
                  ~30 s of it in sim at slow_down 1, so the 40 s was already inside a lab
                  day's pace of 2 or 3. Only reached when the block neither lands nor
                  reaches the floor, i.e. a descent that stopped in the air. -->
-            <!-- place_g, not s_log_8_z: the floor is |offset| under K8, and the offset the
-                 pick measured is 0.11-0.19 m shorter than the loaded bend at the slot (lab
-                 day 2026-11-04), so the floor sat that much deeper. place_g is the angled
-                 path's own measurement where the path takes one - the hover's, refreshed at
-                 the waypoint (issue 291) - and the pick's offset where it does not; every
-                 touchdown caller sets it (issue 290). -->
+            <!-- The nominal offset, not s_log_8_z: the floor is |offset| under k8_frame, and
+                 the pick's measured offset is 0.11-0.19 m shorter than the loaded bend at the
+                 slot (lab day 2026-11-04), so the floor sat that much deeper. 1.05 is the grip
+                 server's block_grip_z_offset 0.1 + tcp_z_offset 0.95
+                 (concrete_block_motion_planning/config/grip_traj_simple.yaml), the one place
+                 this has to match, and since 300 the grip server corrects the bend out of the
+                 target rather than the tree measuring it (291, 294). k8_frame spelled out:
+                 1.05 is a TCP -> block centre distance and the port defaults to the rotator,
+                 4.9 cm higher. -->
             <!-- floor 0.25, not the node's 1 cm default, and that is the other half of the
-                 offset change above. The hover shift makes the computed centre start at
-                 exactly place_z + 0.05 once the offset is the slot's own, so a 1 cm floor
-                 fires about 1 cm past contact - before the 0.8 drop can confirm, which
-                 takes a push ("10 cm low still left the hook carrying ~60 %", below). The
-                 pick's offset read the block 0.11-0.19 m high, i.e. the floor really sat at
-                 0.12-0.20 m; 0.25 keeps that budget with a correct height and stays below
-                 the 0.20 m the touchdown commands, so a fully executed stroke does not trip
-                 it. Deeper than the push the drop needs is what this number has to be;
-                 measure the unload curve to set it properly. -->
+                 offset change above. On a correct offset the computed centre starts at
+                 exactly place_z + 0.05, so a 1 cm floor fires about 1 cm past contact -
+                 before the 0.8 drop can confirm, which takes a push ("10 cm low still left
+                 the hook carrying ~60 %", below). The pick's offset read the block
+                 0.11-0.19 m high, i.e. the floor really sat at 0.12-0.20 m; 0.25 keeps that
+                 budget with a correct height and stays below the 0.20 m the touchdown
+                 commands, so a fully executed stroke does not trip it. Deeper than the push
+                 the drop needs is what this number has to be; measure the unload curve to
+                 set it properly. -->
             <Action ID="WaitForLoadOff" _skipIf="!ex_until_landed" drop_fraction="0.8"
               timeout_ms="150000" load_off="{load_off}" floor_below_target="0.25"
               mass="{payload_mass}" target_z="{place_z}"
-              s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{place_g}"/>
+              k8_frame="K8_tool_center_point"
+              s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="1.05"/>
             <!-- The same gate as a watch beside the arrival wait (issue 289): on a loaded
                  descent to a waypoint every load-off is early ground contact, so
                  max_above_target -1.0, i.e. no height here is acceptable, turns it into the

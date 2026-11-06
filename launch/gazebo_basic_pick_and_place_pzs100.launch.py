@@ -103,6 +103,14 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "compensate_elasticity",
+                # Gazebo's boom is rigid, so this only exercises the plumbing here.
+                default_value="false",
+                description="Raise a loaded place target by the bend it gains over the "
+                "pick's. The curve's payload term is extrapolated, so this is off by "
+                "default; also settable at runtime on /grip_traj_server.",
+            ),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -163,6 +171,12 @@ def generate_launch_description():
                     PathSubstitution(FindPackageShare("concrete_block_motion_planning"))
                     / "config"
                     / "grip_traj_simple.yaml",
+                    {
+                        "compensate_elasticity": ParameterValue(
+                            LaunchConfiguration("compensate_elasticity"),
+                            value_type=bool,
+                        ),
+                    },
                     {"use_sim_time": True},
                 ],
             ),
