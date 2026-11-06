@@ -12,7 +12,7 @@
         carriesLog="{gr_carries}" logShapeText="{log_shape_text}" phase="{gr_phase}"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_8_x="{s_log_8_x}"
+        p_cyl_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"

@@ -112,6 +112,11 @@ if(BUILD_TESTING)
   ament_add_gtest(test_capture_block_grasp_offset test/test_capture_block_grasp_offset.cpp)
   target_link_libraries(test_capture_block_grasp_offset BT_cb_capture_block_grasp_offset_action)
   ament_target_dependencies(test_capture_block_grasp_offset ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  # Loads the installed trees, so it needs this package's own share dir installed first.
+  find_package(ament_index_cpp REQUIRED)
+  ament_add_gtest(test_tree_load test/test_tree_load.cpp)
+  ament_target_dependencies(test_tree_load
+    ament_index_cpp behaviortree_cpp nav2_behavior_tree rclcpp tf2_ros)
   ament_add_pytest_test(
     test_mpc_payload_tree
     test/test_mpc_payload_tree.py

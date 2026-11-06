@@ -57,6 +57,7 @@
   <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_index_cpp</test_depend>
   <test_depend>python3-yaml</test_depend>
   <!-- test_start_pose_is_control_safe reads the control-safe box and the
        initialization yaml / xacro mapping out of these two shares. -->

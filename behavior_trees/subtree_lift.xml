@@ -41,7 +41,7 @@
         carriesLog="{lf_carries}" logShapeText="{log_shape_text}" phase="4"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
-        s_log_8_x="{s_log_8_x}"
+        p_cyl_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
       <Script code="slow_down := lf_sd_saved"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
