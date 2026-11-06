@@ -347,6 +347,12 @@ def test_the_entry_bends_with_the_waypoint_not_the_hover():
         if node.get("ID") == "CaptureBlockGraspOffset"
     ]
     assert captures[0] == "{place_g}" and captures[-1] == "{place_g}", captures
+    # place_g is compared against a TCP nominal; a rotator-frame capture is ~10 cm off
+    assert all(
+        node.get("k8_frame") == "K8_tool_center_point"
+        for node in _subtree("SubTreePlaceApproach").iter()
+        if node.get("s_log_8_z") == "{place_g}"
+    )
 
     # One named nominal, not 1.05 spelled into each bias computation. Prose may still cite
     # it; what must not spread is the value.
@@ -371,6 +377,13 @@ def test_the_placed_pose_is_written_from_an_offset_measured_after_the_unload():
         assert order.index("CaptureBlockGraspOffset") < order.index("SubTreeRelease"), (
             order
         )
+        # without a fresh detection the capture just returns the loaded offset
+        for parent in _subtree(tree_id).iter():
+            kids = list(parent)
+            for i, kid in enumerate(kids):
+                if kid.get("ID") == "CaptureBlockGraspOffset":
+                    assert i > 0 and kids[i - 1].tag == "RunPoseEstimation", tree_id
+                    assert kids[i - 1].get("mode") == "REFINE_GRASPED", tree_id
     # And nothing in the release re-derives it: the callers own that measurement.
     assert "CaptureBlockGraspOffset" not in [
         element.get("ID") for element in _subtree("SubTreeRelease").iter()
