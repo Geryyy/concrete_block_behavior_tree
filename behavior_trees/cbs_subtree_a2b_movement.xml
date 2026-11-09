@@ -178,7 +178,7 @@
                  move's; 600 s is the stalled-clock backstop the landing Sleep also uses.
                  floor_below_target off (10 m, i.e. unreachable): the floor is the
                  touchdown's backstop and it is measured from place_z, while these descents
-                 target place_z + 0.05 (finish, set-down) or + 0.30 (approach). At the
+                 target place_z + 0.20 (finish), + 0.05 (set-down) or + 0.45 (approach). At the
                  default 1 cm the lab day's own 0.3-0.5 m downward overrun trips it first,
                  and it fails with load_off false, i.e. as a plain descent failure, which
                  RetryUntilSuccessful answers by descending into the ground a second time.
@@ -191,6 +191,11 @@
               mass="{payload_mass}" target_z="{place_z}"
               s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
           </Parallel>
+          <!-- Loaded waypoint descents: the boom coasts 0.007-0.011 rad low after the stop,
+               the PI takes it back before the in-air measurement. Short: a long active hold
+               pumps the loaded tip mode (issue 234). -->
+          <Sleep name="PI recovery hold" msec="5000"
+            _skipIf="ex_until_landed || !ex_watch_landed"/>
           <SwitchController name="Deactivate controller"
             activate_controllers=""
             deactivate_controllers="trajectory_controller_a2b"

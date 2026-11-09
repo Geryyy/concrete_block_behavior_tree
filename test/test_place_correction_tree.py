@@ -282,19 +282,19 @@ def test_early_contact_replaces_the_touchdown_everywhere_a_descent_is_watched():
 
 
 def test_the_simple_hover_clears_the_overrun():
-    """0.5 m left 4 cm: bend 0.17 plus the boom's downward overrun 0.29 (lab day 11-04).
+    """1.1 m: the loaded boom ends ~0.3 m low at the waypoint (lab day 11-04, 11-09).
 
     The waypoint and the gate that measures against it are the same height by
     construction, and the touchdown's pacing is for the stroke under it -- 0.25 m at
-    td_scale 2.0, so a 1.0 m stroke needs 4x that to meet the ground at the same speed.
+    td_scale 2.0, so a 1.3 m stroke needs 5.2x that to meet the ground at the same speed.
     Through td_scale, not slow_down: scaled around the whole subtree, the release's empty
     lift ran at the touchdown's pace too (issue 290).
     """
     codes = [code for _, code in _scripts("SubTreePlaceSimple")]
-    assert [c for c in codes if "dz_z := place_z + 0.80" in c], codes
+    assert [c for c in codes if "dz_z := place_z + 1.10" in c], codes
     miss = [code for _, code in _scripts("SubTreePlaceMiss") if "miss_z :=" in code]
-    assert all("place_z + 0.80 - meas_z" in code for code in miss), miss
-    assert [c for c in codes if "td_scale := 8.0" in c], codes
+    assert all("place_z + 1.10 - meas_z" in code for code in miss), miss
+    assert [c for c in codes if "td_scale := 10.4" in c], codes
     assert not [c for c in codes if "slow_down :=" in c], codes
 
 
@@ -304,15 +304,16 @@ def test_the_place_goals_are_nominal_heights_and_the_pacing_is_constant():
     The shift carried the capture's own spread into every goal (9.1 cm over 90 s on one
     grip, 294) and made the touchdown's stroke -- entry at place_z + 0.05, aim at
     place_z - 0.20 -- bias-dependent, so td_scale had to track it. With fixed heights the
-    stroke is 0.25 m again, i.e. the 2.0 it was tuned at (8.0 per metre, the same
-    per-metre scale the simple path's 1.0 m stroke runs at).
+    stroke is fixed: entry at place_z + 0.20 (vertical below it, so an early landing does
+    not stop the block short of its neighbour), 0.40 m at 8.0 per metre = 3.2, the same
+    per-metre scale the simple path's 1.0 m stroke runs at.
     """
     entry = next(c for _, c in _scripts("SubTreePlaceFinish") if "dz_z :=" in c)
-    assert entry.endswith("dz_z := place_z + 0.05"), entry
+    assert entry.endswith("dz_z := place_z + 0.20"), entry
     aim = next(c for _, c in _scripts("SubTreeTouchdown") if "dz_z :=" in c)
     assert aim.startswith("dz_z := place_z - 0.20"), aim
     assert next(c for _, c in _scripts("SubTreePlaceFinish") if "td_scale :=" in c) == (
-        "td_scale := 2.0"
+        "td_scale := 3.2"
     )
 
     # No goal, and no pacing, may depend on a measured offset again.

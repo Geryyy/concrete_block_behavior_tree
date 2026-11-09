@@ -18,12 +18,10 @@
         <SubTree ID="SubTreeResumeCarry" _autoremap="true"/>
         <SubTree ID="SubTreePickBlock" _autoremap="true"/>
       </IfThenElse>
-      <!-- A block gripped more than 3 deg crooked lands on an edge and slides 5-11 cm while
-           the hook unloads, or its carry plan does not converge. -->
-      <Fallback>
-        <ScriptCondition code="grip_tilt &lt; 0.0524"/>
-        <SubTree ID="SubTreeRegrip" _autoremap="true"/>
-      </Fallback>
+      <!-- A block gripped crooked lands on an edge and slides while the hook unloads: abort,
+           the operator sets it down. 5 deg: 2-3.2 deg is ordinary scatter on the crane. -->
+      <ScriptCondition name="Block hangs over 5 deg crooked - set it down by hand"
+        code="grip_tilt &lt; 0.0873"/>
       <SubTree ID="SubTreePlaceBlock" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
