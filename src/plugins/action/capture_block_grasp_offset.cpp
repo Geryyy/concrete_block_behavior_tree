@@ -61,24 +61,18 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   const geometry_msgs::msg::Pose world_block_pose = it->pose;
 
   // The TCP at the block's own stamp: the world model writes a carried block's pose from the
-  // TCP at last_seen, and the latest TCP of a swinging hook moved the offset 6 cm.
+  // TCP at last_seen, and the latest TCP of a swinging hook moved the offset 6 cm. A stamp
+  // the TF buffer no longer covers fails (303): on 11-09 the latest-TCP fallback turned a
+  // 21 s old scene pose into the offset the whole place ran on.
   geometry_msgs::msg::TransformStamped world_tcp_tf;
   geometry_msgs::msg::TransformStamped k8_tcp_tf;
   try {
     k8_tcp_tf = tf_buffer_->lookupTransform(
       k8_frame_, gripper_frame_, tf2::TimePointZero, tf2::durationFromSec(1.0));
     const rclcpp::Time seen(it->last_seen);
-    try {
-      world_tcp_tf = tf_buffer_->lookupTransform(
-        world_frame_, gripper_frame_, seen.nanoseconds() > 0 ? tf2_ros::fromRclcpp(seen) :
-        tf2::TimePointZero, tf2::durationFromSec(1.0));
-    } catch (const tf2::ExtrapolationException & e) {
-      RCLCPP_WARN(
-        node_->get_logger(), "CaptureBlockGraspOffset: no TCP at the block's stamp (%s); latest",
-        e.what());
-      world_tcp_tf = tf_buffer_->lookupTransform(
-        world_frame_, gripper_frame_, tf2::TimePointZero, tf2::durationFromSec(1.0));
-    }
+    world_tcp_tf = tf_buffer_->lookupTransform(
+      world_frame_, gripper_frame_, seen.nanoseconds() > 0 ? tf2_ros::fromRclcpp(seen) :
+      tf2::TimePointZero, tf2::durationFromSec(1.0));
   } catch (const tf2::TransformException & e) {
     RCLCPP_ERROR(
       node_->get_logger(),

@@ -30,22 +30,19 @@
       <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
 
       <!-- Look at the target from the hover before going down: a block first seen past a
-           lifted one came back 15 cm off, and the jaws closed on nothing. Without a
-           detection the plan's pose stands. -->
-      <ForceSuccess>
-        <Sequence>
-          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-            server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
-            timeout_s="8.0"/>
-          <EvaluatePickupResidual
-            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-            block_id="{grasp_object_contains}" expected_pickup_pose="{target_block_pose_coarse}"
-            planned_pickup_x="{pickup_x}" planned_pickup_y="{pickup_y}"
-            translation_tolerance_m="0.04"
-            corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"/>
-          <Script code="pickup_x := corrected_pickup_x; pickup_y := corrected_pickup_y"/>
-        </Sequence>
-      </ForceSuccess>
+           lifted one came back 15 cm off, and the jaws closed on nothing. No detection, no
+           descent (303): on the plan's stale pose the jaws closed 6 cm off centre and every
+           later step read that grip back from FK (lab day 11-09). -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+        timeout_s="8.0"/>
+      <EvaluatePickupResidual
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" expected_pickup_pose="{target_block_pose_coarse}"
+        planned_pickup_x="{pickup_x}" planned_pickup_y="{pickup_y}"
+        translation_tolerance_m="0.04"
+        corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"/>
+      <Script code="pickup_x := corrected_pickup_x; pickup_y := corrected_pickup_y"/>
 
       <SubTree ID="SubTreePickFromHover" _autoremap="true"/>
     </Sequence>
@@ -120,12 +117,11 @@
            model's pose, which takes a block on uneven ground for flat: a block clamped 9 deg
            crooked hung under a gripper within 1.2 deg of vertical.
            Vision rewrites the carried block's pose; the offset is captured again from it,
-           and grip_tilt is what the jaws really hold. Without a detector both pass through. -->
-      <ForceSuccess>
-        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-          server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
-          timeout_s="8.0" message="{grasp_refine_message}"/>
-      </ForceSuccess>
+           and grip_tilt is what the jaws really hold. No detection fails the goal (303): the
+           offset would otherwise be FK read back from FK. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
+        timeout_s="8.0" message="{grasp_refine_message}"/>
       <!-- Only grasp_offset is taken: the payload stays what the MPC was given above. -->
       <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset after vision"
         service_name="/world_model_node/get_coarse_blocks"

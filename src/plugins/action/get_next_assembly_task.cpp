@@ -21,6 +21,7 @@ double yawFromQuaternion(const geometry_msgs::msg::Quaternion & q)
 
 void GetNextAssemblyTaskService::on_tick()
 {
+  setOutput("plan_ok", false);   // no answer yet; a service failure never reaches on_completion
   getInput("wall_plan_name", request_->wall_plan_name);
   getInput("reset_plan", request_->reset_plan);
   RCLCPP_INFO(
@@ -46,7 +47,13 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
         return true;
       }
       try {
-        out = tf_buffer_->transform(in, planning_frame, tf2::durationFromSec(0.5));
+        // At latest, not at the pose's stamp: the world -> K0_mounting_base chain only moves
+        // with the truck tilt, and a /tf that froze 9 s back failed this lookup and aborted
+        // the goal (lab day 11-09).
+        geometry_msgs::msg::PoseStamped latest = in;
+        latest.header.stamp.sec = 0;   // stamp zero: the latest transform tf2 has
+        latest.header.stamp.nanosec = 0;
+        out = tf_buffer_->transform(latest, planning_frame, tf2::durationFromSec(0.5));
         return true;
       } catch (const tf2::TransformException & ex) {
         RCLCPP_ERROR(
@@ -56,6 +63,13 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
         return false;
       }
     };
+
+  // Before the transforms, so that PlanComplete can tell a TF failure (has_task still true ->
+  // the goal fails) from a finished plan. plan_ok waits until the poses below are actually
+  // written: the tree's discovery branch reads them, and on 11-09 it read a pickup the failing
+  // path never wrote (303).
+  setOutput("plan_has_task", response->has_task);
+  setOutput("plan_message", response->message);
 
   geometry_msgs::msg::PoseStamped pickup, pickup_approach, target, reference, approach;
   if (response->has_task) {
@@ -82,8 +96,6 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("target_block_pose_precise", target);
   setOutput("reference_block_pose_precise", reference);
   setOutput("placement_approach_pose", approach);
-  setOutput("plan_has_task", response->has_task);
-  setOutput("plan_message", response->message);
 
   // Decomposed scalar ports for epsilon_crane BT nodes (planning frame).
   setOutput("pickup_x", pickup.pose.position.x);
@@ -98,6 +110,9 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("approach_x", approach.pose.position.x);
   setOutput("approach_y", approach.pose.position.y);
   setOutput("approach_z", approach.pose.position.z);
+  // Last: every pose the tree's discovery branch reads is on the blackboard now, which is what
+  // plan_ok promises it.
+  setOutput("plan_ok", true);
 
   bool disturbance_enabled = false;
   double disturbance_x = 0.0;

@@ -20,8 +20,8 @@ public:
   RunPoseEstimationService(const std::string & name, const BT::NodeConfig & config)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(name, config)
   {
-    // Whether this pass was lidar or the FK fallback, which ForceSuccess hides. Volatile: the
-    // panel pairs it with the measurement that follows, and a replay has nothing to pair with.
+    // Whether this pass got a pose, and why not. Volatile: the panel pairs it with the
+    // measurement that follows, and a replay has nothing to pair with.
     status_ = node_->create_publisher<std_msgs::msg::String>(
       "/cbs/status/pose", rclcpp::QoS(10));
   }
@@ -30,13 +30,24 @@ public:
   BT::NodeStatus tick() override
   {
     has_pose_ = false;
+    message_.clear();
     const BT::NodeStatus status = nav2_behavior_tree::BtServiceNode<ServiceT>::tick();
     if (status != BT::NodeStatus::RUNNING) {
+      const bool ok = status == BT::NodeStatus::SUCCESS;
+      if (!ok && message_.empty()) {
+        message_ = "no response";   // timed out: on_completion never ran
+      }
       std_msgs::msg::String line;
       line.data = pose_status(
-        request_->mode, request_->target_block_id, status == BT::NodeStatus::SUCCESS, frame_,
-        has_pose_ ? xyz_ : nullptr);
+        request_->mode, request_->target_block_id, ok, frame_, has_pose_ ? xyz_ : nullptr,
+        message_);
       status_->publish(line);
+      if (!ok) {
+        // The goal ends here since 303, so say which step and which block ended it.
+        RCLCPP_ERROR(
+          node_->get_logger(), "%s %s: %s", request_->mode.c_str(),
+          request_->target_block_id.c_str(), message_.c_str());
+      }
     }
     return status;
   }
@@ -64,6 +75,7 @@ public:
   BT::NodeStatus on_completion(std::shared_ptr<ResponseT> response) override
   {
     setOutput("message", response->message);
+    message_ = response->message;
     frame_ = response->blocks.header.frame_id;
     for (const auto & block : response->blocks.blocks) {
       if (block.id == request_->target_block_id) {
@@ -79,6 +91,7 @@ public:
 private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
   std::string frame_;
+  std::string message_;
   double xyz_[3]{};
   bool has_pose_{false};
 };

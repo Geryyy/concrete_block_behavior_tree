@@ -53,8 +53,17 @@ std::vector<fs::path> xml_files(const fs::path & dir)
 
 // Replaces every leaf plugin node with a TestNode, so no service or action server has to be
 // up. Only the leaves: a substituted decorator or SubTree would take its children out of the
-// tree, and those children are most of what is being checked.
-void stub_out_leaf_plugins(BT::BehaviorTreeFactory & factory)
+// tree, and those children are most of what is being checked. `failing`, if given, is the one
+// node that returns FAILURE instead -- the step whose measurement never arrived.
+//
+// `with_decorators` adds the plugin decorators, which a *ticked* tree cannot keep: the epsilon
+// ones wait for a message (CheckUserApproval is a GetMsgCondition on
+// /gpio_controller/remote_ctrl_states, and the wait_*_msg family likewise) and stay RUNNING
+// for ever with nothing publishing. It drops their children with them, so the construction
+// test above leaves them in.
+void stub_out_leaf_plugins(
+  BT::BehaviorTreeFactory & factory, const char * failing = nullptr,
+  bool with_decorators = false)
 {
   std::set<std::string> builtins;
   for (const auto & [name, manifest] : factory.manifests()) {
@@ -71,12 +80,21 @@ void stub_out_leaf_plugins(BT::BehaviorTreeFactory & factory)
   }
   BT::TestNodeConfig stub;
   stub.return_status = BT::NodeStatus::SUCCESS;
+  BT::TestNodeConfig fails;
+  fails.return_status = BT::NodeStatus::FAILURE;
   for (const auto & [name, manifest] : factory.manifests()) {
     if (builtins.count(name) != 0) {
       continue;
     }
-    if (manifest.type == BT::NodeType::ACTION || manifest.type == BT::NodeType::CONDITION) {
-      factory.addSubstitutionRule(name, stub);
+    // PlanComplete reads nothing but the blackboard, and it is what tells a finished plan
+    // from a failed task: stubbed to SUCCESS it reports every failure as a finished wall.
+    if (name == "PlanComplete") {
+      continue;
+    }
+    if (manifest.type == BT::NodeType::ACTION || manifest.type == BT::NodeType::CONDITION ||
+      (with_decorators && manifest.type == BT::NodeType::DECORATOR))
+    {
+      factory.addSubstitutionRule(name, failing != nullptr && name == failing ? fails : stub);
     }
   }
 }
@@ -95,6 +113,54 @@ BT::Blackboard::Ptr server_blackboard(const rclcpp::Node::SharedPtr & node)
   blackboard->set<std::chrono::milliseconds>(
     "wait_for_service_timeout", std::chrono::milliseconds(10));
   return blackboard;
+}
+
+fs::path trees_path()
+{
+  return fs::path(ament_index_cpp::get_package_share_directory("concrete_block_behavior_tree")) /
+         "behavior_trees";
+}
+
+// What GetNextAssemblyTask and the steps before would have written. The stubs set no output
+// port, so every entry a Script or a SetBlackboard reads has to be seeded here; a missing one
+// throws, which is why each case below is also run with nothing failing.
+void seed_task(const BT::Blackboard::Ptr & blackboard)
+{
+  for (const char * key : {"pickup_x", "pickup_y", "pickup_z", "pickup_yaw", "approach_z",
+      "corrected_pickup_x", "corrected_pickup_y", "place_x", "place_y", "place_z", "place_yaw",
+      "place_approach_x", "place_approach_y", "place_approach_z", "place_attempt",
+      "seed_off_x", "seed_off_y", "meas_x", "meas_y", "meas_z", "s_log_8_x", "s_log_8_y",
+      "s_log_8_z", "slow_down", "payload_mass"})
+  {
+    blackboard->set(key, 0.0);
+  }
+  blackboard->set("grasp_object_contains", std::string("block_0"));
+  blackboard->set("log_shape_text", std::string("radius_top: 0.541, radius_bottom: 0.541"));
+  // The block where the step aimed it: place_z + 0.45 with every place_* zero. Lower and
+  // SubTreePlaceApproach's own height gate fails the pass, which is not what is under test.
+  blackboard->set("meas_z", 0.45);
+}
+
+// Bounded, so a node left RUNNING fails the test here instead of timing the whole binary out.
+BT::NodeStatus tick_to_completion(BT::Tree & tree)
+{
+  BT::NodeStatus status = BT::NodeStatus::RUNNING;
+  for (int tick = 0; tick < 2000 && status == BT::NodeStatus::RUNNING; ++tick) {
+    status = tree.tickExactlyOnce();
+  }
+  return status;
+}
+
+BT::NodeStatus tick_subtree(
+  const rclcpp::Node::SharedPtr & node, const std::string & tree_id, const char * failing)
+{
+  BT::BehaviorTreeFactory factory;
+  stub_out_leaf_plugins(factory, failing, true);
+  factory.registerBehaviorTreeFromFile((trees_path() / "wall_assembly.xml").string());
+  auto blackboard = server_blackboard(node);
+  seed_task(blackboard);
+  auto tree = factory.createTree(tree_id, blackboard);
+  return tick_to_completion(tree);
 }
 
 }  // namespace
@@ -145,6 +211,36 @@ TEST(TreeLoad, every_root_tree_constructs_with_the_installed_plugin_ports)
     }
   }
   EXPECT_TRUE(orphans.str().empty()) << "subtrees no root tree includes:\n" << orphans.str();
+}
+
+// Issue 303. On the lab day every refine after the first returned ok=0 and the ForceSuccess
+// wrappers passed it on: the grip, the grasp offset and the placed pose all came from FK, and
+// block_1 ended up on the studs. There is no path around a missing measurement any more, so
+// the subtree that owns the step has to report the failure at its own root.
+TEST(FailLoud, a_refine_that_returns_no_pose_fails_the_step_it_belongs_to)
+{
+  auto node = std::make_shared<rclcpp::Node>("test_fail_loud_refine");
+  for (const char * tree_id : {"SubTreePickBlock", "SubTreePlaceApproach", "SubTreeRelease"}) {
+    EXPECT_EQ(tick_subtree(node, tree_id, nullptr), BT::NodeStatus::SUCCESS) << tree_id;
+    EXPECT_EQ(tick_subtree(node, tree_id, "RunPoseEstimation"), BT::NodeStatus::FAILURE)
+      << tree_id;
+  }
+}
+
+// The other half of 303: /tf froze, GetNextAssemblyTask could not transform the pickup, and
+// the discovery fallback's Script read the pickup_x it never wrote -- an exception, not a
+// failed goal. The fallback is for an answer without a pose, so plan_ok keeps it out of the
+// error path, and PlanComplete must not read the aborted ask as a finished wall.
+TEST(FailLoud, a_failing_get_next_assembly_task_fails_the_goal_without_an_exception)
+{
+  auto node = std::make_shared<rclcpp::Node>("test_fail_loud_task");
+  BT::BehaviorTreeFactory factory;
+  stub_out_leaf_plugins(factory, "GetNextAssemblyTask", true);
+  auto tree = factory.createTreeFromFile(
+    (trees_path() / "wall_assembly.xml").string(), server_blackboard(node));
+  BT::NodeStatus status = BT::NodeStatus::IDLE;
+  ASSERT_NO_THROW({status = tick_to_completion(tree);});
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
 }
 
 int main(int argc, char ** argv)

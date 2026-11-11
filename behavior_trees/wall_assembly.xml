@@ -26,12 +26,9 @@
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
       <SetBlackboard output_key="payload_mass" value="880.0"/>
-      <Script code="plan_has_task := true; survey_x := 0.0; survey_y := 0.0; survey_z := 0.0; survey_yaw := 0.0"/>
-      <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base:
-           world (-13, 1.5), level and clear of example_wall's pickups. z is a block resting
-           on the ground: world 0.3 against K0 at world z 1.1407. Needed explicitly because
-           the pickup is not always ground level: off the truck bed it is world 1.62. -->
-      <Script code="regrip_x := 6.06; regrip_y := -1.15; regrip_z := -0.8407"/>
+      <!-- plan_ok false until GetNextAssemblyTask has an answer in hand, so the discovery
+           branch below reads a defined key on the very first ask. -->
+      <Script code="plan_has_task := true; plan_ok := false; survey_x := 0.0; survey_y := 0.0; survey_z := 0.0; survey_yaw := 0.0"/>
       <!-- Pickup approach and place approach come from the wall plan server.
            Place approach is a high A2B endpoint; CalcGripMovement handles the
            low angled final descent. -->
@@ -66,7 +63,9 @@
                this tree. -->
             <!-- A slot whose block is not known yet (hidden behind another from the lidar on
                  the slewing column, or never seeded) leaves the server waiting: discover from
-                 here and ask again. A finished plan skips the discovery. -->
+                 here and ask again. A finished plan skips the discovery, and so does a server
+                 or TF error - plan_ok is false then, the goal fails with plan_message, and no
+                 Script below reads a pickup the failing path never wrote (303). -->
             <RetryUntilSuccessful num_attempts="3">
               <Fallback>
                 <GetNextAssemblyTask
@@ -81,6 +80,7 @@
                   target_block_pose_precise="{target_block_pose_precise}"
                   reference_block_pose_precise="{reference_block_pose_precise}"
                   plan_has_task="{plan_has_task}"
+                  plan_ok="{plan_ok}"
                   plan_message="{plan_message}"
                   pickup_x="{pickup_x}"
                   pickup_y="{pickup_y}"
@@ -95,7 +95,7 @@
                   approach_y="{place_approach_y}"
                   approach_z="{place_approach_z}"/>
                 <Sequence>
-                  <ScriptCondition code="plan_has_task"/>
+                  <ScriptCondition code="plan_ok &amp;&amp; plan_has_task"/>
                   <!-- Back over the last pickup first: from the wall the column-mounted lidar
                        looks away, and at the lift the lifted block still hid the next one. The
                        plan's survey_position comes back as pickup_* (off the line of sight, so
@@ -134,20 +134,15 @@
               status_ok="{status_ok}"
               status_message="{status_message}"/>
 
-            <!-- Re-observe the just-placed block against its FK-derived pose
-               and correct it in the world model. The crane has known
-               goal-pose error, so placement errors would otherwise compound
-               uncorrected into the next block's plan. ForceSuccess: an
-               occluded/failed re-measurement must not abort the assembly
-               loop; the FK pose already written above remains the
-               fallback, exactly as REFINE_GRASPED is treated pre-placement
-               in operator_guided_single_block.xml. -->
-            <ForceSuccess>
-              <RunPoseEstimation
-                service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
-                mode="REFINE_BLOCK" target_block_id="{target_block_id}"
-                enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
-            </ForceSuccess>
+            <!-- Re-observe the just-placed block against its FK-derived pose and correct it in
+               the world model. The crane has known goal-pose error, so placement errors would
+               otherwise compound uncorrected into the next block's plan. Mandatory since 303:
+               the placed pose is written COARSE, and a swallowed failure here left block_0's
+               FK pose standing as task 2's stacking target (lab day 11-09). -->
+            <RunPoseEstimation
+              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+              mode="REFINE_BLOCK" target_block_id="{target_block_id}"
+              enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
 
           </Sequence>
         </KeepRunningUntilFailure>

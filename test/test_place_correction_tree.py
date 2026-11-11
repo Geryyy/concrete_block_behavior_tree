@@ -6,11 +6,10 @@ from xml.etree import ElementTree
 PLACE_TREE = (
     Path(__file__).resolve().parents[1] / "behavior_trees" / "subtree_place_block.xml"
 )
-CYCLE_TREE = PLACE_TREE.parent / "subtree_pick_and_place_block.xml"
 
 
-def _subtree(tree_id, tree_file=None):
-    root = ElementTree.parse(tree_file or PLACE_TREE).getroot()
+def _subtree(tree_id):
+    root = ElementTree.parse(PLACE_TREE).getroot()
     return next(
         element for element in root.iter("BehaviorTree") if element.get("ID") == tree_id
     )
@@ -135,11 +134,6 @@ def test_every_loaded_descent_runs_the_landed_watch():
     for tree_id in watched:
         codes = [code for _, code in _scripts(tree_id)]
         assert [c for c in codes if "ex_watch_landed := true" in c], tree_id
-    setdown = [
-        node.get("code", "")
-        for node in _subtree("SubTreeSetDown", CYCLE_TREE).iter("Script")
-    ]
-    assert [c for c in setdown if "ex_watch_landed := true" in c], setdown
 
     touchdown = [code for _, code in _scripts("SubTreeTouchdown")]
     assert [c for c in touchdown if "ex_until_landed := true" in c], touchdown
@@ -240,12 +234,8 @@ def test_early_contact_replaces_the_touchdown_everywhere_a_descent_is_watched():
     place_z - 0.20 against a block already on the ground, which is the push this issue
     removes; one that only failed would abandon a block standing on its slot.
     """
-    for tree_id, tree_file in (
-        ("SubTreePlaceSimple", None),
-        ("SubTreePlaceFinish", None),
-        ("SubTreeSetDown", CYCLE_TREE),
-    ):
-        subtree = _subtree(tree_id, tree_file)
+    for tree_id in ("SubTreePlaceSimple", "SubTreePlaceFinish"):
+        subtree = _subtree(tree_id)
         branch = next(
             node
             for node in subtree.iter("IfThenElse")
@@ -338,7 +328,7 @@ def test_the_placed_pose_is_written_from_an_offset_measured_after_the_unload():
         assert order.index("CaptureBlockGraspOffset") < order.index("SubTreeRelease"), (
             order
         )
-        # without a fresh detection the capture just returns the loaded offset
+        # and it is a fresh detection it reads back: no refine, no release (303)
         for parent in _subtree(tree_id).iter():
             kids = list(parent)
             for i, kid in enumerate(kids):

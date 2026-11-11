@@ -19,7 +19,9 @@
         <SubTree ID="SubTreePickBlock" _autoremap="true"/>
       </IfThenElse>
       <!-- A block gripped crooked lands on an edge and slides while the hook unloads: abort,
-           the operator sets it down. 5 deg: 2-3.2 deg is ordinary scatter on the crane. -->
+           the operator sets it down. 5 deg: 2-3.2 deg is ordinary scatter on the crane.
+           No automatic regrip (303): its set-down landed 0.24 m early at the regrip spot and
+           13 cm off, and off the truck bed it let go in mid-air. -->
       <ScriptCondition name="Block hangs over 5 deg crooked - set it down by hand"
         code="grip_tilt &lt; 0.0873"/>
       <SubTree ID="SubTreePlaceBlock" _autoremap="true"/>
@@ -46,13 +48,11 @@
         topic="/gripper/grasp_detected" timeout_ms="2000"/>
       <!-- Look at what is in the hand before anything is planned on it: the offset recovered
            below is the belief the cancelled run held, and an abort is what shifts a load. The
-           grip_tilt the regrip gate reads comes off this. Without a detector it passes through
-           and the recovered offset stands, as it does in the pick. -->
-      <ForceSuccess>
-        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-          server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
-          timeout_s="8.0"/>
-      </ForceSuccess>
+           grip_tilt the crooked-grip gate reads comes off this. No detection fails the task
+           (303), as in the pick. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
+        timeout_s="8.0"/>
       <!-- The world model rewrites every TASK_MOVE pose as TCP * its stored grasp offset once
            per marker_refresh_period_s (0.5 s) and stamps it last_seen, which is the stamp this
            node looks the TCP up at. So this recovers the offset the cancelled run captured
@@ -73,58 +73,11 @@
         s_log_8_x="{s_log_8_x}"
         s_log_8_y="{s_log_8_y}"
         s_log_8_z="{s_log_8_z}"/>
-      <!-- grip_tilt for the regrip gate in SubTreePickAndPlaceBlock. No lift first: SubTreeLift
-           plans from {COG}, which a fresh run has not written, and the place's own A2B approach
-           retries over a lift anyway. -->
+      <!-- grip_tilt for the crooked-grip gate in SubTreePickAndPlaceBlock. No lift first:
+           SubTreeLift plans from {COG}, which a fresh run has not written, and the place's own
+           A2B approach retries over a lift anyway. -->
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
         tilt="{grip_tilt}"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!-- Set the block down flat at regrip_* (K0_mounting_base, level ground, clear of the
-       other blocks) and grip it again; the wall targets are kept across it.
-       regrip_z, not pickup_z: the regrip spot is ground, the pickup need not be. Off the
-       truck bed pickup_z is 1.32 m higher than the ground there, which set the block down
-       in mid-air (SubTreeTouchdown's floor is place_z - 0.25) and then descended the re-pick
-       onto nothing. -->
-  <BehaviorTree ID="SubTreeRegrip">
-    <Sequence name="regrip">
-      <Script code="kept_x := place_x; kept_y := place_y; kept_z := place_z; kept_yaw := place_yaw; kept_ax := place_approach_x; kept_ay := place_approach_y"/>
-      <Script code="place_x := regrip_x; place_y := regrip_y; place_z := regrip_z; place_yaw := pickup_yaw; place_approach_x := regrip_x; place_approach_y := regrip_y"/>
-      <SubTree ID="SubTreeSetDown" _autoremap="true"/>
-      <Script code="pickup_x := regrip_x; pickup_y := regrip_y; pickup_z := regrip_z"/>
-      <SubTree ID="SubTreePickBlock" _autoremap="true"/>
-      <Script code="place_x := kept_x; place_y := kept_y; place_z := kept_z; place_yaw := kept_yaw; place_approach_x := kept_ax; place_approach_y := kept_ay"/>
-    </Sequence>
-  </BehaviorTree>
-
-  <!-- Set the carried block down at place_* unmeasured: a regrip needs it flat, not exact.
-       The wall placement's in-air correction and angled entry cost ~50 s of it. -->
-  <BehaviorTree ID="SubTreeSetDown">
-    <Sequence name="set_down">
-      <SetBlackboard output_key="mv_x" value="{place_x}"/>
-      <SetBlackboard output_key="mv_y" value="{place_y}"/>
-      <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
-      <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
-      <SetBlackboard output_key="mv_carries" value="true"/>
-      <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
-      <SetBlackboard output_key="ex_sway_bound" value="0.0"/>
-      <SetBlackboard output_key="dz_x" value="{place_x}"/>
-      <SetBlackboard output_key="dz_y" value="{place_y}"/>
-      <Script code="dz_z := place_z + 0.05; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
-      <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
-      <SetBlackboard output_key="dz_carries" value="true"/>
-      <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-      <!-- 0.25 m of stroke, the pace td_scale 2.0 is tuned for. -->
-      <Script code="td_scale := 2.0"/>
-      <!-- Early contact here is the regrip spot's ground, not a wall slot: let go if the
-           block is laterally where the re-pick will look for it, else lift clear and fail. -->
-      <IfThenElse>
-        <ScriptCondition code="load_off"/>
-        <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
-        <SubTree ID="SubTreeTouchdown" _autoremap="true"/>
-      </IfThenElse>
     </Sequence>
   </BehaviorTree>
 </root>

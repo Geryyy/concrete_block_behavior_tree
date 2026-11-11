@@ -66,8 +66,9 @@ TEST(StatusText, pose_carries_the_target_only_when_the_response_listed_it)
   EXPECT_EQ(
     pose_status("REFINE_BLOCK", "block_2", true, "world", xyz),
     "mode=REFINE_BLOCK block=block_2 ok=1 frame=world x=6.001 y=2.003 z=1.050");
-  // A timeout: no response, no pose, and the line has to say it failed.
+  // A timeout: no response, no pose, and the line has to say it failed and why -- the goal
+  // ends there since 303.
   EXPECT_EQ(
-    pose_status("REFINE_GRASPED", "block_2", false, "", nullptr),
-    "mode=REFINE_GRASPED block=block_2 ok=0");
+    pose_status("REFINE_GRASPED", "block_2", false, "", nullptr, "no detection"),
+    "mode=REFINE_GRASPED block=block_2 ok=0 msg=no detection");
 }

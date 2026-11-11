@@ -42,17 +42,21 @@ inline std::string place_pass_status(
 }
 
 /// `/cbs/status/pose` -- RunPoseEstimation's outcome; x/y/z the target's pose after it, if listed.
+/// `msg` only on a failure: since 303 that ends the goal, and this is the reason it ended.
 inline std::string pose_status(
   const std::string & mode, const std::string & block, bool ok, const std::string & frame,
-  const double * xyz)
+  const double * xyz, const std::string & message = "")
 {
   char line[320];
   int n = std::snprintf(
     line, sizeof(line), "mode=%s block=%s ok=%d", mode.c_str(), block.c_str(), ok ? 1 : 0);
   if (xyz != nullptr && n > 0 && n < static_cast<int>(sizeof(line))) {
-    std::snprintf(
+    n += std::snprintf(
       line + n, sizeof(line) - n, " frame=%s x=%.3f y=%.3f z=%.3f", frame.c_str(), xyz[0],
       xyz[1], xyz[2]);
+  }
+  if (!ok && n > 0 && n < static_cast<int>(sizeof(line))) {
+    std::snprintf(line + n, sizeof(line) - n, " msg=%s", message.c_str());
   }
   return std::string(line);
 }

@@ -34,9 +34,7 @@ def test_the_pick_is_reachable_only_through_the_blocks_task_status():
     assert on_move.get("ID") == "SubTreeResumeCarry"
     assert otherwise.get("ID") == "SubTreePickBlock"
 
-    # Within this cycle the branch is the only way into the pick. SubTreeRegrip's own
-    # direct SubTreePickBlock is a different path and stays legal: SubTreeSetDown's
-    # WriteBlockPoseFromGripper clears TASK_MOVE before it re-picks.
+    # The branch is the only way into the pick; since 303 there is no other one anywhere.
     picks = [e for e in cycle.iter() if e.get("ID") == "SubTreePickBlock"]
     assert picks == [otherwise]
 

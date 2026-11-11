@@ -23,10 +23,6 @@
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
       <SetBlackboard output_key="s_log_8_z" value="nan"/>
       <SetBlackboard output_key="payload_mass" value="880.0"/>
-      <!-- Where a crooked grip is set down and taken again (SubTreeRegrip), K0_mounting_base.
-           z is a block resting on the ground (world 0.3, K0 at world z 1.1407). The pickup's
-           own z will not do: the truck bed sits 1.32 m above it. -->
-      <Script code="regrip_x := 6.06; regrip_y := -1.15; regrip_z := -0.8407"/>
       <!-- Planner collision body for the carried block (only the planner reads the shape): a
            vertical cylinder around the upright 0.9 x 0.6 x 0.6 m block, radius its footprint's
            half-diagonal sqrt(0.45^2 + 0.3^2). The old r 0.30 / l 0.90 missed the corners. -->
@@ -73,16 +69,13 @@
         status_ok="{status_ok}"
         status_message="{status_message}"/>
 
-      <!-- Re-observe the just-placed block against its FK-derived pose and
-           correct it in the world model; same fix as wall_assembly.xml.
-           ForceSuccess: an occluded/failed re-measurement must not fail this
-           tree; the FK pose already written above remains the fallback. -->
-      <ForceSuccess>
-        <RunPoseEstimation
-          service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
-          mode="REFINE_BLOCK" target_block_id="{target_block_id}"
-          enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
-      </ForceSuccess>
+      <!-- Re-observe the just-placed block against its FK-derived pose and correct it in the
+           world model; same fix as wall_assembly.xml, and mandatory for the same reason (303):
+           the placed pose is written COARSE and this is what measures it. -->
+      <RunPoseEstimation
+        service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+        mode="REFINE_BLOCK" target_block_id="{target_block_id}"
+        enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
     </Sequence>
   </BehaviorTree>
   <!-- ////////// -->

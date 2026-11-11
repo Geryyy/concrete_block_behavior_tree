@@ -39,7 +39,8 @@ public:
         BT::InputPort<std::string>("block_id", "Block ID to update"),
         BT::InputPort<std::string>(
           "gripper_frame", "K8_tool_center_point",
-          "TF frame of the gripper TCP (on /tf; perception's elastic/ prefix lives on tf_elastic_full)"),
+          "TF frame of the gripper TCP (on /tf; perception's elastic/ prefix lives on "
+          "tf_elastic_full)"),
         BT::InputPort<std::string>(
           "world_frame", "world",
           "Frame in which to write the block pose"),
@@ -48,7 +49,9 @@ public:
           "Offset gripper_tcp <- block_center (from CaptureBlockGraspOffset)"),
         BT::InputPort<int>("task_status", 3, "Task status int (default TASK_PLACED=3)"),
         BT::InputPort<int>("pose_status", 1, "Pose status int (default POSE_COARSE=1)"),
-        BT::InputPort<double>("confidence", 1.0, "Confidence value [0,1]"),
+        // 0.5, not 1: FK x the grasp offset is not a measurement (303). UpsertBlock stores it
+        // as given - min_update_confidence gates incoming detections, not this.
+        BT::InputPort<double>("confidence", 0.5, "Confidence value [0,1]"),
         BT::OutputPort<bool>("status_ok"),
         BT::OutputPort<std::string>("status_message"),
       });

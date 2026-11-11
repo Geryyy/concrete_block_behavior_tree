@@ -114,6 +114,9 @@ if(BUILD_TESTING)
   ament_target_dependencies(test_capture_block_grasp_offset ${THIS_PACKAGE_INCLUDE_DEPENDS})
   # Loads the installed trees, so it needs this package's own share dir installed first.
   find_package(ament_index_cpp REQUIRED)
+  ament_add_gtest(test_get_next_assembly_task test/test_get_next_assembly_task.cpp)
+  target_link_libraries(test_get_next_assembly_task BT_cb_get_next_assembly_task_action)
+  ament_target_dependencies(test_get_next_assembly_task ${THIS_PACKAGE_INCLUDE_DEPENDS})
   ament_add_gtest(test_tree_load test/test_tree_load.cpp)
   ament_target_dependencies(test_tree_load
     ament_index_cpp behaviortree_cpp nav2_behavior_tree rclcpp tf2_ros)
@@ -144,6 +147,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_place_correction_tree
     test/test_place_correction_tree.py
+  )
+  ament_add_pytest_test(
+    test_fail_on_missing_measurement
+    test/test_fail_on_missing_measurement.py
   )
   ament_add_pytest_test(
     test_retry_with_block_in_jaws

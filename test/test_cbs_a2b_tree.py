@@ -25,7 +25,6 @@ CBS_MOVE_EMPTY = TREE_DIR / "cbs_move_empty_pzs100.xml"
 TOUCHDOWN_CALLERS = (
     ("subtree_place_block.xml", "SubTreePlaceSimple"),
     ("subtree_place_block.xml", "SubTreePlaceFinish"),
-    ("subtree_pick_and_place_block.xml", "SubTreeSetDown"),
 )
 
 
@@ -368,35 +367,23 @@ def test_no_tree_id_has_whitespace():
         assert not any(" " in name for name in names), xml.name
 
 
-def _regrip_scripts():
-    root = ElementTree.parse(TREE_DIR / "subtree_pick_and_place_block.xml").getroot()
-    regrip = [t for t in root.iter("BehaviorTree") if t.get("ID") == "SubTreeRegrip"]
-    assert len(regrip) == 1
-    return [node.get("code", "") for node in regrip[0].iter("Script")]
+def test_nothing_sets_a_block_down_to_grip_it_again():
+    """Issue 303: a crooked grip aborts, the operator sets the block down.
 
-
-def test_regrip_height_comes_from_regrip_z_not_the_pickup():
+    The regrip set it down at a fixed spot and re-picked it: 0.24 m early and 13 cm off
+    there on the lab day, and off the truck bed it let go in mid-air. Nothing is left of
+    it -- not the subtrees, not the regrip_* the trees had to define for them.
     """
-    The regrip spot is level ground; the pickup is not necessarily.
-
-    Both halves took their z from `pickup_z`, invisible while every pickup was a
-    block on the ground. Off the truck bed (seed z 1.62 world) that is 1.32 m of
-    air: the set-down hits `WaitForLoadOff`'s floor under `place_z` and fails
-    holding the load, and the re-pick descends onto nothing.
-    """
-    code = " ".join(_regrip_scripts())
-    assert "place_z := regrip_z" in code
-    assert "pickup_z := regrip_z" in code
-    assert "place_z := pickup_z" not in code
-
-    # A tree that enters the regrip without defining regrip_z reads it as 0.
-    for name in ("wall_assembly.xml", "basic_pick_and_place.xml"):
-        root = ElementTree.parse(TREE_DIR / name).getroot()
-        code = " ".join(node.get("code", "") for node in root.iter("Script"))
-        code += " ".join(
+    for xml in TREE_DIR.glob("*.xml"):
+        root = ElementTree.parse(xml).getroot()
+        ids = [tree.get("ID") for tree in root.iter("BehaviorTree")]
+        ids += [node.get("ID") for node in root.iter("SubTree")]
+        assert "SubTreeRegrip" not in ids and "SubTreeSetDown" not in ids, xml.name
+        text = " ".join(node.get("code", "") for node in root.iter("Script"))
+        text += " ".join(
             node.get("output_key", "") for node in root.iter("SetBlackboard")
         )
-        assert "regrip_z" in code, name
+        assert "regrip_" not in text, xml.name
 
 
 def test_the_landing_floor_measures_with_the_nominal_offset():

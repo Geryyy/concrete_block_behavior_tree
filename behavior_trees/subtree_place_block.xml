@@ -126,19 +126,16 @@
        boom ends up to 0.05 rad (~0.3 m) low at the waypoint (lab day 11-04, 11-09). -->
   <BehaviorTree ID="SubTreePlaceMiss">
     <Sequence name="place_miss">
-      <ForceSuccess>
-        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-          server_timeout="10000" mode="REFINE_GRASPED"
-          target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-      </ForceSuccess>
-      <ForceSuccess>
-        <Action ID="CaptureBlockGraspOffset"
-          service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-          block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-          world_frame="world" grasp_offset="{grasp_offset}"
-          s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-          s_log_8_z="{vision_s_log_8_z}"/>
-      </ForceSuccess>
+      <!-- No detection, no pass: on the frozen offset this measured FK against FK (303). -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_GRASPED"
+        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+      <Action ID="CaptureBlockGraspOffset"
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+        world_frame="world" grasp_offset="{grasp_offset}"
+        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+        s_log_8_z="{vision_s_log_8_z}"/>
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
         x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
       <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z + 1.10 - meas_z; place_pass := place_pass + 1"/>
@@ -215,21 +212,18 @@
         <Repeat num_cycles="3">
           <Sequence>
             <!-- The block as the lidar sees it here: the column-mounted lidar is bend-free, so
-                 the boom's bend at this pose enters the offset instead of the pickup's. Without
-                 a detection the offset stays. -->
-            <ForceSuccess>
-              <Sequence>
-                <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-                  server_timeout="10000" mode="REFINE_GRASPED"
-                  target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-                <Action ID="CaptureBlockGraspOffset"
-                  service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-                  block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-                  world_frame="world" grasp_offset="{grasp_offset}"
-                  s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-                  s_log_8_z="{vision_s_log_8_z}"/>
-              </Sequence>
-            </ForceSuccess>
+                 the boom's bend at this pose enters the offset instead of the pickup's. No
+                 detection fails the approach (303): on the frozen offset the pass measures FK
+                 against FK and the bend it should cancel does not cancel (lab day 11-09). -->
+            <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+              server_timeout="10000" mode="REFINE_GRASPED"
+              target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+            <Action ID="CaptureBlockGraspOffset"
+              service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+              block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+              world_frame="world" grasp_offset="{grasp_offset}"
+              s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+              s_log_8_z="{vision_s_log_8_z}"/>
             <!-- 2.7 s: one period of the carried pendulum. -->
             <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
               x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
@@ -283,19 +277,15 @@
       <Fallback _skipIf="load_off">
         <ScriptCondition code="corr_done"/>
         <Sequence>
-          <ForceSuccess>
-            <Sequence>
-              <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-                server_timeout="10000" mode="REFINE_GRASPED"
-                target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-              <Action ID="CaptureBlockGraspOffset"
-                service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-                block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-                world_frame="world" grasp_offset="{grasp_offset}"
-                s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-                s_log_8_z="{vision_s_log_8_z}"/>
-            </Sequence>
-          </ForceSuccess>
+          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+            server_timeout="10000" mode="REFINE_GRASPED"
+            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+          <Action ID="CaptureBlockGraspOffset"
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+            world_frame="world" grasp_offset="{grasp_offset}"
+            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+            s_log_8_z="{vision_s_log_8_z}"/>
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
             x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.45 - meas_z"/>
@@ -375,21 +365,18 @@
            release writes the placed pose with it: on the loaded offset that pose was a bend
            out (0.11-0.19 m, lab day 2026-11-04), in the world model, in the collision scene
            the lift below plans against, and as the prior the final REFINE_BLOCK has to
-           associate within (0.35 m). No detection keeps the loaded offset, as every other
-           pass. The early-contact path takes this measurement itself. -->
-      <ForceSuccess>
-        <Sequence>
-          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-            server_timeout="10000" mode="REFINE_GRASPED"
-            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-          <Action ID="CaptureBlockGraspOffset"
-            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-            world_frame="world" grasp_offset="{grasp_offset}"
-            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-            s_log_8_z="{vision_s_log_8_z}"/>
-        </Sequence>
-      </ForceSuccess>
+           associate within (0.35 m). No detection fails the place here (303): the pose write
+           below is the only record of where the block ended up. The early-contact path takes
+           this measurement itself. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_GRASPED"
+        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+      <Action ID="CaptureBlockGraspOffset"
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+        world_frame="world" grasp_offset="{grasp_offset}"
+        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+        s_log_8_z="{vision_s_log_8_z}"/>
       <SubTree ID="SubTreeRelease" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
@@ -401,15 +388,17 @@
 
       <!-- 4. Write final block pose, then open gripper. The offset this applies to FK's
            gripper has to be one measured after the load came off - the boom springs back by
-           its bend there - so both callers re-measure it immediately before entering here. -->
+           its bend there - so both callers re-measure it immediately before entering here.
+           pose_status and confidence are the plugin's defaults, COARSE and under 1: this is
+           FK x the offset, and the REFINE_BLOCK at the end of the subtree is what measures it
+           (303 - block_0's FK pose went in as PRECISE conf 1.0 and became task 2's target). -->
       <Action ID="WriteBlockPoseFromGripper" name="Write placed pose"
         service_name="/world_model_node/upsert_block"
         server_timeout="5000"
         block_id="{grasp_object_contains}"
         world_frame="world"
         grasp_offset="{grasp_offset}"
-        task_status="3"
-        pose_status="2"/>
+        task_status="3"/>
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="true"/>
       <SubTree ID="SubTreeGripper" _autoremap="true"/>
@@ -427,12 +416,12 @@
       <!-- 5. The world model keeps the lidar's pose of the placed block, not FK's, and so does
            the collision scene the planner avoids. Not the next block's target: example_wall's
            slots are absolute_position, fixed in `world`, so an error here does not compound.
-           Only a relative_to_world_model slot (stack_block_1_on_block_2) builds on it. -->
-      <ForceSuccess>
-        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-          server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
-          timeout_s="8.0"/>
-      </ForceSuccess>
+           Only a relative_to_world_model slot (stack_block_1_on_block_2) builds on it.
+           Mandatory since 303: the write above is COARSE, so without this pass nothing ever
+           measured the placed block. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+        timeout_s="8.0"/>
 
     </Sequence>
   </BehaviorTree>
@@ -446,20 +435,17 @@
   <BehaviorTree ID="SubTreeEarlyContact">
     <Sequence name="early_contact">
       <!-- Where it came to rest: the lidar first, the block may have slid in the jaws as the
-           hook unloaded. No detection keeps the last refined offset, as every other pass. -->
-      <ForceSuccess>
-        <Sequence>
-          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-            server_timeout="10000" mode="REFINE_GRASPED"
-            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-          <Action ID="CaptureBlockGraspOffset"
-            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-            world_frame="world" grasp_offset="{grasp_offset}"
-            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-            s_log_8_z="{vision_s_log_8_z}"/>
-        </Sequence>
-      </ForceSuccess>
+           hook unloaded. No detection fails the place (303): the band below and the pose write
+           both read this offset. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_GRASPED"
+        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+      <Action ID="CaptureBlockGraspOffset"
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+        world_frame="world" grasp_offset="{grasp_offset}"
+        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
+        s_log_8_z="{vision_s_log_8_z}"/>
       <!-- 0.5 s, not the loaded 2.7: the block is down, there is no pendulum to average out. -->
       <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="0.5"
         x="{meas_x}" y="{meas_y}" z="{meas_z}"/>

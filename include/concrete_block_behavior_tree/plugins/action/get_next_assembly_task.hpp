@@ -14,7 +14,8 @@ namespace concrete_block_behavior_tree
 {
 
 class GetNextAssemblyTaskService
-  : public nav2_behavior_tree::BtServiceNode<concrete_block_assembly_interfaces::srv::GetNextAssemblyTask>
+  : public nav2_behavior_tree::BtServiceNode<
+    concrete_block_assembly_interfaces::srv::GetNextAssemblyTask>
 {
 public:
   using ServiceT = concrete_block_assembly_interfaces::srv::GetNextAssemblyTask;
@@ -62,6 +63,9 @@ public:
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("reference_block_pose_precise"),
         BT::OutputPort<geometry_msgs::msg::PoseStamped>("placement_approach_pose"),
         BT::OutputPort<bool>("plan_has_task"),
+        // Whether the server answered at all, as against a service or TF error: the tree's
+        // discovery re-ask is only for an answer with no pose yet (303).
+        BT::OutputPort<bool>("plan_ok"),
         BT::OutputPort<std::string>("plan_message"),
         // Decomposed pickup pose (for SetGoalPose / CalcA2BMovement compatibility)
         BT::OutputPort<double>("pickup_x"),
