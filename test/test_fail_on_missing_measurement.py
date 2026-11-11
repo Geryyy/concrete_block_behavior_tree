@@ -90,3 +90,25 @@ def test_the_placed_pose_is_written_coarse():
             if node.get("ID") == "WriteBlockPoseFromGripper":
                 assert node.get("pose_status") is None, xml.name
                 assert node.get("confidence") is None, xml.name
+
+
+def test_every_capture_reads_a_fresh_refine():
+    """The capture looks the TCP up at the block's last_seen, and TF keeps 10 s.
+
+    303's pick capture ran on the hover REFINE_BLOCK's stamp, ~21 s old after descent and
+    grip: every full run aborted at the first grip on "extrapolation into the past".
+    """
+    for xml in sorted(TREE_DIR.glob("*.xml")):
+        root = ElementTree.parse(xml).getroot()
+        for parent in root.iter():
+            siblings = list(parent)
+            for i, node in enumerate(siblings):
+                if (node.get("ID") or node.tag) != "CaptureBlockGraspOffset":
+                    continue
+                prev = siblings[i - 1] if i else None
+                assert prev is not None and prev.tag == "RunPoseEstimation", (
+                    xml.name,
+                    i,
+                )
+                assert prev.get("mode", "").startswith("REFINE_"), xml.name
+                assert prev.get("target_block_id") == node.get("block_id"), xml.name

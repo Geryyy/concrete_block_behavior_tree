@@ -77,6 +77,11 @@
       <Action ID="WaitForGraspSignal" name="Wait for grasp detector"
         topic="/gripper/grasp_detected"
         timeout_ms="8000"/>
+      <!-- The capture reads the TCP at the block's last_seen; the hover refine is ~20 s old
+           by now, past the 10 s TF buffer. Not TASK_MOVE yet, so REFINE_BLOCK. -->
+      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+        server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+        timeout_s="8.0"/>
       <Action ID="CaptureBlockGraspOffset" name="Capture grasp offset"
         service_name="/world_model_node/get_coarse_blocks"
         server_timeout="5000"
