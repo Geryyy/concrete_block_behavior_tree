@@ -54,6 +54,7 @@ WaitForMoveComplete::WaitForMoveComplete(
     : node_->declare_parameter<bool>("a2b_mpc_drives", false);
   // Tree structure, not state: which half of the move this instance is.
   getInput("settle_only", settle_only_);
+  getInput("decay_only", decay_only_);
   // Logged because a silent failure to read it is the two-commander state this
   // node exists to prevent, and it reads as an ordinary move until the JTC log
   // is grepped for goal tolerances.
@@ -61,7 +62,8 @@ WaitForMoveComplete::WaitForMoveComplete(
     node_->get_logger(), "WaitForMoveComplete: a2b_mpc_drives=%s, so the commander is %s; "
     "this instance is %s",
     mpc_drives_ ? "true" : "false", mpc_drives_ ? "crane_mpc" : "the action goal",
-    settle_only_ ? "the settle wait after it" : "the arrival oracle");
+    settle_only_ ? "the settle wait after it"
+    : decay_only_ ? "the PI recovery hold after it" : "the arrival oracle");
 
   std::string joint_states_topic;
   std::string settled_topic;
@@ -90,12 +92,22 @@ WaitForMoveComplete::WaitForMoveComplete(
     joint_states_topic, rclcpp::QoS(10),
     [this](JointState::SharedPtr msg) {
       std::lock_guard<std::mutex> lock(mutex_);
+      const auto now = std::chrono::steady_clock::now();
       joint_state_ = *msg;
+      joint_state_received_ = now;
       // Same shape as the sway dwell below: any sample over the bound restarts it.
       if (!moving_joints_text(*msg).empty()) {
         dq_a_still_since_.reset();
       } else if (!dq_a_still_since_) {
-        dq_a_still_since_ = std::chrono::steady_clock::now();
+        dq_a_still_since_ = now;
+      }
+      // And the same for being inside the tolerance, which the rate bound alone does
+      // not imply: 0.005 rad at the 0.01 rad/s bound is 0.5 s of band, so a joint
+      // creeping under the bound is inside it on some tick without having decayed.
+      if (!in_band(*msg)) {
+        in_band_since_.reset();
+      } else if (!in_band_since_) {
+        in_band_since_ = now;
       }
     },
     options);
@@ -122,8 +134,14 @@ WaitForMoveComplete::WaitForMoveComplete(
       "/cbs/status/settle", rclcpp::QoS(1).transient_local());
   }
   status_pub_ = shared_status;
-  // Only where the MPC is the commander: this is the one instance whose gates the
-  // MPC's silence freezes. The settle wait runs off that arm, after the goal.
+  // Wherever the MPC is the commander: the decay hold needs this as much as the arrival
+  // oracle. On the MPC arm the silence freezes the position error for a harder reason than
+  // on the action arm -- `set_hold_position` latches *state_current_*, not the plan's last
+  // point (joint_trajectory_controller.cpp), so past topic_timeout the JTC regulates to the
+  // coasted-low position and no PI takes anything back. Only the goal's
+  // set_success_trajectory_point repeats the plan's endpoint, and on this arm there is no
+  // goal. The hold runs inside crane_mpc's `max_reference_age` (60 s past the plan) and is
+  // right to fail the moment that ends.
   if (mpc_drives_ && !settle_only_) {
     horizon_sub_ = node_->create_subscription<JointTrajectory>(
       horizon_topic, rclcpp::QoS(1),
@@ -138,7 +156,7 @@ WaitForMoveComplete::WaitForMoveComplete(
 BT::NodeStatus WaitForMoveComplete::onStart()
 {
   setOutput("mpc_drives", mpc_drives_);
-  if (!mpc_drives_ && !settle_only_) {
+  if (!mpc_drives_ && !settle_only_ && !decay_only_) {
     // The action goal is still the commander and still the arrival test.
     return BT::NodeStatus::SKIPPED;
   }
@@ -156,7 +174,18 @@ BT::NodeStatus WaitForMoveComplete::onStart()
       trajectory_.joint_names.size(), trajectory_.points.back().positions.size());
     return BT::NodeStatus::FAILURE;
   }
-  getInput("goal_tolerance", goal_tolerance_);
+  // The one port whose absence disables the gate instead of loosening it: an unset
+  // `{ex_hold_tolerance}` leaves the 0.05 default and the hold passes on the coast it
+  // exists to wait out. The other two instances have been reading it this way since
+  // 148 and their tolerance is the move's, so only the hold refuses to run without it.
+  if (const auto tolerance = getInput<double>("goal_tolerance")) {
+    goal_tolerance_ = *tolerance;
+  } else if (decay_only_) {
+    RCLCPP_ERROR(
+      node_->get_logger(), "%s has no goal_tolerance: %s", name().c_str(),
+      tolerance.error().c_str());
+    return BT::NodeStatus::FAILURE;
+  }
   {
     std::lock_guard<std::mutex> lock(mutex_);
     sway_bound_ = 0.0;
@@ -183,26 +212,47 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     }
   }
 
+  std::string overrides;
+  getInput("goal_tolerances", overrides);
+  tolerance_.clear();
+  for (const auto & item : split(overrides)) {
+    const size_t colon = item.find(':');
+    std::istringstream value(colon == std::string::npos ? "" : item.substr(colon + 1));
+    double tolerance = 0.0;
+    // A tolerance for a joint this instance does not check is a tolerance nothing
+    // applies, which is the one way this port can read as tighter than it is.
+    if (!(value >> tolerance) || index_of(joints_, item.substr(0, colon)) == joints_.size()) {
+      RCLCPP_ERROR(
+        node_->get_logger(), "WaitForMoveComplete got the tolerance '%s', which is not "
+        "<checked joint>:<value>", item.c_str());
+      return BT::NodeStatus::FAILURE;
+    }
+    tolerance_[item.substr(0, colon)] = tolerance;
+  }
+
   {
     // A verdict latched before the move began says nothing about this move.
     std::lock_guard<std::mutex> lock(mutex_);
     settled_.reset();
     settled_since_.reset();
     dq_a_still_since_.reset();
+    in_band_since_.reset();
     joint_state_.reset();
   }
   start_time_ = std::chrono::steady_clock::now();
   horizon_received_ = start_time_;
-  // settle_only runs after the goal returned, so the plan has already been
-  // played; waiting its duration a second time would double every move.
-  plan_end_ = settle_only_
+  // settle_only and decay_only both run after the move was commanded to its end,
+  // so the plan has already been played; waiting its duration a second time would
+  // double every move.
+  plan_end_ = (settle_only_ || decay_only_)
     ? node_->now()
     : node_->now() + rclcpp::Duration(trajectory_.points.back().time_from_start);
 
   RCLCPP_INFO(
     node_->get_logger(),
     "Waiting for the move to %s | joints=%zu tolerance=%.3f plan=%.1fs hold=%.1fs timeout_ms=%d",
-    settle_only_ ? "settle" : "arrive", joints_.size(), goal_tolerance_,
+    settle_only_ ? "settle" : decay_only_ ? "decay its error" : "arrive",
+    joints_.size(), goal_tolerance_,
     rclcpp::Duration(trajectory_.points.back().time_from_start).seconds(),
     hold_.count() / 1000.0, timeout_ms_);
 
@@ -232,7 +282,8 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
   if (reason.empty()) {
     std::lock_guard<std::mutex> lock(mutex_);
     RCLCPP_INFO(
-      node_->get_logger(), "Move arrived and the load is settled | %s",
+      node_->get_logger(), "%s | %s",
+      decay_only_ ? "The control error has decayed" : "Move arrived and the load is settled",
       joint_errors_text().c_str());
     return BT::NodeStatus::SUCCESS;
   }
@@ -268,7 +319,9 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
   // that dies *mid-move* is the same dead end, and the settle wait is where it
   // bites -- 60 s of it. kProducerGrace covers the start, where "not discovered
   // yet" and "never will be" read the same.
-  if (elapsed_ms > kProducerGrace.count() && settled_sub_->get_publisher_count() == 0) {
+  if (!decay_only_ && elapsed_ms > kProducerGrace.count() &&
+    settled_sub_->get_publisher_count() == 0)
+  {
     RCLCPP_WARN(
       node_->get_logger(),
       "Nothing publishes %s, so whether the load is still is unknowable: start crane_mpc "
@@ -277,7 +330,12 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
     return BT::NodeStatus::FAILURE;
   }
   if (elapsed_ms > timeout_ms_) {
-    RCLCPP_WARN(node_->get_logger(), "Move did not complete: %s", reason.c_str());
+    // Named, and it names this instance: the goal ends here (303 style), and which of
+    // the three waits ended it is what says whether the move or the hold after it
+    // was short.
+    RCLCPP_ERROR(
+      node_->get_logger(), "%s gave up after %.0f s: %s", name().c_str(),
+      elapsed_ms / 1000.0, reason.c_str());
     return BT::NodeStatus::FAILURE;
   }
 
@@ -290,6 +348,7 @@ void WaitForMoveComplete::onHalted()
   settled_.reset();
   settled_since_.reset();
   dq_a_still_since_.reset();
+  in_band_since_.reset();
   joint_state_.reset();
 }
 
@@ -309,6 +368,12 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   if (!joint_state_) {
     return "no joint state received";
   }
+  // A frozen stream is not a standing crane, and for the decay hold this is the only
+  // input there is: without this, the dwells run on the last sample of a dead
+  // joint_state_broadcaster and the hold reports the error gone.
+  if (now - joint_state_received_ > kJointStateMaxAge) {
+    return "no fresh joint state";
+  }
   bool missed = false;
   for (const auto & joint : joints_) {
     // By name on both sides: the two stacks publish different /joint_states name
@@ -321,14 +386,13 @@ std::string WaitForMoveComplete::not_arrived_reason() const
       return "joint " + joint + " carries no position";
     }
     // Negated <=, not >: a NaN reading must not read as arrived.
-    missed = missed || !(joint_error(joint) <= goal_tolerance_);
+    missed = missed || !(joint_error(joint) <= tolerance_for(joint));
   }
   // Every joint, not the first that misses: which axes stand off and by how much
   // is the whole diagnosis, and one name per failed move is what left issue 241
   // four samples from four runs to size a tolerance on.
   if (missed) {
-    return "joints off their goal, tolerance " + std::to_string(goal_tolerance_) + ": " +
-           joint_errors_text();
+    return "joints off their goal: " + joint_errors_text();
   }
 
   // Inside the tolerance is not stopped (issue 249): a quiet plan reaches its last
@@ -340,6 +404,18 @@ std::string WaitForMoveComplete::not_arrived_reason() const
   }
   if (!dq_a_still_since_ || now - *dq_a_still_since_ < hold_) {
     return "the actuated joints have not held still for long enough to have stopped";
+  }
+
+  // The decay hold is the joints and nothing else: it runs with the move over and
+  // the next plan not yet aimed, so the residual sway is nobody's gate here -- the
+  // settle wait below it, or the next move's oracle, is where that is asked.
+  if (decay_only_) {
+    if (!in_band_since_ || now - *in_band_since_ < hold_) {
+      // The tolerance held, not touched: inside a 0.005 rad band the rate bound above
+      // is 0.5 s of crossing, so one sample inside it is a sample, not a decay.
+      return "the joints have not held inside the tolerance for long enough";
+    }
+    return {};
   }
 
   if (!settled_ || now - settled_received_ > kSettledMaxAge) {
@@ -370,6 +446,12 @@ double WaitForMoveComplete::joint_error(const std::string & joint) const
   return std::abs(joint_state_->position[j] - trajectory_.points.back().positions[i]);
 }
 
+double WaitForMoveComplete::tolerance_for(const std::string & joint) const
+{
+  const auto it = tolerance_.find(joint);
+  return it == tolerance_.end() ? goal_tolerance_ : it->second;
+}
+
 std::string WaitForMoveComplete::joint_errors_text() const
 {
   if (!joint_state_) {
@@ -377,7 +459,10 @@ std::string WaitForMoveComplete::joint_errors_text() const
   }
   std::string text;
   for (const auto & joint : joints_) {
-    text += (text.empty() ? "" : ", ") + joint + " " + std::to_string(joint_error(joint));
+    // error/tolerance, since the tolerance is per joint: the decay hold asks the
+    // telescope for metres and the rest for radians.
+    text += (text.empty() ? "" : ", ") + joint + " " + std::to_string(joint_error(joint)) + "/" +
+      std::to_string(tolerance_for(joint));
   }
   return text;
 }
@@ -398,6 +483,28 @@ std::string WaitForMoveComplete::moving_joints_text(const JointState & state) co
     }
   }
   return text;
+}
+
+bool WaitForMoveComplete::in_band(const JointState & state) const
+{
+  // The subscription outlives every move, so this runs before onStart has a plan too.
+  if (trajectory_.points.empty() || joints_.empty()) {
+    return false;
+  }
+  for (const auto & joint : joints_) {
+    const size_t i = index_of(trajectory_.joint_names, joint);
+    const size_t j = index_of(state.name, joint);
+    if (i >= trajectory_.points.back().positions.size() || j >= state.position.size()) {
+      return false;
+    }
+    // Negated <=: a NaN reading must not read as in band.
+    if (!(std::abs(state.position[j] - trajectory_.points.back().positions[i]) <=
+      tolerance_for(joint)))
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool WaitForMoveComplete::still(const SwaySettled & verdict) const

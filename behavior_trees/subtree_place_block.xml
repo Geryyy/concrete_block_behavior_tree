@@ -63,6 +63,16 @@
             <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
             <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, MPC verdict is 0.02 -->
             <SetBlackboard output_key="ex_hold_s" value="2.7"/>
+            <!-- The PI recovery hold after a loaded waypoint descent (issue 306). 0.005 rad is
+                 3.2 cm at the block at r 6.4 m, against the 0.007-0.011 rad the boom coasts low
+                 and the 0.05 of the arrival gate above it. Not the issue's starting 0.003:
+                 measured over the ten loaded holds of a headless row3 place, the boom clears a
+                 0.007-0.011 rad coast to under 0.005 in 0.4-1.4 s, but on one of them it
+                 plateaued at 0.0039 and crept at 0.07 mrad/s, i.e. Psi's low-speed region, where
+                 p 0.5 on a 4 mrad error commands 2 mrad/s and the axis barely moves. At 0.003
+                 that hold burned the whole timeout and failed the goal. Set wherever
+                 ex_watch_landed is true: unset is the node's 0.05, which the coast passes. -->
+            <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>
             <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
             <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 1.10"/>  <!-- 0.80 + 0.30 the loaded boom ends low -->
             <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
@@ -175,6 +185,7 @@
            not left to the move_above before, because SubTreePlaceFromHover enters without
            one and would inherit whatever the last move left. -->
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
+      <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>  <!-- rad, 3.2 cm at the block; issue 306 -->
       <!-- From the seed, not 0: a hover the operator already corrected is not undone. The miss
            below is still against the unshifted place_approach, so off stays the total. -->
       <Script code="off_x := seed_off_x; off_y := seed_off_y; still_off := true; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0"/>
@@ -322,6 +333,7 @@
              campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
              0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
         <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
+        <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>  <!-- rad, 3.2 cm at the block; issue 306 -->
         <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
              mid-move leaves the crane short and this wait times out. -->
         <Decorator ID="RetryUntilSuccessful" num_attempts="2">

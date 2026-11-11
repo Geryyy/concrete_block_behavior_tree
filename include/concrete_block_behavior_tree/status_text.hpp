@@ -64,6 +64,8 @@ inline std::string pose_status(
 /// `/cbs/status/settle` -- WaitForMoveComplete per tick: the sway gate it applies. `bound` 0
 /// means it takes crane_mpc's verdict (`verdict` SwaySettled.SETTLED_*) and not the rates;
 /// `still` that gate now, `held`/`hold` its dwell, `msg` what the move still waits for.
+/// The PI recovery hold (`decay_only`, issue 306) publishes it too and asks no sway gate, so
+/// there `verdict`/`still` are 0 because nothing read them; `msg` and `elapsed` are the hold.
 inline std::string settle_status(
   double bound, double rate, int verdict, bool still, double held_s, double hold_s,
   double elapsed_s, const std::string & reason)

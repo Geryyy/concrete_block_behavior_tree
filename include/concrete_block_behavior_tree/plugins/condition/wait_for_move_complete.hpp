@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -88,6 +89,26 @@ namespace concrete_block_behavior_tree
 // /crane/sway_settled, and crane_mpc is its only publisher: on bare
 // `controller:=pid` nothing answers and this instance times out. See
 // wiki/commissioning.md on which switch the lab-day fallback actually is.
+//
+// DECAY-ONLY, THE PI RECOVERY HOLD (issue 306). A loaded waypoint descent leaves
+// the boom 0.007-0.011 rad low -- it keeps lowering ~0.8 s after the command
+// reaches zero (lab day 2026-11-09) -- and the arrival check above passes that at
+// its 0.05 rad goal_tolerance. The hold that gives the JTC's PI time to take it
+// back used to be a bare 5 s Sleep, which does not say whether the error is gone.
+// A third instance with `decay_only` is that hold: the position and rate half at a
+// tight per-joint tolerance, no sway gate (nothing descends onto the sway between
+// here and the next plan, and on the action arm the verdict is the *next* node's
+// business), no plan-duration wait, and no profile gate -- the JTC's PI holds the
+// joints on either arm, so this is the one instance that runs on both. Its timeout
+// is short on purpose: the hold is active, and a loaded active hold pumps the tip
+// mode (issue 234).
+//
+// There the dwell is on the positions as well as the rates, and it has to be: the
+// band is 0.005 rad where the arrival gate's is 0.05, and at `dq_a_bound` 0.01 rad/s
+// a joint crosses the whole of it in 0.5 s. "Inside it on this tick and slow for
+// `hold_s`" is then satisfied by a joint creeping through, and measured: on a
+// descent that left the load swinging 4.7 deg the boom crossed the band twice before
+// settling 1 mrad outside it.
 class WaitForMoveComplete : public BT::StatefulActionNode
 {
 public:
@@ -104,6 +125,12 @@ public:
       // per-joint map, because that file sets the same 0.05 for every joint it
       // actually constrains -- see `joints`.
       BT::InputPort<double>("goal_tolerance", 0.05, "Per-joint position tolerance [rad|m]"),
+      // The exception to that one number, for the joint whose unit is not the
+      // others': the decay hold asks 0.005 rad of boom and arm and 0.02 m of the
+      // telescope, which is ~3 and ~2 cm at the block. Overrides only -- an
+      // unlisted joint takes `goal_tolerance`.
+      BT::InputPort<std::string>(
+        "goal_tolerances", "", "Per-joint overrides, `<joint>:<tolerance>` comma-separated"),
       // Which joints that tolerance is asked of. Empty means every joint the
       // trajectory names, which for a plan off /a2b_movement is wrong; the
       // subtree passes the set the a2b JTC gives a non-zero
@@ -153,6 +180,9 @@ public:
       // whole oracle, on the MPC arm only. True: the settle half, after the
       // action goal on every other arm.
       BT::InputPort<bool>("settle_only", false, "True: the goal arrived; wait for the load"),
+      // The third: the PI recovery hold, on either arm. The joints and their rates
+      // against `goal_tolerances`, and nothing of the load.
+      BT::InputPort<bool>("decay_only", false, "True: wait for the control error to decay"),
     };
   }
 
@@ -171,6 +201,8 @@ private:
   // |measured - planned| for one joint. Caller holds mutex_ and has established
   // that the joint is in both the plan and /joint_states.
   double joint_error(const std::string & joint) const;
+  // What that error is asked to be under: the joint's override, or goal_tolerance.
+  double tolerance_for(const std::string & joint) const;
   // Every checked joint's error, logged on arrival as well as on a miss: the
   // arrival residuals per axis are what a tolerance is sized on, and until
   // issue 241 only the first offending joint of a failed move was ever reported.
@@ -182,6 +214,9 @@ private:
   // them is under it. A joint /joint_states carries no rate for is listed too --
   // "no rate" is not "not moving". Caller holds mutex_.
   std::string moving_joints_text(const JointState & state) const;
+  // Every checked joint inside its tolerance on `state`. False before onStart has a
+  // plan, and false for a joint the state does not carry. Caller holds mutex_.
+  bool in_band(const JointState & state) const;
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
@@ -253,8 +288,15 @@ private:
     kHorizonMaxAge >= kSettledMinHold + kSettledMaxAge,
     "kHorizonMaxAge must outlast a sway dwell that began before the silence");
 
+  // What the sway half gets from kSettledMaxAge, for the position and rate half: a
+  // stream that stopped must not read as arrived off its last sample. 100 Hz, so this
+  // is 100 missed samples, not a late one -- and the decay hold has no other input,
+  // the sway gates it would otherwise have tripped over being dropped there.
+  static constexpr std::chrono::milliseconds kJointStateMaxAge{1000};
+
   mutable std::mutex mutex_;
   std::optional<JointState> joint_state_;
+  std::chrono::steady_clock::time_point joint_state_received_;
   std::optional<SwaySettled> settled_;
   std::chrono::steady_clock::time_point settled_received_;
   // When the current unbroken run of SETTLED_YES began.
@@ -263,18 +305,22 @@ private:
   // tick, so the dwell runs through the plan instead of starting at its end: a move
   // that was already standing still arrives without paying 2.7 s for it.
   std::optional<std::chrono::steady_clock::time_point> dq_a_still_since_;
+  // Same again for the positions, which only the decay hold dwells on.
+  std::optional<std::chrono::steady_clock::time_point> in_band_since_;
   // When the newest horizon arrived, seeded at onStart so that "never published"
   // and "stopped publishing" are one bound.
   std::chrono::steady_clock::time_point horizon_received_;
 
   bool mpc_drives_{false};
   bool settle_only_{false};
+  bool decay_only_{false};
   double sway_bound_{0.0};
   double dq_a_bound_{0.01};
   std::chrono::milliseconds hold_{kSettledMinHold};
   JointTrajectory trajectory_;
   std::vector<std::string> joints_;
   double goal_tolerance_{0.05};
+  std::map<std::string, double> tolerance_;
   int timeout_ms_{120000};
   std::chrono::steady_clock::time_point start_time_;
   // End of the plan on the node's clock, which is sim time under Gazebo. The

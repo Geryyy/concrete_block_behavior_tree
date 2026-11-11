@@ -193,6 +193,74 @@ def test_cbs_a2b_subtree_waits_for_the_load_to_settle_after_the_action():
     assert children.index(guard) > children.index(off)
 
 
+def test_a_loaded_waypoint_descent_holds_until_the_error_has_decayed():
+    """Issue 306: a fixed 5 s Sleep does not say whether the coast is gone.
+
+    After a loaded descent the boom ends 0.007-0.011 rad low and keeps lowering
+    ~0.8 s past a zero command (lab day 2026-11-09), which the arrival wait passes
+    at its 0.05 rad. The hold is the same node again, positions and rates only, at
+    a tenth of that tolerance -- and on either arm, because the PI that takes the
+    coast back is the JTC's whoever commanded the move.
+    """
+    root = ElementTree.parse(CBS_SUBTREE).getroot()
+    holds = [
+        node
+        for node in root.iter("WaitForMoveComplete")
+        if node.get("decay_only") == "true"
+    ]
+    assert len(holds) == 1, "exactly one hold, and it is not a new node type"
+    hold = holds[0]
+    assert not [
+        node for node in root.iter("Sleep") if node.get("name") == "PI recovery hold"
+    ]
+
+    # The Sleep's own guard: loaded waypoint descents, never the landing stroke
+    # (the block is already down) and never an empty move.
+    assert hold.get("_skipIf") == "ex_until_landed || !ex_watch_landed"
+    assert hold.get("goal_tolerance") == "{ex_hold_tolerance}"
+    # Boom, arm and telescope: what a vertical descent commands. The slew and
+    # rotator stop ~5 mrad short of any goal and nothing here drives them back, so
+    # a tight gate on them would only ever time out.
+    assert hold.get("joints").split(",") == [
+        "theta2_boom_joint",
+        "theta3_arm_joint",
+        "q4_big_telescope",
+    ]
+    # This hold is active, and a loaded active hold pumps the tip mode (issue 234),
+    # so its timeout -- the bound on that -- stays far under the move's 120 s.
+    assert int(hold.get("timeout_ms")) <= 20000
+
+    # Before the deactivate: the PI only corrects while the controller is active,
+    # which is the opposite of where the settle wait has to be.
+    parent = next(node for node in root.iter("Sequence") if hold in list(node))
+    children = list(parent)
+    off = next(
+        node
+        for node in children
+        if node.get("deactivate_controllers") == "trajectory_controller_a2b"
+    )
+    assert children.index(hold) < children.index(off)
+
+    # Every tree that asks for a loaded waypoint descent sets the tolerance: the
+    # blackboard is shared, and unset leaves the node's own 0.05 -- a hold that
+    # passes on the coast it exists to wait out.
+    for tree in (
+        ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
+        .getroot()
+        .iter("BehaviorTree")
+    ):
+        if not any(
+            "ex_watch_landed := true" in (node.get("code") or "")
+            for node in tree.iter("Script")
+        ):
+            continue
+        assert [
+            node.get("value")
+            for node in tree.iter("SetBlackboard")
+            if node.get("output_key") == "ex_hold_tolerance"
+        ] == ["0.005"], tree.get("ID")
+
+
 def test_the_short_arrival_dwell_is_asked_for_only_where_the_hook_is_empty():
     """Issue 255: the 2.7 s dwell is one period of the *carried* pendulum.
 

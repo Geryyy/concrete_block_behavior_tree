@@ -7,7 +7,9 @@
 // -- plus the three ways it could say "arrived" about a move that did not
 // happen, and the profile gate that keeps the action path for `pid`. On that
 // path the same node runs again after the goal as the settle wait (issue 220),
-// so the tree below is the subtree's shape, both instances included.
+// and on a loaded waypoint descent a third time as the PI recovery hold
+// (issue 306: the joints alone, at a tenth of the arrival tolerance), so the
+// tree below is the subtree's shape, all three instances included.
 
 #include <gtest/gtest.h>
 
@@ -68,11 +70,16 @@ struct Outcome
   BT::NodeStatus status;
   // 1 if the sibling that stands in for the FollowJointTrajectory goal ran.
   int commanded;
+  // 1 if the PI recovery hold passed; 0 if it failed or was skipped.
+  int held;
   std::chrono::milliseconds elapsed;
 };
 
 // The subtree's shape: the arrival oracle, the action goal that runs instead of
-// it off the MPC arm, and the settle wait that follows that goal (issue 220).
+// it off the MPC arm, the PI recovery hold on the loaded waypoint descents
+// (issue 306, on either arm) and the settle wait that follows the goal (220).
+// The hold's 0.003 is the tight tolerance the coast is waited out at, and its
+// one override stands for the subtree's telescope, whose tolerance is metres.
 constexpr char kTree[] =
   R"(<root BTCPP_format="4">
        <BehaviorTree ID="T">
@@ -80,6 +87,11 @@ constexpr char kTree[] =
            <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
              joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD" mpc_drives="{mpc_drives}"/>
            <Script _skipIf="mpc_drives" code="commanded := 1"/>
+           <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.003"
+             goal_tolerances="theta1_slewing_joint:0.05" decay_only="true"
+             joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD"
+             _skipIf="ex_until_landed || !ex_watch_landed"/>
+           <Script _skipIf="ex_until_landed || !ex_watch_landed" code="held := 1"/>
            <Sequence _skipIf="ex_until_landed">
              <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
                joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD" mpc_drives="{mpc_drives}"
@@ -116,11 +128,15 @@ std::string tree_text(int timeout_ms, double hold_s)
 // goes quiet, because the publisher count drops to zero.
 // `hold_s` is the dwell both arrival gates have to hold, defaulted to the loaded
 // 2.7 s so that every case above it reads as the move it was written for.
+// `watch_landed` is a loaded descent to a waypoint, the one move the PI recovery
+// hold runs on. `state_ticks` >= 0 stops /joint_states that many ticks in, which is
+// the broadcaster dying mid-move -- the one input the hold has.
 Outcome run(
   bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
   int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
   bool until_landed = false, bool with_producer = true, int horizon_ticks = -1,
-  int producer_dies_after_ticks = -1, double hold_s = 2.7)
+  int producer_dies_after_ticks = -1, double hold_s = 2.7, bool watch_landed = false,
+  int state_ticks = -1)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
@@ -139,8 +155,10 @@ Outcome run(
   blackboard->set<rclcpp::Node::SharedPtr>("node", node);
   blackboard->set<JointTrajectory>("trajectory", goal_trajectory(plan_seconds));
   blackboard->set<int>("commanded", 0);
-  // Every caller of the subtree sets this before the SubTree call.
+  blackboard->set<int>("held", 0);
+  // Every caller of the subtree sets these before the SubTree call.
   blackboard->set<bool>("ex_until_landed", until_landed);
+  blackboard->set<bool>("ex_watch_landed", watch_landed);
 
   BT::BehaviorTreeFactory factory;
   factory.registerNodeType<WaitForMoveComplete>("WaitForMoveComplete");
@@ -153,7 +171,9 @@ Outcome run(
   const auto deadline = started + std::chrono::milliseconds(timeout_ms + 3000);
   BT::NodeStatus status = BT::NodeStatus::RUNNING;
   for (int tick = 0; std::chrono::steady_clock::now() < deadline; ++tick) {
-    state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
+    if (state_ticks < 0 || tick < state_ticks) {
+      state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
+    }
     if (horizon_ticks < 0 || tick < horizon_ticks) {
       horizon_pub->publish(JointTrajectory());
     }
@@ -170,7 +190,7 @@ Outcome run(
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
   return {
-    status, blackboard->get<int>("commanded"),
+    status, blackboard->get<int>("commanded"), blackboard->get<int>("held"),
     std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now() - started)};
 }
@@ -295,6 +315,103 @@ TEST(WaitForMoveComplete, does_not_let_the_action_arm_move_on_from_a_swinging_lo
   const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 1);
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_ends_a_loaded_descent_once_the_error_has_decayed)
+{
+  // Issue 306, and on both arms: the JTC's PI holds the joints whoever commanded
+  // the move, so the hold is the one instance the action arm does not skip.
+  // theta1 stands 0.02 off, which only its override allows -- in the subtree that
+  // override is the telescope, 0.02 m being the same ~2 cm at the block as the
+  // 0.003 rad asked of boom and arm, and a millimetre gate on a prismatic axis
+  // would time out on every descent.
+  for (const bool mpc_drives : {true, false}) {
+    const auto outcome = run(
+      mpc_drives, measured(0.98, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true,
+      -1, -1, 0.3, true);
+    EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS) << "mpc_drives=" << mpc_drives;
+    EXPECT_EQ(outcome.held, 1) << "mpc_drives=" << mpc_drives;
+  }
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_fails_on_a_coast_the_arrival_gate_passed)
+{
+  // The lab day's 0.007-0.011 rad of boom coast, as 0.02 here: inside the move's
+  // 0.05 rad arrival tolerance -- which is why the arrival check never caught it --
+  // and well over the hold's 0.003. The fixed 5 s Sleep that used to stand here
+  // ended whatever the residual was; the timeout now fails the goal instead of
+  // measuring the block off a boom that never came back.
+  const auto outcome = run(
+    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 3000, -1, 0, 0.2, false, true, -1, -1,
+    0.3, true);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(outcome.commanded, 1);  // the move itself arrived
+  EXPECT_EQ(outcome.held, 0);
+  // At its own timeout and not hanging: the hold is active, and a loaded active hold
+  // pumps the tip mode (issue 234), so the timeout is the bound on it.
+  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(5000));
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_dwells_on_the_position_and_not_only_on_the_rate)
+{
+  // The band is 0.003 rad and dq_a_bound 0.01 rad/s, so a joint creeping under the
+  // bound crosses the whole band in 0.3 s: inside it on one tick is not "decayed".
+  // Here the joints are 1 rad out for the first second and their reported rate is
+  // zero throughout, so the rate dwell completes while the move is nowhere near its
+  // goal -- a hold that dwelled on the rate alone would pass at 1.0 s.
+  const auto outcome = run(
+    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 50, 0.2, false, true, -1,
+    -1, 1.0, true);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(outcome.held, 1);
+  // 1 s out of band, then the 1 s dwell, then the settle wait's own 1 s: 3 s. Without
+  // the dwell on the positions the hold would end at 1 s and the tree at 2.
+  EXPECT_GE(outcome.elapsed, std::chrono::milliseconds(2800));
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_refuses_a_joint_state_stream_that_stopped)
+{
+  // The hold has no second input: no sway verdict, so neither kSettledMaxAge nor the
+  // publisher count covers it. With /joint_states gone the dwells would run out on a
+  // frozen sample and the hold would report the error decayed, with the controller
+  // still active over the slot and the measurement that follows taken off the same
+  // dead state. The stream stops 0.4 s in, which is inside the dwell.
+  const auto outcome = run(
+    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 6000, -1, 0, 0.2, false, true, -1, -1,
+    2.7, true, 20);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
+  EXPECT_EQ(outcome.held, 0);
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_runs_on_no_other_move)
+{
+  // The same 0.02 coast, which the hold would fail. On a landing descent the block
+  // is on the ground and WaitForLoadOff ended the move; on every other move the
+  // 0.05 arrival gate is the whole test and nothing descends onto the residual.
+  // Skipped, not waited out: a hold on each would cost a run its empty moves.
+  const auto landing = run(
+    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, true, true, -1, -1,
+    0.3, true);
+  const auto empty = run(
+    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true, -1, -1,
+    0.3, false);
+  EXPECT_EQ(landing.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(landing.held, 0);
+  EXPECT_EQ(empty.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(empty.held, 0);
+}
+
+TEST(WaitForMoveComplete, the_recovery_hold_asks_nothing_of_the_load)
+{
+  // It gates the joints and their rates and no verdict, so it passes where nothing
+  // publishes one -- `controller:=pid` starts no crane_mpc. The settle wait after
+  // it is what fails that run, which is the decision issue 220 took; the hold must
+  // not fail it a second time, and for a question it never asks.
+  const auto outcome = run(
+    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 0, 0.2, false, false, -1,
+    -1, 0.3, true);
+  EXPECT_EQ(outcome.held, 1);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
 }
 
 TEST(WaitForMoveComplete, leaves_a_landing_descent_to_wait_for_load_off)
