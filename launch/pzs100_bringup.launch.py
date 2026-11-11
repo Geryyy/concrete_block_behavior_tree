@@ -18,15 +18,6 @@ from launch_ros.substitutions import FindPackageShare
 # they differ only in the node's `mode`.
 CBS_MPC_CONTROLLERS = ("cbs_mpc", "cbs_mpc_active")
 
-CONTROLLER_YAML = (
-    "ros2_control/crane_controller_hydraulic_a2b_jtc_{}_pzs100.ros2_control.yaml"
-)
-#: The crane's own gains, PID mode included. Never edited for an MPC experiment.
-PID_YAML = CONTROLLER_YAML.format("pid")
-MPC_YAML = CONTROLLER_YAML.format("mpc")
-#: PID_YAML with the boom and arm PI scaled; `cbs_mpc*` only, off by default (310).
-CBS_MPC_PID_YAML = CONTROLLER_YAML.format("pid_cbs_mpc")
-
 
 def reject_cbs_mpc_without_cbs_planner(context, *_args, **_kwargs):
     """
@@ -73,13 +64,9 @@ def generate_launch_description():
     ctrl_package = "concrete_block_behavior_tree"
     ctrl_config = PythonExpression(
         [
-            f"'{MPC_YAML}' if '",
+            "'ros2_control/crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml' if '",
             controller,
-            f"' == 'mpc' else '{CBS_MPC_PID_YAML}' if ('",
-            controller,
-            f"' in {CBS_MPC_CONTROLLERS} and '",
-            LaunchConfiguration("cbs_mpc_jtc_overlay"),
-            f"' == 'True') else '{PID_YAML}'",
+            "' == 'mpc' else 'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml'",
         ]
     )
 
@@ -107,21 +94,6 @@ def generate_launch_description():
                     "'cbs_mpc_active' composes identically but puts that node "
                     "in active mode, so its horizon drives the JTC. Both "
                     "cbs_mpc values require planner:=cbs"
-                ),
-            ),
-            DeclareLaunchArgument(
-                "cbs_mpc_jtc_overlay",
-                default_value="False",
-                choices=["True", "False"],
-                description=(
-                    "Load the boom/arm-damped JTC gains instead of the deployed "
-                    "ones, on the two cbs_mpc* values only. The inner PI closes "
-                    "around the MPC's own horizon positions, so it pulls back "
-                    "against its damping motion (issue 310). False = today's "
-                    "gains, and PID mode never sees it either way. Gazebo only: "
-                    "the machine's trajectory_controller_a2b is started outside "
-                    "this workspace. On 'cbs_mpc' (shadow) the horizon does not "
-                    "drive, so there it only costs tracking."
                 ),
             ),
             # Off by default, because the behaviour tree is the other caller and
