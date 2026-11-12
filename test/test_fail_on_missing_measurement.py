@@ -112,3 +112,30 @@ def test_every_capture_reads_a_fresh_refine():
                 )
                 assert prev.get("mode", "").startswith("REFINE_"), xml.name
                 assert prev.get("target_block_id") == node.get("block_id"), xml.name
+
+
+def test_a_failed_grip_registration_opens_the_jaws_on_the_ground():
+    """A clamped block left TASK_FREE is lifted empty on restart and dropped from the hover."""
+    root = ElementTree.parse(TREE_DIR / "subtree_pick_block.xml").getroot()
+    tree = next(
+        e for e in root.iter("BehaviorTree") if e.get("ID") == "SubTreePickFromHover"
+    )
+    fallback = next(
+        e for e in tree.iter("Fallback") if e.get("name") == "register_grip_or_release"
+    )
+    register, release = list(fallback)
+    ids = [e.get("ID") or e.tag for e in register.iter()]
+    for step in ("RunPoseEstimation", "CaptureBlockGraspOffset", "SetMpcPayload"):
+        assert step in ids
+    assert ids[-1] == "SetBlockTaskStatus", (
+        "status last: any failure leaves the block free"
+    )
+    phases = [
+        e.get("value")
+        for e in release.iter("SetBlackboard")
+        if e.get("output_key") == "gr_phase"
+    ]
+    assert phases == ["3"] and list(release)[-1].tag == "AlwaysFailure"
+    # The release never runs after the lift: the block is still on the ground.
+    order = [e.get("ID") or e.get("name") for e in tree.iter()]
+    assert order.index("register_grip_or_release") < order.index("SubTreeLift")
