@@ -150,6 +150,7 @@ void seed_task(const BT::Blackboard::Ptr & blackboard)
     blackboard->set(key, 0.0);
   }
   blackboard->set("grasp_object_contains", std::string("block_0"));
+  blackboard->set("moving_block_id", std::string());
   blackboard->set("log_shape_text", std::string("radius_top: 0.541, radius_bottom: 0.541"));
   // The block where the step aimed it: place_z + 0.45 with every place_* zero. Lower and
   // SubTreePlaceApproach's own height gate fails the pass, which is not what is under test.
@@ -279,6 +280,21 @@ TEST(TfStall, a_transient_target_angle_failure_is_retried_and_a_persistent_one_f
     BT::NodeStatus::SUCCESS);
   EXPECT_EQ(
     tick_subtree(node, "SubTreePickBlock", "OptimizeTargetAngle"), BT::NodeStatus::FAILURE);
+}
+
+// Issue 327: with another block TASK_MOVE the pick would lift it as an empty hook and open the
+// jaws over this one. GetBlockTaskStatus names it; the pick must not start.
+TEST(NoDrop, a_pick_does_not_start_while_a_block_is_task_move)
+{
+  auto node = std::make_shared<rclcpp::Node>("test_no_drop");
+  BT::BehaviorTreeFactory factory;
+  stub_out_leaf_plugins(factory, nullptr, true);
+  factory.registerBehaviorTreeFromFile((trees_path() / "wall_assembly.xml").string());
+  auto blackboard = server_blackboard(node);
+  seed_task(blackboard);
+  blackboard->set("moving_block_id", std::string("block_5"));
+  auto tree = factory.createTree("SubTreePickBlock", blackboard);
+  EXPECT_EQ(tick_to_completion(tree), BT::NodeStatus::FAILURE);
 }
 
 int main(int argc, char ** argv)

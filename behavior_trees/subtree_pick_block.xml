@@ -5,6 +5,12 @@
        in; leaves the arm holding the block. -->
   <BehaviorTree ID="SubTreePickBlock">
     <Sequence name="pick_block">
+      <!-- Nothing in the jaws (327): a clamped block would be lifted as an empty hook and
+           dropped where the jaws open at the hover. Shut and empty passes, a first run starts so. -->
+      <ScriptCondition name="A block is TASK_MOVE - set it down by hand, reset it to TASK_FREE"
+        code="moving_block_id == ''"/>
+      <Action ID="WaitForGraspSignal" name="Jaws may hold a block - check the hook before a pick"
+        topic="/gripper/jaws_empty" timeout_ms="2000"/>
 
       <!-- 0. A raised pickup (truck bed, block centre over K0 z -0.5) via the start pose's
            direction, folded in: stretched out over the wall, no corridor to the bed survived
@@ -68,15 +74,15 @@
       <Script code="ex_until_landed := false; ex_watch_landed := false; load_off := false"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
 
-      <!-- 3. Close gripper -->
-      <SetBlackboard output_key="gr_phase" value="2"/>
-      <SetBlackboard output_key="gr_carries" value="false"/>
-      <SubTree ID="SubTreeGripper" _autoremap="true"/>
-
-      <!-- Block still on the ground: a failure here opens the jaws before the goal fails, so a
-           restart never lifts a clamped block it thinks is free. Status goes last. -->
+      <!-- Block still on the ground: a failure here, the close included, opens the jaws before
+           the goal fails, so a restart never lifts a clamped block it thinks is free. Status
+           goes last. -->
       <Fallback name="register_grip_or_release">
         <Sequence name="register_grip">
+          <!-- 3. Close gripper -->
+          <SetBlackboard output_key="gr_phase" value="2"/>
+          <SetBlackboard output_key="gr_carries" value="false"/>
+          <SubTree ID="SubTreeGripper" _autoremap="true"/>
           <!-- 4. Verify grasp signal + register block as in-hand -->
           <Action ID="WaitForGraspSignal" name="Wait for grasp detector"
             topic="/gripper/grasp_detected"

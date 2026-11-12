@@ -52,6 +52,16 @@ BT::NodeStatus GetBlockTaskStatus::on_completion(std::shared_ptr<ResponseT> resp
   }
 
   setOutput("task_status", static_cast<int>(it->task_status));
+  const auto moving = std::find_if(
+    blocks.begin(), blocks.end(),
+    [](const auto & b) {return b.task_status == Block::TASK_MOVE;});
+  setOutput("moving_block_id", moving == blocks.end() ? std::string() : moving->id);
+  if (moving != blocks.end() && moving->id != block_id_) {
+    RCLCPP_ERROR(
+      node_->get_logger(),
+      "GetBlockTaskStatus: '%s' is TASK_MOVE while '%s' is served - no pick until it is set "
+      "down and reset to TASK_FREE", moving->id.c_str(), block_id_.c_str());
+  }
 
   // The operator-facing half of issue 274: this is the one status that changes what the tree
   // does next, and the recovery is not something the tree can do for them.

@@ -11,7 +11,7 @@
            up again would descend on wherever the hook happened to stop. -->
       <GetBlockTaskStatus service_name="/world_model_node/get_coarse_blocks"
         server_timeout="5000" block_id="{grasp_object_contains}"
-        task_status="{block_task_status}"/>
+        task_status="{block_task_status}" moving_block_id="{moving_block_id}"/>
       <IfThenElse>
         <!-- Block.TASK_MOVE -->
         <ScriptCondition code="block_task_status == 2"/>

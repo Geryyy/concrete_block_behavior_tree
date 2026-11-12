@@ -34,6 +34,8 @@ public:
       {
         BT::InputPort<std::string>("block_id", "Block ID to look up"),
         BT::OutputPort<int>("task_status", "Block task_status (TASK_MOVE = 2, TASK_PLACED = 3)"),
+        BT::OutputPort<std::string>(
+          "moving_block_id", "A TASK_MOVE block, any id, empty if none (327)"),
       });
   }
 

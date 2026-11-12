@@ -105,6 +105,9 @@
                   approach_z="{place_approach_z}"/>
                 <Sequence>
                   <ScriptCondition code="plan_ok &amp;&amp; plan_has_task"/>
+                  <!-- The discovery move is an empty-hook one (327). -->
+                  <Action ID="WaitForGraspSignal" name="Jaws may hold a block - no discovery move"
+                    topic="/gripper/jaws_empty" timeout_ms="2000"/>
                   <!-- Back over the last pickup first: from the wall the column-mounted lidar
                        looks away, and at the lift the lifted block still hid the next one. The
                        plan's survey_position comes back as pickup_* (off the line of sight, so

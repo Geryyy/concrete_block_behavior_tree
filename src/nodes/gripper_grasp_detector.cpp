@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -26,10 +27,18 @@ public:
     hold_time_s_ = declare_parameter<double>("hold_time_s", 0.5);
     signal_duration_s_ = declare_parameter<double>("signal_duration_s", 1.0);
     publish_rate_hz_ = declare_parameter<double>("publish_rate_hz", 20.0);
+    // Open stop 0.538; a held block stops q9 at 0.1-0.22, an empty close runs to ~0.0.
+    jaws_open_min_ = declare_parameter<double>("jaws_open_min", 0.45);
+    jaws_shut_max_ = declare_parameter<double>("jaws_shut_max", 0.03);
 
     validateParameters();
 
     grasp_pub_ = create_publisher<std_msgs::msg::Bool>(output_topic_, rclcpp::QoS(10).transient_local());
+    // jaws_empty: no block can be between them, q9 open or shut. Both false on a stale q9.
+    jaws_empty_pub_ = create_publisher<std_msgs::msg::Bool>(
+      "/gripper/jaws_empty", rclcpp::QoS(10).transient_local());
+    jaws_open_pub_ = create_publisher<std_msgs::msg::Bool>(
+      "/gripper/jaws_open", rclcpp::QoS(10).transient_local());
     joint_sub_ = create_subscription<sensor_msgs::msg::JointState>(
       joint_states_topic_,
       rclcpp::QoS(100),
@@ -38,7 +47,10 @@ public:
     const auto publish_period = std::chrono::duration<double>(1.0 / publish_rate_hz_);
     publish_timer_ = create_wall_timer(
       std::chrono::duration_cast<std::chrono::nanoseconds>(publish_period),
-      [this]() { publishSignal(); });
+      [this]() {
+        publishSignal();
+        publishJawsEmpty();
+      });
 
     RCLCPP_INFO(
       get_logger(),
@@ -112,6 +124,10 @@ private:
       return;
     }
 
+    q9_position_ = msg->position[idx];
+    q9_received_ = std::chrono::steady_clock::now();
+    have_q9_ = true;
+
     const auto stamp = sampleTime(*msg);
     if (have_last_sample_time_ && stamp < last_sample_time_) {
       resetCandidate();
@@ -168,6 +184,18 @@ private:
     grasp_pub_->publish(msg);
   }
 
+  void publishJawsEmpty()
+  {
+    const bool fresh = have_q9_ &&
+      std::chrono::steady_clock::now() - q9_received_ < std::chrono::milliseconds(500);
+    std_msgs::msg::Bool open;
+    open.data = fresh && q9_position_ >= jaws_open_min_;
+    std_msgs::msg::Bool empty;
+    empty.data = open.data || (fresh && q9_position_ <= jaws_shut_max_);
+    jaws_open_pub_->publish(open);
+    jaws_empty_pub_->publish(empty);
+  }
+
   void resetCandidate()
   {
     candidate_active_ = false;
@@ -183,6 +211,11 @@ private:
   double hold_time_s_{0.5};
   double signal_duration_s_{1.0};
   double publish_rate_hz_{20.0};
+  double jaws_open_min_{0.45};
+  double jaws_shut_max_{0.03};
+  double q9_position_{0.0};
+  bool have_q9_{false};
+  std::chrono::steady_clock::time_point q9_received_;
 
   bool candidate_active_{false};
   bool triggered_for_candidate_{false};
@@ -194,6 +227,8 @@ private:
 
   rclcpp::Subscription<JointState>::SharedPtr joint_sub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr grasp_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr jaws_empty_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr jaws_open_pub_;
   rclcpp::TimerBase::SharedPtr publish_timer_;
 };
 

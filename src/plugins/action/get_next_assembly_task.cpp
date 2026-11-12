@@ -70,6 +70,14 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   // path never wrote (303).
   setOutput("plan_has_task", response->has_task);
   setOutput("plan_message", response->message);
+  // No plan loaded, or the server refused: not a finished wall, which PlanComplete would report
+  // SUCCEEDED (327). plan_ok stays false, so no discovery move runs on it either.
+  if (!response->success && !response->has_task) {
+    RCLCPP_ERROR(
+      node_->get_logger(), "GetNextAssemblyTask: %s", response->message.c_str());
+    setOutput("plan_has_task", true);
+    return BT::NodeStatus::FAILURE;
+  }
 
   geometry_msgs::msg::PoseStamped pickup, pickup_approach, target, reference, approach;
   if (response->has_task) {

@@ -104,6 +104,38 @@ TEST(GetNextAssemblyTask, a_pose_it_could_not_transform_leaves_plan_ok_false)
   EXPECT_TRUE(frozen->get<bool>("plan_has_task"));
 }
 
+// Issue 327: a server with no plan loaded (restarted, or never activated) answered
+// success=false has_task=false, and PlanComplete turned that into a SUCCEEDED wall.
+TEST(GetNextAssemblyTask, no_active_plan_is_a_failed_task_not_a_finished_wall)
+{
+  auto server_node = std::make_shared<rclcpp::Node>("test_no_plan_server");
+  auto service = server_node->create_service<GetNextAssemblyTask>(
+    "get_next_assembly_task",
+    [](const std::shared_ptr<GetNextAssemblyTask::Request>,
+    std::shared_ptr<GetNextAssemblyTask::Response> response) {
+      response->success = false;
+      response->has_task = false;
+      response->message = "No active wall plan.";
+    });
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(server_node);
+  std::thread spinner([&executor]() {executor.spin();});
+
+  BT::BehaviorTreeFactory factory;
+  factory.registerNodeType<GetNextAssemblyTaskService>("GetNextAssemblyTask");
+  auto node = std::make_shared<rclcpp::Node>("test_no_plan");
+  auto blackboard = blackboard_for(node);
+  auto tree = factory.createTreeFromText(tree_text("K0_mounting_base"), blackboard);
+  const BT::NodeStatus status = tree.tickWhileRunning();
+
+  executor.cancel();
+  spinner.join();
+
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+  EXPECT_TRUE(blackboard->get<bool>("plan_has_task"));
+  EXPECT_FALSE(blackboard->get<bool>("plan_ok"));  // no discovery move on it either
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

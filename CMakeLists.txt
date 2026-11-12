@@ -162,6 +162,10 @@ if(BUILD_TESTING)
     test/test_retry_with_block_in_jaws.py
   )
   ament_add_pytest_test(
+    test_no_drop_on_restart
+    test/test_no_drop_on_restart.py
+  )
+  ament_add_pytest_test(
     test_survey_before_first_pick
     test/test_survey_before_first_pick.py
   )
