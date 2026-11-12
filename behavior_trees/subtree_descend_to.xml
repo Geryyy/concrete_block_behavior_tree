@@ -14,7 +14,16 @@
           yN_x="{dz_x}" yN_y="{dz_y}" yN_z="{dz_z}"
           phiN="{dz_yaw}"
           goal="{COG}" phi="{phi}"/>
-        <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
+        <!-- A stalled /tf fails this lookup too, and the descent has no retry of its own at
+             all: same spaced retry as in subtree_move_above.xml (issue 320). -->
+        <Decorator ID="RetryUntilSuccessful" num_attempts="6" name="wait_out_tf_stall">
+          <Fallback>
+            <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
+            <Decorator ID="Delay" delay_msec="500">
+              <AlwaysFailure/>
+            </Decorator>
+          </Fallback>
+        </Decorator>
         <Action ID="CalcGripMovement" name="Plan descend"
           carriesLog="{dz_carries}" logShapeText="{log_shape_text}" phase="1"
           phiToolN="{phi}" service_name="grip_traj_movement"

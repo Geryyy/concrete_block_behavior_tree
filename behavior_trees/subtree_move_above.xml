@@ -52,7 +52,26 @@
         yN_x="{mv_x}" yN_y="{mv_y}" yN_z="{mv_z}"
         phiN="{mv_yaw}"
         goal="{yN}" phi="{phi}"/>
-      <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
+      <!-- The node stamps now() and fails the move when the TCP transform is behind it
+           ("extrapolation into the future"). Issue 320: 21 s into a wall goal the
+           K8_tool_center_point transform stood still at sim 39.392 while now() ran on, both
+           attempts of replan_on_missed_goal hit it 0.69 s apart and the goal aborted before
+           the crane moved (records/analysis_317/wall_rec). Under load the publisher catches up,
+           so retry the lookup alone with wall time between the attempts: ~6 s of cover, the
+           0.5 s the node's own tf2 wait blocks for plus 0.5 s here, six times. A /tf that stays
+           silent past that is an outage, and still fails the move with the node's own message,
+           ~12 s in, replan_on_missed_goal having run the whole move twice. -->
+      <Decorator ID="RetryUntilSuccessful" num_attempts="6" name="wait_out_tf_stall">
+        <Fallback>
+          <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
+          <!-- RetryUntilSuccessful re-ticks a synchronous child without letting time pass, so
+               the spacing has to come from here: a failed attempt waits, then reports failure.
+               The last attempt pays the wait too, for nothing. -->
+          <Decorator ID="Delay" delay_msec="500">
+            <AlwaysFailure/>
+          </Decorator>
+        </Fallback>
+      </Decorator>
       <Action ID="CalcA2BMovement" name="Plan approach"
         carriesLog="{mv_carries}" logCarryingText="{log_shape_text}" logsScene="{logsScene}"
         m_log="{payload_mass}" phiToolN="{phi}"

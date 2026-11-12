@@ -61,9 +61,14 @@ std::vector<fs::path> xml_files(const fs::path & dir)
 // /gpio_controller/remote_ctrl_states, and the wait_*_msg family likewise) and stay RUNNING
 // for ever with nothing publishing. It drops their children with them, so the construction
 // test above leaves them in.
+//
+// `flaky` fails `flaky_failures` ticks, succeeds on the next and repeats -- a /tf stall that
+// clears and comes back (issue 320). One counter for every instance in the tree, so the
+// pattern has to recur: a stub that only fails once is absorbed by the first call site and the
+// later ones never see a failure at all.
 void stub_out_leaf_plugins(
   BT::BehaviorTreeFactory & factory, const char * failing = nullptr,
-  bool with_decorators = false)
+  bool with_decorators = false, const char * flaky = nullptr, int flaky_failures = 0)
 {
   std::set<std::string> builtins;
   for (const auto & [name, manifest] : factory.manifests()) {
@@ -89,6 +94,16 @@ void stub_out_leaf_plugins(
     // PlanComplete reads nothing but the blackboard, and it is what tells a finished plan
     // from a failed task: stubbed to SUCCESS it reports every failure as a finished wall.
     if (name == "PlanComplete") {
+      continue;
+    }
+    if (flaky != nullptr && name == flaky) {
+      auto config = std::make_shared<BT::TestNodeConfig>();
+      auto ticks = std::make_shared<int>(0);
+      config->complete_func = [ticks, flaky_failures]() {
+          const bool fails = (*ticks)++ % (flaky_failures + 1) < flaky_failures;
+          return fails ? BT::NodeStatus::FAILURE : BT::NodeStatus::SUCCESS;
+        };
+      factory.addSubstitutionRule(name, config);
       continue;
     }
     if (manifest.type == BT::NodeType::ACTION || manifest.type == BT::NodeType::CONDITION ||
@@ -141,21 +156,26 @@ void seed_task(const BT::Blackboard::Ptr & blackboard)
   blackboard->set("meas_z", 0.45);
 }
 
-// Bounded, so a node left RUNNING fails the test here instead of timing the whole binary out.
+// Bounded in wall time, not in ticks: the /tf retry of issue 320 waits between its attempts,
+// and a tick budget would spin through the wait in microseconds and report a RUNNING tree.
+// A node left RUNNING still fails the test here instead of timing the whole binary out.
 BT::NodeStatus tick_to_completion(BT::Tree & tree)
 {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(25);
   BT::NodeStatus status = BT::NodeStatus::RUNNING;
-  for (int tick = 0; tick < 2000 && status == BT::NodeStatus::RUNNING; ++tick) {
+  while (status == BT::NodeStatus::RUNNING && std::chrono::steady_clock::now() < deadline) {
     status = tree.tickExactlyOnce();
+    tree.sleep(std::chrono::milliseconds(5));  // as the server does; a wake-up ends it early
   }
   return status;
 }
 
 BT::NodeStatus tick_subtree(
-  const rclcpp::Node::SharedPtr & node, const std::string & tree_id, const char * failing)
+  const rclcpp::Node::SharedPtr & node, const std::string & tree_id, const char * failing,
+  const char * flaky = nullptr, int flaky_failures = 0)
 {
   BT::BehaviorTreeFactory factory;
-  stub_out_leaf_plugins(factory, failing, true);
+  stub_out_leaf_plugins(factory, failing, true, flaky, flaky_failures);
   factory.registerBehaviorTreeFromFile((trees_path() / "wall_assembly.xml").string());
   auto blackboard = server_blackboard(node);
   seed_task(blackboard);
@@ -241,6 +261,24 @@ TEST(FailLoud, a_failing_get_next_assembly_task_fails_the_goal_without_an_except
   BT::NodeStatus status = BT::NodeStatus::IDLE;
   ASSERT_NO_THROW({status = tick_to_completion(tree);});
   EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+}
+
+// Issue 320. OptimizeTargetAngle stamps now() and looks the TCP transform up: 21 s into a wall
+// goal the transform stood still, both attempts of replan_on_missed_goal hit it 0.69 s apart
+// and the goal aborted before the crane moved. Retrying the lookup alone, with wall time
+// between the attempts, gets past a stall the publisher recovers from; a silent /tf must still
+// fail the move. SubTreePickBlock reaches both call sites, SubTreeMoveAbove and
+// SubTreeDescendTo, and three failures in a row at each is red without the retry at that one.
+TEST(TfStall, a_transient_target_angle_failure_is_retried_and_a_persistent_one_fails)
+{
+  auto node = std::make_shared<rclcpp::Node>("test_tf_stall");
+  // Three: more than replan_on_missed_goal's two attempts of the whole move can absorb, so
+  // only a retry of the lookup itself gets past them, and the descent has no outer retry.
+  EXPECT_EQ(
+    tick_subtree(node, "SubTreePickBlock", nullptr, "OptimizeTargetAngle", 3),
+    BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(
+    tick_subtree(node, "SubTreePickBlock", "OptimizeTargetAngle"), BT::NodeStatus::FAILURE);
 }
 
 int main(int argc, char ** argv)
