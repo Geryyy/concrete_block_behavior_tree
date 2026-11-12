@@ -62,6 +62,8 @@ add_bt_plugin(BT_cb_evaluate_pickup_residual_action src/plugins/action/evaluate_
 add_bt_plugin(BT_cb_publish_gripper_state_action src/plugins/action/publish_gripper_state.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_set_mpc_payload_action src/plugins/action/set_mpc_payload.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_get_slow_down_action src/plugins/action/get_slow_down.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
+add_bt_plugin(BT_cb_iterate_survey_poses_decorator
+  src/plugins/decorator/iterate_survey_poses.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 add_executable(gripper_grasp_detector
   src/nodes/gripper_grasp_detector.cpp
@@ -107,6 +109,9 @@ if(BUILD_TESTING)
   ament_add_gtest(test_set_mpc_payload test/test_set_mpc_payload.cpp)
   target_link_libraries(test_set_mpc_payload BT_cb_set_mpc_payload_action)
   ament_target_dependencies(test_set_mpc_payload ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  ament_add_gtest(test_survey_site test/test_survey_site.cpp)
+  target_link_libraries(test_survey_site BT_cb_iterate_survey_poses_decorator)
+  ament_target_dependencies(test_survey_site ${THIS_PACKAGE_INCLUDE_DEPENDS})
   # Header-only `/cbs/status/*` formatting; no plugin, no ROS graph.
   ament_add_gtest(test_status_text test/test_status_text.cpp)
   ament_add_gtest(test_capture_block_grasp_offset test/test_capture_block_grasp_offset.cpp)
@@ -155,6 +160,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_retry_with_block_in_jaws
     test/test_retry_with_block_in_jaws.py
+  )
+  ament_add_pytest_test(
+    test_survey_before_first_pick
+    test/test_survey_before_first_pick.py
   )
 endif()
 

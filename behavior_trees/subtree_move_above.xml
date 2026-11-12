@@ -1,7 +1,8 @@
 <root BTCPP_format="4">
   <!-- Collision-aware A2B move to an approach pose above a target.
        Caller sets on the (shared) blackboard before invoking:
-         mv_x, mv_y, mv_z, mv_yaw  - approach pose (world)
+         mv_x, mv_y, mv_z, mv_yaw  - approach pose, planning frame K0_mounting_base (not
+                                     world: that is what GetNextAssemblyTask hands over)
          mv_carries                - "true"/"false": carrying a block?
        Produces: yN, phi (goal pose), trajectory. -->
   <BehaviorTree ID="SubTreeMoveAbove">

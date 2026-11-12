@@ -86,3 +86,4 @@ lifecycle_manager:
       - BT_cb_publish_gripper_state_action
       - BT_cb_set_mpc_payload_action
       - BT_cb_get_slow_down_action
+      - BT_cb_iterate_survey_poses_decorator

@@ -1,0 +1,28 @@
+# Where the crane looks from before the first pick (issue 323). `survey_site` picks the entry
+# below; "" -- the default, and what every launch that does not load this file gets -- runs no
+# survey and leaves the reactive discovery in the assembly loop as the only one.
+#
+# One pose per list index, same form and frame as SubTreeMoveAbove's mv_*: a hover pose in the
+# PLANNING frame `K0_mounting_base`, plus the tool yaw. Not world -- GetNextAssemblyTask
+# transforms every pose it hands the tree, and this file bypasses it. World poses here are out
+# of reach and /a2b_movement refuses them (sim, 2026-11-12: world (-12.2, 1.7) read as K0 is
+# r 12.3 m, "misses it by 1675.7 mm"). Conversion at this site, from the recorded truck pose
+# (world_model.yaml): x_K0 = -(x_world + 6.939), y_K0 = -(y_world - 0.350), z_K0 = z_world - 1.141.
+/**:
+  ros__parameters:
+    survey_site: ""
+    survey_poses:
+      # The storage pile of world_model_seed_seibersdorf.yaml -- world (-11.0, 3.3), K0
+      # (4.061, -2.95) -- from two sides: the top block hides the one under it from a single
+      # viewpoint.
+      # DERIVED, NOT MEASURED. The pile sits at r 5.02 m, bearing -36 deg in K0, and the lidar
+      # is on the slewing column, so a hover at a *larger* radius cannot shadow it whatever its
+      # bearing; these two keep 22 and 10 deg of bearing off it as well.
+      #   pose 0: r 5.4 m, bearing -14 deg   pose 1: r 7.3 m, bearing -26 deg
+      # y_K0 stays above -3.55, which is example_wall's measured survey_position: at world y 4.0
+      # (K0 -3.65) /a2b_movement refuses the goal on hedge clearance (lab day 2026-11-04).
+      seibersdorf:
+        x: [5.261, 6.561]        # world -12.2, -13.5
+        y: [-1.35, -3.15]        # world 1.7, 3.5
+        z: [2.0, 2.0]            # = pickup_a2b_approach_z_m 3.141 world, the pickup hover
+        yaw: [0.0, 0.0]          # rad, absolute tool yaw -- see the rotator note in the notes

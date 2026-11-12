@@ -30,7 +30,9 @@ public:
   BT::NodeStatus tick() override
   {
     has_pose_ = false;
+    blocks_ = 0;
     message_.clear();
+    setOutput("block_count", 0);   // a timeout never reaches on_completion
     const BT::NodeStatus status = nav2_behavior_tree::BtServiceNode<ServiceT>::tick();
     if (status != BT::NodeStatus::RUNNING) {
       const bool ok = status == BT::NodeStatus::SUCCESS;
@@ -39,8 +41,8 @@ public:
       }
       std_msgs::msg::String line;
       line.data = pose_status(
-        request_->mode, request_->target_block_id, ok, frame_, has_pose_ ? xyz_ : nullptr,
-        message_);
+        request_->mode, request_->target_block_id, ok, blocks_, frame_,
+        has_pose_ ? xyz_ : nullptr, message_);
       status_->publish(line);
       if (!ok) {
         // The goal ends here since 303, so say which step and which block ended it.
@@ -59,6 +61,9 @@ public:
       BT::InputPort<std::string>("target_block_id", "", "Target block ID"),
       BT::InputPort<bool>("enable_debug", true, "Publish debug output"),
       BT::InputPort<double>("timeout_s", 8.0, "Service timeout"),
+      // SCENE_DISCOVERY answers with the whole world snapshot, so this is what the site is
+      // known by after the pass -- what the site survey counts (323).
+      BT::OutputPort<int>("block_count", "Blocks the response listed"),
       BT::OutputPort<std::string>("message")});
   }
 
@@ -77,6 +82,8 @@ public:
     setOutput("message", response->message);
     message_ = response->message;
     frame_ = response->blocks.header.frame_id;
+    blocks_ = static_cast<int>(response->blocks.blocks.size());
+    setOutput("block_count", blocks_);
     for (const auto & block : response->blocks.blocks) {
       if (block.id == request_->target_block_id) {
         xyz_[0] = block.pose.position.x;
@@ -93,6 +100,7 @@ private:
   std::string frame_;
   std::string message_;
   double xyz_[3]{};
+  int blocks_{0};
   bool has_pose_{false};
 };
 

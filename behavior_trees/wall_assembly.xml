@@ -9,6 +9,7 @@
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_pick_block.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_place_block.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_pick_and_place_block.xml"/>
+  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_survey_site.xml"/>
   <!-- ////////// -->
   <BehaviorTree ID="WallAssembly">
     <Sequence>
@@ -40,6 +41,14 @@
       <!-- CBS has no log-scene perception; leave logsScene unset on the BB.
            CalcA2BMovement's getInput returns failure without convertFromString
            and request_->logs_scene stays default-empty. -->
+
+      <!-- ============================================================
+           SITE SURVEY (323)
+           Every configured survey pose, before the first ask: the binding picks among the
+           blocks the world model holds, and asking first would hand it one block at a time.
+           Nothing configured (`survey_site` unset) leaves the run as it was.
+           ============================================================ -->
+      <SubTree ID="SubTreeSurveySite" _autoremap="true"/>
 
       <!-- ============================================================
            ASSEMBLY LOOP

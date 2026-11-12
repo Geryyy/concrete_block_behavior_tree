@@ -44,6 +44,13 @@ def generate_launch_description():
         / "config"
         / "bt_server_override.yaml"
     )
+    # The survey poses the wall tree scans before the first pick, per site; `survey_site`
+    # picks one and is "" here unless a run names it.
+    survey_sites_config = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "survey_sites.yaml"
+    )
     seed_file = LaunchConfiguration("seed_file")
 
     # Keyboard TUI
@@ -194,6 +201,18 @@ def generate_launch_description():
             # Vision start: world_model_seed_none.yaml here, and the blocks Gazebo spawns
             # from seed_file are found by SCENE_DISCOVERY instead of known up front.
             DeclareLaunchArgument("world_model_seed_file", default_value=seed_file),
+            DeclareLaunchArgument(
+                "survey_site",
+                default_value="",
+                description=(
+                    "Site whose survey poses the wall tree drives to and runs "
+                    "SCENE_DISCOVERY from before the first pick (issue 323); see "
+                    "config/survey_sites.yaml. Empty (default): no survey, and the "
+                    "assembly loop's reactive discovery is the only one. The survey "
+                    "plans an empty hook, so check the jaws before setting it on a "
+                    "restarted goal."
+                ),
+            ),
             # Point the RViz BT panel to concrete_block_behavior_tree
             SetEnvironmentVariable(
                 name="BEHAVIOR_TREE_PANEL_BT_PACKAGE",
@@ -370,8 +389,12 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
+                    survey_sites_config,
                     {"use_sim_time": True},
                     {
+                        "survey_site": ParameterValue(
+                            LaunchConfiguration("survey_site"), value_type=str
+                        ),
                         "simulated_placement_disturbance.enabled": ParameterValue(
                             LaunchConfiguration("enable_placement_disturbance"),
                             value_type=bool,

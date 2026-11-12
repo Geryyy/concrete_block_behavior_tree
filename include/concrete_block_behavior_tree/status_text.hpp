@@ -43,13 +43,16 @@ inline std::string place_pass_status(
 
 /// `/cbs/status/pose` -- RunPoseEstimation's outcome; x/y/z the target's pose after it, if listed.
 /// `msg` only on a failure: since 303 that ends the goal, and this is the reason it ended.
+/// `blocks` is how many the response listed -- in SCENE_DISCOVERY the whole world snapshot, so
+/// per survey pose (323) it is the count the site is known by, not that pose's own detections.
 inline std::string pose_status(
-  const std::string & mode, const std::string & block, bool ok, const std::string & frame,
-  const double * xyz, const std::string & message = "")
+  const std::string & mode, const std::string & block, bool ok, int blocks,
+  const std::string & frame, const double * xyz, const std::string & message = "")
 {
   char line[320];
   int n = std::snprintf(
-    line, sizeof(line), "mode=%s block=%s ok=%d", mode.c_str(), block.c_str(), ok ? 1 : 0);
+    line, sizeof(line), "mode=%s block=%s ok=%d blocks=%d", mode.c_str(), block.c_str(),
+    ok ? 1 : 0, blocks);
   if (xyz != nullptr && n > 0 && n < static_cast<int>(sizeof(line))) {
     n += std::snprintf(
       line + n, sizeof(line) - n, " frame=%s x=%.3f y=%.3f z=%.3f", frame.c_str(), xyz[0],
