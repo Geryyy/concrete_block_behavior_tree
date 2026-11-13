@@ -176,7 +176,7 @@
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
       <!-- From the seed, not 0: a hover the operator already corrected is not undone. The miss
            below is still against the unshifted place_approach, so off stays the total. -->
-      <Script code="off_x := seed_off_x; off_y := seed_off_y; still_off := true; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0"/>
+      <Script code="off_x := seed_off_x; off_y := seed_off_y; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0"/>
       <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
       <!-- Nominal height. The bend used to be measured here and shifted out of every goal
            below (291), which injected the capture's own spread (9.1 cm over 90 s on one grip,
@@ -201,14 +201,13 @@
              the block back through the lidar-refined grasp offset (1.005 m in run2_pp, a
              45 mm gap no cycle removes), plus whatever bend the grip server's own correction
              left. So miss_z is a reference mismatch, not a height to chase. -->
-      <!-- A pass that finds the block within 5 cm moves out that miss once, unmeasured, and
-           leaves the Repeat instead of ticking out the remaining cycles. Repeat has no
-           break, so convergence fails the body and corr_done tells the Fallback below which
-           failure it was, so a too-large miss_z still propagates. -->
+      <!-- Four measured passes, no early exit: each shifts by miss / pass, so off ends as the
+           mean of four measurements and a single noisy one (oracle sigma 1 cm) moves it little.
+           corr_done is set only by early contact and tells the Fallback that failure was benign. -->
       <!-- Skipped on early contact: the block rests 0.3 m under the waypoint, which the
            height gate below reads as a descent that stopped short. -->
       <Fallback _skipIf="load_off">
-        <Repeat num_cycles="3">
+        <Repeat num_cycles="4">
           <Sequence>
             <!-- The block as the lidar sees it here: the column-mounted lidar is bend-free, so
                  the boom's bend at this pose enters the offset instead of the pickup's. No
@@ -218,7 +217,7 @@
             <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.75 - meas_z"/>
             <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
-            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'shift_last' : 'shift'))"/>
+            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
             <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
               verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
               off_x="{off_x}" off_y="{off_y}"/>
@@ -233,36 +232,22 @@
                  later (sim JTC sagged 33 cm under load); 0.20 low still catches a 28 cm short
                  stop, with nothing yet touched down. -->
             <ScriptCondition code="miss_z &lt; 0.20"/>
-            <Script code="still_off := miss_x * miss_x + miss_y * miss_y &gt;= 0.0025"/>
-            <!-- Every miss of 1 cm or more is moved out; the 5 cm gate only decides whether
-                 that move is measured again. Under 1 cm, no move. corr_done only once the
-                 block is where it was sent: a failed move must fail the approach. -->
-            <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0001"/>
-            <ScriptCondition code="!corr_done"/>
-            <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
+            <Script code="off_x := off_x + miss_x / place_pass; off_y := off_y + miss_y / place_pass"/>
             <!-- dz_z stays at the place_z + 0.75 set above: the corrective descent
                  re-commands the same waypoint height, it does not shift it. -->
             <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-            <!-- Early contact on a corrective descent leaves the loop the same way
-                 convergence does: corr_done tells the Fallback it was benign. -->
+            <!-- Early contact on a corrective descent: corr_done tells the Fallback it was benign. -->
             <Script code="corr_done := true" _skipIf="!load_off"/>
             <ScriptCondition code="!load_off"/>
-            <Script code="corr_done := !still_off"/>
-            <ScriptCondition code="still_off"/>
           </Sequence>
         </Repeat>
         <ScriptCondition code="corr_done"/>
       </Fallback>
 
-      <!-- The third pass ends on a descent and the Repeat then succeeds, so the last
-           corrective shift went down unmeasured. Measure once more and fail the approach on a
-           lateral miss still >= 5 cm, which the retry in SubTreePlaceBlock takes over;
-           SubTreePlaceFromHover has no retry and ends here, as it does for miss_z in the loop.
-           Skipped after an early exit (corr_done): that last move started within 5 cm.
-           off_x/off_y are not shifted again, because that descent would be unmeasured in turn.
-           Same two tests as a loop pass, same order, same waypoint height, so the same bands:
-           miss_z the cross-check on the measure chain, lateral the acceptance.
+      <!-- Measure once more and fail the approach on a lateral miss of 3 cm or more (a push,
+           not noise), which the retry in SubTreePlaceBlock takes over; SubTreePlaceFromHover
+           has no retry and ends here. Skipped after early contact (corr_done).
            Skipped on early contact, for the height reason the loop above is. -->
       <Fallback _skipIf="load_off">
         <ScriptCondition code="corr_done"/>
@@ -270,12 +255,12 @@
           <Script code="mi_window_s := 2.7"/>
           <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.75 - meas_z"/>
-          <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'within' : 'final_fail')"/>
+          <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0009 ? 'within' : 'final_fail')"/>
           <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
             verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
             off_x="{off_x}" off_y="{off_y}"/>
           <ScriptCondition code="miss_z &lt; 0.20"/>
-          <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
+          <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0009"/>
         </Sequence>
       </Fallback>
 
@@ -299,65 +284,34 @@
     </Sequence>
   </BehaviorTree>
 
-  <!-- 2. In over the slot, then straight down to 20 cm over it. Flown once from the
-       corrected waypoint, and once more after a touchdown that stopped high.
-
-       IN FIRST, DOWN AFTER, AND THAT IS THE WHOLE OF ISSUE 342. The entry used to be one
-       slanted move, 9.8 cm of lateral travel (place_approach_height 0.30 x tan 18 deg,
-       wall_plan_server.yaml) over the last 25 cm of descent, on the argument that a block
-       landing early is then stopped short of the neighbour. It is not: course 0 is pitch
-       0.90 with a 0.90 m block, so the planned face-to-face gap is *zero*, and the waypoint
-       the slant started from already had the block's underside 15 cm *below* the
-       neighbour's top. So the slant did not come down beside the neighbour, it drove the
-       block sideways into it, and the MPC held that target while the hook unloaded: in
-       gate_2 the touchdown stroke then moved 13 mm in 7 s and the effort collapsed
-       109771 -> 60817 (sim.log:5030-5049). Measured over base_1, gate_2, percep_1 and
-       keep1, every touchdown that stopped high entered with a commanded gap of 1.9 cm or
-       less and every clean landing with 2.2 cm or more; a gap this block cannot earn,
-       because its own along residual is already under 1.3 cm and what spends it is the
-       *neighbour's* +-2.5 cm. Landing short of the slot does not buy one either: every
-       block of a course takes the same offset, so the spacing between neighbours is
-       unchanged (keep1 measured 90.7 cm against a 90.0 pitch, with block_2 stalling
-       exactly as before). What is left is to stop pushing: the lateral move happens at a
-       height where the block is clear of everything, and nothing moves sideways below it. -->
+  <!-- 2. Beside the slot, in low, then the stroke slides down along the neighbour's face (345):
+       the block never passes over a neighbour's top edge, the residual of the blind last shift
+       (1-5 cm) can only meet a face. At a course start place_approach == place, so b. is no move.
+       Flown once from the corrected waypoint, and once more after a touchdown that stopped high. -->
   <BehaviorTree ID="SubTreePlaceEntry">
     <Sequence name="place_entry">
-      <!-- 0.02, not the 0.05 place_approach set (issue 241). This is the last gate before the
-           block goes down and nothing corrects it after here: the correction loop above is
-           upstream, and SubTreeTouchdown only descends - what it measures after landing is
-           the offset the pose write needs, not a target. 0.05 rad is 0.25 to 0.35 m at the block
-           on slew, boom or arm (sensitivities in subtree_move_above.xml), against the 0.00 m
-           the gap to the placed neighbour closes to. Measured: all 11 arrivals in the issue-241
-           campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
-           0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
-      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
-      <!-- Set here, not inherited: the retry below enters straight out of SubTreeLift, which
-           leaves ex_sway_bound at its own loose 0.1 and would fly this descent into a slot
-           beside a placed block with twice the residual sway the first one is held to. -->
-      <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, MPC verdict is 0.02 -->
+      <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>  <!-- rad; last gate before the block goes down -->
+      <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, not the lift's loose 0.1 on the retry -->
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-      <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
-           mid-move leaves the crane short and this wait times out. -->
-      <!-- a. Sideways onto the slot, at the waypoint's own height: place_z + 0.75 puts the
-           carried block's underside 45 cm over a neighbour's top (place_z + 0.30 for a
-           0.6 m block, the same on every course), which is the margin the measured
-           waypoint miss_z of 1-7 cm has to stay inside. This is the one move that crosses
-           the slot's boundary and it is the one that is clear to. -->
-      <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.75"/>
+      <!-- a. Straight down on the open side: underside 20 cm over its bearing face, 40 cm under a neighbour's top -->
+      <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.20"/>
       <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
         <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       </Decorator>
-      <!-- b. Straight down into the slot. Zero lateral command, so a face that touches its
-           neighbour is grazed, not pressed; an overlap that really blocks the slot stops
-           the block ~0.6 m over place_z, where the watch fires and the early-contact band
-           reads it as off the slot and lifts clear. Skipped on that contact. -->
+      <!-- b. In, low, aimed at the plan's gap; a residual that points at the neighbour meets its face -->
       <Sequence _skipIf="load_off">
-        <Script code="dz_z := place_z + 0.20"/>
+        <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
         <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
         <Decorator ID="RetryUntilSuccessful" num_attempts="2">
           <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
         </Decorator>
+        <!-- The stroke holds where b. ended, not b.'s target: a block against a face is not pushed into it -->
+        <Script code="mi_window_s := 0.5"/>
+        <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
+          window_s="{mi_window_s}"
+          x="{meas_x}" y="{meas_y}" z="{meas_z}" tilt="{grip_tilt}"/>
+        <Script code="dz_x := meas_x + off_x; dz_y := meas_y + off_y"/>  <!-- + off: commands map to measures shifted by off -->
       </Sequence>
     </Sequence>
   </BehaviorTree>

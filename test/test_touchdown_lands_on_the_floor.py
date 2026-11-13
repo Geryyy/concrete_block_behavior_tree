@@ -4,8 +4,8 @@ Course 0 is pitch 0.90 with a 0.90 m block, so the planned face-to-face gap is z
 entry's own lateral travel drives the block into the placed neighbour: in every oracle
 example_wall run with noise seed 0 the stroke moved 1.3 cm and the load came off 16-19 cm
 over the slot, which the touchdown's WaitForLoadOff took for a landing on its 0.20 m port
-default. The two halves are the keep-out that leaves a gap to descend into, and the band
-above which nothing opens the jaws.
+default. Here: the band above which nothing opens the jaws, and (345) the entry that comes
+down beside the slot instead of over the neighbour.
 """
 
 from pathlib import Path
@@ -23,28 +23,19 @@ def _subtree(tree_id):
     return next(e for e in root.iter("BehaviorTree") if e.get("ID") == tree_id)
 
 
-def test_the_entry_moves_in_over_the_wall_and_then_only_downwards():
-    """The one lateral move that crosses the slot's boundary happens at a height where the
-    carried block's underside is over the neighbour's top (place_z + 0.75 against the
-    place_z + 0.30 of a 0.6 m block); everything under it is vertical, so a face that meets
-    its neighbour is grazed and not pressed. Landing short of the slot instead buys nothing:
-    every block of a course takes the same offset, so the spacing is unchanged."""
-    entry = _subtree("SubTreePlaceEntry")
-    codes = [node.get("code") or "" for node in entry.iter("Script")]
-    lateral = next(c for c in codes if "dz_x :=" in c)
-    assert lateral == (
-        "dz_x := place_x + off_x; dz_y := place_y + off_y; dz_z := place_z + 0.75"
-    ), lateral
-    heights = [c for c in codes if "dz_z :=" in c]
-    assert heights == [lateral, "dz_z := place_z + 0.20"], heights
-    # The second one moves nothing sideways, and the correction loop is the same height.
-    approach = [
-        node.get("code") or ""
-        for node in _subtree("SubTreePlaceApproach").iter("Script")
+def test_the_entry_comes_down_beside_the_slot_and_moves_in_low():
+    """Issue 345: down on the open side first, then in at place_z + 0.20, so the block never
+    crosses a neighbour's top edge; the stroke then holds where it ended, not the target."""
+    codes = [
+        node.get("code") or "" for node in _subtree("SubTreePlaceEntry").iter("Script")
     ]
-    assert any("dz_z := place_z + 0.75" in c for c in approach), approach
-    # And no keep-out: an along offset every block of the course shares is not a gap.
-    assert "place_entry_keep" not in " ".join(codes + approach)
+    moves = [c for c in codes if "dz_x :=" in c]
+    assert moves == [
+        "dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; "
+        "dz_z := place_z + 0.20",
+        "dz_x := place_x + off_x; dz_y := place_y + off_y",
+        "dz_x := meas_x + off_x; dz_y := meas_y + off_y",
+    ], moves
 
 
 def test_the_touchdown_band_is_the_servers_parameter_not_the_nodes_default():

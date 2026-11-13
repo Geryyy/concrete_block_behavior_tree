@@ -40,9 +40,9 @@ def test_place_correction_converges_laterally_only():
     correction either -- SubTreePlaceFinish re-commands dz_z absolutely.
     """
     codes = [code for _, code in _scripts("SubTreePlaceApproach")]
-    convergence = [code for code in codes if "still_off := miss" in code]
-    assert len(convergence) == 1, codes
-    assert "miss_z" not in convergence[0]
+    shift = [code for code in codes if code.startswith("off_x := off_x")]
+    assert len(shift) == 1, codes
+    assert "miss_z" not in shift[0]
     # No cycle may move the waypoint vertically, by off_z or otherwise.
     assert not [code for code in codes if "dz_z :=" in code and "off" in code]
 
@@ -62,10 +62,10 @@ def test_the_approach_ends_on_a_measurement():
         i for i, name in enumerate(order) if name == "SubTreeMeasureInHand"
     )
     assert last_descend < last_measure, order
-    # And that measurement gates: 2.5e-3 is the 5 cm lateral miss, 6.4e-3 the miss_z band.
+    # And that measurement gates: 9e-4 is the 3 cm lateral miss.
     codes = [code for _, code in _scripts("SubTreePlaceApproach")]
-    gates = [code for code in codes if "0.0025" in code and "pass_verdict" not in code]
-    assert len(gates) == 2, codes
+    gates = [code for code in codes if "0.0009" in code and "pass_verdict" not in code]
+    assert len(gates) == 1, codes
 
 
 def test_the_in_air_loop_starts_from_the_operators_correction_and_the_auto_path_from_zero():
@@ -102,19 +102,19 @@ def test_the_in_air_loop_starts_from_the_operators_correction_and_the_auto_path_
     ]
 
 
-def test_a_correction_counts_as_done_only_after_its_move():
-    """A failed corrective descent must fail the approach: corr_done set before it would let
-    the Fallback after the loop succeed with the block never sent."""
+def test_the_correction_averages_its_passes():
+    """Each pass shifts by miss / pass, so the offset is the mean of the measurements: a
+    full shift per pass hands the last measurement's noise straight to the landing (345)."""
+    codes = [code for _, code in _scripts("SubTreePlaceApproach")]
+    assert (
+        "off_x := off_x + miss_x / place_pass; off_y := off_y + miss_y / place_pass"
+        in codes
+    )
+    # No early exit on a pass that reads within: one noisy reading is no convergence.
     body = next(_subtree("SubTreePlaceApproach").iter("Repeat"))
-    order = [
-        (element.get("ID") or element.tag, element.get("code") or "")
-        for element in body.iter()
-    ]
-    descend = next(i for i, (name, _) in enumerate(order) if name == "SubTreeDescendTo")
-    after_move = [
-        i for i, (_, code) in enumerate(order) if "corr_done := !still_off" in code
-    ]
-    assert after_move and min(after_move) > descend, order
+    assert [
+        c for c in (e.get("code") or "" for e in body.iter()) if "corr_done :=" in c
+    ] == ["corr_done := true"]
 
 
 def _ancestors(subtree):
