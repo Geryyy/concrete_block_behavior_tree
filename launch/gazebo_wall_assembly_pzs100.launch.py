@@ -178,6 +178,25 @@ def generate_launch_description():
                 "placement_disturbance_yaw_rad", default_value="0.035"
             ),
             DeclareLaunchArgument(
+                "encoder_offset",
+                default_value="0 0 0 0 0",
+                description=(
+                    "Per-joint encoder calibration error the sim plugin adds to "
+                    "/joint_states but not to the physics, so the stack's FK is off the "
+                    "crane by it while the block oracle still sees truth. Axis order slew "
+                    "boom arm telescope rotator, rad except the telescope in m. All zero "
+                    "(default) is today's run. At the 11-09 reach (7.4 m) "
+                    "'0.00237 0.00142 0.00213 0.00355 0' is 3 cm of TCP error and "
+                    "'0.00473 0.00284 0.00426 0.00710 0' is 6 cm."
+                ),
+            ),
+            # The xacro is expanded two includes down, by a launch file that passes a
+            # fixed argument list; the env var is the only way in from here.
+            SetEnvironmentVariable(
+                name="ENCODER_OFFSET",
+                value=LaunchConfiguration("encoder_offset"),
+            ),
+            DeclareLaunchArgument(
                 "slow_down",
                 default_value="1.0",
                 description=(

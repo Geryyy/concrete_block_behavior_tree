@@ -173,6 +173,10 @@ if(BUILD_TESTING)
     test_network_stall_timeouts
     test/test_network_stall_timeouts.py
   )
+  ament_add_pytest_test(
+    test_encoder_offset_launch
+    test/test_encoder_offset_launch.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")
