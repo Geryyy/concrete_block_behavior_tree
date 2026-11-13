@@ -217,7 +217,12 @@ def test_a_loaded_waypoint_descent_holds_until_the_error_has_decayed():
     # The Sleep's own guard: loaded waypoint descents, never the landing stroke
     # (the block is already down) and never an empty move.
     assert hold.get("_skipIf") == "ex_until_landed || !ex_watch_landed"
-    assert hold.get("goal_tolerance") == "{ex_hold_tolerance}"
+    assert hold.get("goal_tolerance") is None, (
+        "the hold reads the server's parameter itself"
+    )
+    # 0.5 s of its own: the 2.7 s of the carried pendulum was paid at the arrival above, and
+    # a 2.7 s measure window follows this hold anyway (332).
+    assert hold.get("hold_s") == "0.5"
     # Boom, arm and telescope: what a vertical descent commands. The slew and
     # rotator stop ~5 mrad short of any goal and nothing here drives them back, so
     # a tight gate on them would only ever time out.
@@ -241,24 +246,20 @@ def test_a_loaded_waypoint_descent_holds_until_the_error_has_decayed():
     )
     assert children.index(hold) < children.index(off)
 
-    # Every tree that asks for a loaded waypoint descent sets the tolerance: the
-    # blackboard is shared, and unset leaves the node's own 0.05 -- a hold that
-    # passes on the coast it exists to wait out.
-    for tree in (
-        ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
-        .getroot()
-        .iter("BehaviorTree")
-    ):
-        if not any(
-            "ex_watch_landed := true" in (node.get("code") or "")
-            for node in tree.iter("Script")
-        ):
-            continue
-        assert [
-            node.get("value")
-            for node in tree.iter("SetBlackboard")
-            if node.get("output_key") == "ex_hold_tolerance"
-        ] == ["0.005"], tree.get("ID")
+    # The tolerance is the BT server's own parameter, so a lab day picks its fallback (0.008)
+    # with a launch argument instead of an edited tree (332). No tree sets it any more: three
+    # literals had to agree, and an unset `{ex_hold_tolerance}` left the node's own 0.05 --
+    # a hold that passes on the coast it exists to wait out.
+    assert not [
+        node
+        for name in ("subtree_place_block.xml", "subtree_move_above.xml")
+        for node in ElementTree.parse(TREE_DIR / name).getroot().iter("SetBlackboard")
+        if node.get("output_key") == "ex_hold_tolerance"
+    ]
+    with (PACKAGE_DIR / "config" / "bt_server_override.yaml").open() as handle:
+        assert (
+            yaml.safe_load(handle)["/**"]["ros__parameters"]["hold_tolerance"] == 0.005
+        )
 
 
 def test_the_short_arrival_dwell_is_asked_for_only_where_the_hook_is_empty():
@@ -272,7 +273,12 @@ def test_the_short_arrival_dwell_is_asked_for_only_where_the_hook_is_empty():
     enters without the move_above that would otherwise have set it.
     """
     root = ElementTree.parse(CBS_SUBTREE).getroot()
-    waits = list(root.iter("WaitForMoveComplete"))
+    # All but the PI recovery hold, which has its own 0.5 s (332).
+    waits = [
+        node
+        for node in root.iter("WaitForMoveComplete")
+        if node.get("decay_only") is None
+    ]
     assert [node.get("hold_s") for node in waits] == ["{ex_hold_s}"] * len(waits)
 
     for name, flag in (

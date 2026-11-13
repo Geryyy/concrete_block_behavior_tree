@@ -59,7 +59,7 @@ def test_the_approach_ends_on_a_measurement():
     order = _node_order("SubTreePlaceApproach")
     last_descend = max(i for i, name in enumerate(order) if name == "SubTreeDescendTo")
     last_measure = max(
-        i for i, name in enumerate(order) if name == "MeasureBlockFromGripper"
+        i for i, name in enumerate(order) if name == "SubTreeMeasureInHand"
     )
     assert last_descend < last_measure, order
     # And that measurement gates: 2.5e-3 is the 5 cm lateral miss, 6.4e-3 the miss_z band.
@@ -156,7 +156,7 @@ def test_nothing_measures_or_descends_again_after_an_early_contact():
             node
             for node in subtree.iter()
             if (node.get("ID") or node.tag)
-            in ("MeasureBlockFromGripper", "SubTreePlaceMiss")
+            in ("SubTreeMeasureInHand", "SubTreePlaceMiss")
         ]
         assert measures, tree_id
         for node in measures:
@@ -182,10 +182,11 @@ def test_nothing_measures_or_descends_again_after_an_early_contact():
 
 
 def test_early_contact_lets_go_only_inside_the_lateral_band():
-    """The ground decides the height, the plan only the lateral position.
+    """The ground decides the height within 0.30 m, the plan the lateral position.
 
     place_z comes from a ground-model snapshot that was 0.11 m out on the lab day, so a
-    block resting laterally on its slot is placed, however far that is from place_z. A
+    block resting laterally on its slot is placed, however far inside that band it is from
+    place_z -- but 0.6 m up is a neighbour's top or the hedge, not the slot (332). A
     block resting anywhere else has to come off the ground again: leaving it there puts it
     where the next block is planned, and the existing carrying lift is what clears it.
     """
@@ -199,7 +200,9 @@ def test_early_contact_lets_go_only_inside_the_lateral_band():
         for node in parents[release].iter("ScriptCondition")
         if "miss_x" in (node.get("code") or "")
     ]
-    assert band == ["miss_x * miss_x + miss_y * miss_y < 0.0025"], band
+    assert band == [
+        "miss_x * miss_x + miss_y * miss_y < 0.0025 && miss_z * miss_z < 0.09"
+    ], band
     # The band alone picks the branch. Under a Fallback a release that failed after the
     # jaws opened would fall through to the lift below, which runs lf_carries true: 880 kg
     # of feedforward onto an empty hook.
@@ -208,13 +211,15 @@ def test_early_contact_lets_go_only_inside_the_lateral_band():
     assert chosen is release and other.get("ID") == "ForceFailure"
     # Measured first, and against place_x/place_y, not the descent's shifted target.
     order = [node.get("ID") or node.tag for node in handler.iter()]
-    assert order.index("MeasureBlockFromGripper") < order.index("SubTreeRelease")
+    assert order.index("SubTreeMeasureInHand") < order.index("SubTreeRelease")
     assert [
         node.get("code")
         for node in handler.iter("Script")
         if "miss_x :=" in node.get("code")
-    ] == ["miss_x := place_x - meas_x; miss_y := place_y - meas_y"]
-    # No height gate: there is nothing left to descend to, and no z to re-aim.
+    ] == [
+        "miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z - meas_z"
+    ]
+    # The height only picks the branch: there is nothing left to descend to, no z to re-aim.
     assert "SubTreeDescendTo" not in order
     assert "SubTreeTouchdown" not in order
     # The other branch lifts clear and still fails the place.
@@ -313,29 +318,23 @@ def test_the_place_goals_are_nominal_heights_and_the_pacing_is_constant():
         assert "place_dz_bias" not in code and "place_g" not in code, code
 
 
-def test_the_placed_pose_is_written_from_an_offset_measured_after_the_unload():
+def test_the_early_contact_release_writes_a_pose_measured_on_the_ground():
     """Issue 291: the boom springs back by its bend when the load reaches the ground.
 
     WriteBlockPoseFromGripper applies the offset to FK's gripper, so the loaded offset
     (1.16-1.24 m against a nominal 1.05, lab day 2026-11-04) put the placed block a bend out
     of place -- in the world model, in the collision scene the empty lift plans against, and
-    as the prior the REFINE_BLOCK after the lift has to associate within 0.35 m of.
+    as the prior the REFINE_BLOCK after the lift has to associate within 0.35 m of. On this
+    path the measurement is needed anyway, for the band that decides the release; the
+    touchdown's own copy is gone (332), so its write runs on the last in-air offset and the
+    misplaced gate in the release is what reads the difference.
     """
-    for tree_id in ("SubTreeTouchdown", "SubTreeEarlyContact"):
-        order = [
-            element.get("ID") or element.tag for element in _subtree(tree_id).iter()
-        ]
-        assert order.index("CaptureBlockGraspOffset") < order.index("SubTreeRelease"), (
-            order
-        )
-        # and it is a fresh detection it reads back: no refine, no release (303)
-        for parent in _subtree(tree_id).iter():
-            kids = list(parent)
-            for i, kid in enumerate(kids):
-                if kid.get("ID") == "CaptureBlockGraspOffset":
-                    assert i > 0 and kids[i - 1].tag == "RunPoseEstimation", tree_id
-                    assert kids[i - 1].get("mode") == "REFINE_GRASPED", tree_id
-    # And nothing in the release re-derives it: the callers own that measurement.
+    order = [
+        element.get("ID") or element.tag
+        for element in _subtree("SubTreeEarlyContact").iter()
+    ]
+    assert order.index("SubTreeMeasureInHand") < order.index("SubTreeRelease"), order
+    # And nothing in the release re-derives the offset: the caller owns that measurement.
     assert "CaptureBlockGraspOffset" not in [
         element.get("ID") for element in _subtree("SubTreeRelease").iter()
     ]

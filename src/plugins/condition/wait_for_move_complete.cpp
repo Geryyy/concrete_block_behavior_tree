@@ -55,6 +55,15 @@ WaitForMoveComplete::WaitForMoveComplete(
   // Tree structure, not state: which half of the move this instance is.
   getInput("settle_only", settle_only_);
   getInput("decay_only", decay_only_);
+  // The PI recovery hold's tolerance is a lab-day decision (0.008 is the fallback), so it is
+  // the server's parameter rather than three literals in the XML (issue 332). Launch-bound
+  // and read the same guarded way as a2b_mpc_drives above; the default is in
+  // config/bt_server_override.yaml, which says where it comes from.
+  if (decay_only_) {
+    goal_tolerance_ = node_->has_parameter("hold_tolerance")
+      ? node_->get_parameter("hold_tolerance").as_double()
+      : node_->declare_parameter<double>("hold_tolerance", 0.005);
+  }
   // Logged because a silent failure to read it is the two-commander state this
   // node exists to prevent, and it reads as an ordinary move until the JTC log
   // is grepped for goal tolerances.
@@ -174,17 +183,10 @@ BT::NodeStatus WaitForMoveComplete::onStart()
       trajectory_.joint_names.size(), trajectory_.points.back().positions.size());
     return BT::NodeStatus::FAILURE;
   }
-  // The one port whose absence disables the gate instead of loosening it: an unset
-  // `{ex_hold_tolerance}` leaves the 0.05 default and the hold passes on the coast it
-  // exists to wait out. The other two instances have been reading it this way since
-  // 148 and their tolerance is the move's, so only the hold refuses to run without it.
-  if (const auto tolerance = getInput<double>("goal_tolerance")) {
+  // The hold keeps the parameter the constructor read: its tolerance is a tenth of the
+  // move's, and reading the port here would hand it whatever the arrival wait was given.
+  if (const auto tolerance = getInput<double>("goal_tolerance"); tolerance && !decay_only_) {
     goal_tolerance_ = *tolerance;
-  } else if (decay_only_) {
-    RCLCPP_ERROR(
-      node_->get_logger(), "%s has no goal_tolerance: %s", name().c_str(),
-      tolerance.error().c_str());
-    return BT::NodeStatus::FAILURE;
   }
   {
     std::lock_guard<std::mutex> lock(mutex_);

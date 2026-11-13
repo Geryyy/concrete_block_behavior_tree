@@ -202,6 +202,13 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "hold_tolerance",
+                default_value="0.005",  # = bt_server_override.yaml, which says why
+                description="Tolerance [rad] of the PI recovery hold after a loaded "
+                "waypoint descent (issue 306). The lab-day fallback is 0.008: the "
+                "machine sticks inside +-0.003 rad/s and then jumps to 0.012.",
+            ),
+            DeclareLaunchArgument(
                 "compensate_elasticity",
                 default_value="false",
                 description="Raise a loaded place target by the bend it gains over the "
@@ -401,6 +408,9 @@ def generate_launch_description():
                         "mpc_horizon_topic": LaunchConfiguration("mpc_horizon_topic"),
                         "survey_site": ParameterValue(
                             LaunchConfiguration("survey_site"), value_type=str
+                        ),
+                        "hold_tolerance": ParameterValue(
+                            LaunchConfiguration("hold_tolerance"), value_type=float
                         ),
                     },
                 ],

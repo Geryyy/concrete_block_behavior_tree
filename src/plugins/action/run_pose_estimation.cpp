@@ -64,6 +64,11 @@ public:
       // SCENE_DISCOVERY answers with the whole world snapshot, so this is what the site is
       // known by after the pass -- what the site survey counts (323).
       BT::OutputPort<int>("block_count", "Blocks the response listed"),
+      // Where the target block is after the pass, in the answer's frame (world). The
+      // post-place refine is compared against the pose the release wrote (332).
+      BT::OutputPort<double>("x", "Target block x after the pass"),
+      BT::OutputPort<double>("y", "Target block y after the pass"),
+      BT::OutputPort<double>("z", "Target block z after the pass"),
       BT::OutputPort<std::string>("message")});
   }
 
@@ -90,6 +95,9 @@ public:
         xyz_[1] = block.pose.position.y;
         xyz_[2] = block.pose.position.z;
         has_pose_ = true;
+        setOutput("x", xyz_[0]);
+        setOutput("y", xyz_[1]);
+        setOutput("z", xyz_[2]);
       }
     }
     return response->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;

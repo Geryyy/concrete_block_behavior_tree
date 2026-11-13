@@ -36,6 +36,16 @@ lifecycle_manager:
     # raises it with the launch argument of the same name. The legs that want to be
     # slower than the run (the carrying lift, the touchdown) multiply this.
     slow_down: 1.0
+    # The PI recovery hold's tolerance [rad] after a loaded waypoint descent, read by
+    # WaitForMoveComplete's decay_only instance (issue 306). 0.005 rad is 3.2 cm at the
+    # block at r 6.4 m, against the 0.007-0.011 rad the boom coasts low and the 0.05 of the
+    # arrival gate above it. Not 0.003: measured over the ten loaded holds of a headless row3
+    # place the boom clears its coast to under 0.005 in 0.4-1.4 s, but on one it plateaued at
+    # 0.0039 and crept at 0.07 mrad/s, i.e. Psi's low-speed region, and at 0.003 that hold
+    # burned the whole timeout and failed the goal. The machine sticks inside +-0.003 rad/s
+    # and then jumps to 0.012 (325 notes), so the lab-day fallback is 0.008; raise it with the
+    # launch argument of the same name, not here.
+    hold_tolerance: 0.005
     # Simulation test hook.  Gazebo launch arguments override these values;
     # disabled by default and never enabled by the real-crane launch.
     simulated_placement_disturbance.enabled: false

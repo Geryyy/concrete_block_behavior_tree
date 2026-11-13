@@ -54,6 +54,10 @@ public:
         BT::InputPort<double>("confidence", 0.5, "Confidence value [0,1]"),
         BT::OutputPort<bool>("status_ok"),
         BT::OutputPort<std::string>("status_message"),
+        // The pose that went in, for the refine after it to be compared against (332).
+        BT::OutputPort<double>("x", "Written block x in world_frame"),
+        BT::OutputPort<double>("y", "Written block y in world_frame"),
+        BT::OutputPort<double>("z", "Written block z in world_frame"),
       });
   }
 

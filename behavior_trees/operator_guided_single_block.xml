@@ -6,6 +6,7 @@
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_descend_to.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_gripper.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_lift.xml"/>
+  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_refine.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_pick_block.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_place_block.xml"/>
   <BehaviorTree ID="OperatorGuidedSingleBlock">

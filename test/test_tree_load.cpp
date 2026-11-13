@@ -145,7 +145,11 @@ void seed_task(const BT::Blackboard::Ptr & blackboard)
       "corrected_pickup_x", "corrected_pickup_y", "place_x", "place_y", "place_z", "place_yaw",
       "place_approach_x", "place_approach_y", "place_approach_z", "place_attempt",
       "seed_off_x", "seed_off_y", "meas_x", "meas_y", "meas_z", "s_log_8_x", "s_log_8_y",
-      "s_log_8_z", "slow_down", "payload_mass"})
+      "s_log_8_z", "slow_down", "payload_mass",
+      // The release's misplaced gate (332) reads what the write and the refine after it set,
+      // and both are stubbed here.
+      "written_x", "written_y", "written_z", "refine_x", "refine_y", "refine_z",
+      "mi_s_log_8_x", "mi_s_log_8_y", "mi_s_log_8_z"})
   {
     blackboard->set(key, 0.0);
   }

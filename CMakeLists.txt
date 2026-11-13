@@ -103,7 +103,9 @@ install(TARGETS
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_wait_for_move_complete test/test_wait_for_move_complete.cpp)
+  # 180, not the default 60: the 23 cases run the node's own clocks and take ~61 s under the
+  # load of a parallel colcon test (318, 327 notes).
+  ament_add_gtest(test_wait_for_move_complete test/test_wait_for_move_complete.cpp TIMEOUT 180)
   target_link_libraries(test_wait_for_move_complete BT_cb_wait_for_move_complete_condition)
   ament_target_dependencies(test_wait_for_move_complete ${THIS_PACKAGE_INCLUDE_DEPENDS})
   ament_add_gtest(test_set_mpc_payload test/test_set_mpc_payload.cpp)
@@ -176,6 +178,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(
     test_encoder_offset_launch
     test/test_encoder_offset_launch.py
+  )
+  ament_add_pytest_test(
+    test_refine_retry_and_release_gates
+    test/test_refine_retry_and_release_gates.py
   )
 endif()
 

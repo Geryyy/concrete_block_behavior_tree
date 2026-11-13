@@ -1,0 +1,53 @@
+<root BTCPP_format="4">
+  <!-- The two mandatory refine steps, each with one spaced retry (issue 332). The lab-day
+       misses were transport, not the detector: the cloud stopped reaching the detector while
+       the PC recorded, and the detector then waited out its 8 s
+       (docs/features/cbs-refine-timeout-analysis.md), so a second ask 1 s later is a fresh
+       draw. A miss after the retry still fails the step that owns it (303). -->
+
+  <!-- The block on the ground, from the lidar. Reads grasp_object_contains; refine_x/y/z are
+       where it ended up, which only the release's misplaced gate reads. -->
+  <BehaviorTree ID="SubTreeRefineBlock">
+    <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="retry_refine_block">
+      <Fallback>
+        <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+          server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
+          timeout_s="8.0" x="{refine_x}" y="{refine_y}" z="{refine_z}"/>
+        <!-- RetryUntilSuccessful re-ticks a synchronous child without letting time pass, as
+             subtree_move_above.xml's TF retry notes: the wait is a failing branch, and the
+             last attempt pays it for nothing. -->
+        <Decorator ID="Delay" delay_msec="1000">
+          <AlwaysFailure/>
+        </Decorator>
+      </Fallback>
+    </Decorator>
+  </BehaviorTree>
+
+  <!-- The block as it hangs in the jaws: fresh detection, the grasp offset read back from it,
+       then the block's own pose through that offset. Callers set mi_window_s (the measure
+       window [s], 2.7 is one period of the carried pendulum) and read meas_x/y/z and
+       grip_tilt; mi_s_log_8_* is the block centre in k8, which only the resume hands on to
+       the MPC - the place paths keep the pick's payload COM (294). -->
+  <BehaviorTree ID="SubTreeMeasureInHand">
+    <Sequence name="measure_in_hand">
+      <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="retry_refine_grasped">
+        <Fallback>
+          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
+            server_timeout="10000" mode="REFINE_GRASPED"
+            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
+          <Decorator ID="Delay" delay_msec="1000">
+            <AlwaysFailure/>
+          </Decorator>
+        </Fallback>
+      </Decorator>
+      <Action ID="CaptureBlockGraspOffset"
+        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
+        world_frame="world" grasp_offset="{grasp_offset}"
+        s_log_8_x="{mi_s_log_8_x}" s_log_8_y="{mi_s_log_8_y}" s_log_8_z="{mi_s_log_8_z}"/>
+      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
+        window_s="{mi_window_s}"
+        x="{meas_x}" y="{meas_y}" z="{meas_z}" tilt="{grip_tilt}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

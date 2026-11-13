@@ -207,6 +207,15 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "hold_tolerance",
+                default_value="0.005",  # = bt_server_override.yaml, which says why
+                description=(
+                    "Tolerance [rad] of the PI recovery hold after a loaded waypoint "
+                    "descent (issue 306). The lab-day fallback is 0.008: the machine "
+                    "sticks inside +-0.003 rad/s and then jumps to 0.012."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -451,6 +460,9 @@ def generate_launch_description():
                         ),
                         "slow_down": ParameterValue(
                             LaunchConfiguration("slow_down"), value_type=float
+                        ),
+                        "hold_tolerance": ParameterValue(
+                            LaunchConfiguration("hold_tolerance"), value_type=float
                         ),
                     },
                     {

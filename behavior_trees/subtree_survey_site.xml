@@ -12,14 +12,10 @@
          has a block in the jaws (SubTreeResumeCarry, inside the assembly loop and downstream of
          here), and surveying with it would plan without its collision body and tell the MPC the
          hook is empty: skip the survey instead and let the resume branch take it. The gate is
-         the grasp signal, which can MISS: its tail on the machine is not characterised for a
-         passively held block (see SubTreeResumeCarry), so it narrows the hole and does not
-         close it. Look at the hook before setting `survey_site` on a restart. -->
+         the jaws' own empty signal, as every other empty-hook move's is (327). -->
     <IfThenElse>
-      <Inverter>
-        <Action ID="WaitForGraspSignal" name="Nothing in the jaws - the site can be surveyed"
-          topic="/gripper/grasp_detected" timeout_ms="2000"/>
-      </Inverter>
+      <Action ID="WaitForGraspSignal" name="Nothing in the jaws - the site can be surveyed"
+        topic="/gripper/jaws_empty" timeout_ms="2000"/>
       <!-- No ForceSuccess around the discovery: finding nothing at a pose is `blocks` not
            growing, which the decorator weighs over all poses; a failure here is the service or
            the detector, and that ends the goal with its own message (303). -->

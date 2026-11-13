@@ -6,6 +6,7 @@
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_descend_to.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_gripper.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_lift.xml"/>
+  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_refine.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_pick_block.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_place_block.xml"/>
   <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/subtree_pick_and_place_block.xml"/>
@@ -134,27 +135,10 @@
 
             <SetBlackboard output_key="grasp_object_contains" value="{target_block_id}"/>
 
+            <!-- The place writes TASK_PLACED itself (WriteBlockPoseFromGripper task_status 3)
+                 and re-measures the block after the release, so nothing is left to do per
+                 block here (332). -->
             <SubTree ID="SubTreePickAndPlaceBlock" _autoremap="true"/>
-
-            <!-- The default response wait is tens of ms; under load the last block's call
-                 took longer and aborted a finished wall. -->
-            <SetBlockTaskStatus
-              service_name="/world_model_node/set_block_task_status"
-              server_timeout="5000"
-              block_id="{target_block_id}"
-              task_status="3"
-              status_ok="{status_ok}"
-              status_message="{status_message}"/>
-
-            <!-- Re-observe the just-placed block against its FK-derived pose and correct it in
-               the world model. The crane has known goal-pose error, so placement errors would
-               otherwise compound uncorrected into the next block's plan. Mandatory since 303:
-               the placed pose is written COARSE, and a swallowed failure here left block_0's
-               FK pose standing as task 2's stacking target (lab day 11-09). -->
-            <RunPoseEstimation
-              service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
-              mode="REFINE_BLOCK" target_block_id="{target_block_id}"
-              enable_debug="true" timeout_s="8.0" message="{placed_block_refine_message}"/>
 
           </Sequence>
         </KeepRunningUntilFailure>

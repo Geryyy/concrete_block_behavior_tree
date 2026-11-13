@@ -45,11 +45,16 @@ public:
   {
     return providedBasicPorts({
       BT::InputPort<std::string>("block_id", "", "Ground block to evaluate"),
-      BT::InputPort<geometry_msgs::msg::PoseStamped>("expected_pickup_pose", "Planned block CoG pose"),
+      BT::InputPort<geometry_msgs::msg::PoseStamped>(
+        "expected_pickup_pose", "Planned block CoG pose"),
       BT::InputPort<double>("planned_pickup_x", "Uncorrected pickup x (planning frame)"),
       BT::InputPort<double>("planned_pickup_y", "Uncorrected pickup y (planning frame)"),
       BT::InputPort<std::string>("planning_frame", "K0_mounting_base", "Comparison frame"),
       BT::InputPort<double>("translation_tolerance_m", 0.04, "Allowed pickup XY error"),
+      BT::InputPort<double>(
+        "max_correction_m", 0.15,
+        "Above this the pickup is not corrected but failed: the association that produced "
+        "the detection reaches 0.35 m, and the jaws are 0.6 m wide"),
       BT::OutputPort<bool>("within_tolerance"),
       BT::OutputPort<double>("translation_error_m"),
       BT::OutputPort<double>("residual_dx_m"),
@@ -69,6 +74,7 @@ public:
     }
     getInput("planning_frame", planning_frame_);
     getInput("translation_tolerance_m", tolerance_m_);
+    getInput("max_correction_m", max_correction_m_);
   }
 
   BT::NodeStatus on_completion(std::shared_ptr<ResponseT> response) override
@@ -84,7 +90,8 @@ public:
 
     geometry_msgs::msg::PoseStamped observed;
     observed.header = response->blocks.header;
-    observed.header.frame_id = observed.header.frame_id.empty() ? "world" : observed.header.frame_id;
+    observed.header.frame_id =
+      observed.header.frame_id.empty() ? "world" : observed.header.frame_id;
     observed.pose = it->pose;
     try {
       if (observed.header.frame_id != planning_frame_) {
@@ -109,6 +116,14 @@ public:
     const double correction_dy = -residual_dy;
     const double error = std::hypot(residual_dx, residual_dy);
     const bool within = error <= tolerance_m_;
+    // The association that produced this detection reaches 0.35 m, so a residual that large
+    // is as likely a neighbour as the block: it is not a correction to apply (332).
+    if (error > max_correction_m_) {
+      return fail(
+        "Pickup residual " + std::to_string(error) + " m exceeds " +
+        std::to_string(max_correction_m_) + " m; the detection is too far from the plan to "
+        "be this block. Look at the pile.");
+    }
     const double corrected_x = planned_x_ + correction_dx;
     const double corrected_y = planned_y_ + correction_dy;
     std::ostringstream text;
@@ -166,6 +181,7 @@ private:
   double planned_x_{0.0};
   double planned_y_{0.0};
   double tolerance_m_{0.04};
+  double max_correction_m_{0.15};
 };
 
 }  // namespace concrete_block_behavior_tree

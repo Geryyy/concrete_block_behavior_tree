@@ -19,6 +19,25 @@ def _parents(root):
     return {child: parent for parent in root.iter() for child in parent}
 
 
+def _refine_in(node):
+    """The refine `node` stands for: itself, one under its retry, or the subtree it calls."""
+    found = next(node.iter("RunPoseEstimation"), None)
+    if found is not None:
+        return found
+    definition = next(
+        (
+            tree
+            for xml in sorted(TREE_DIR.glob("*.xml"))
+            for tree in ElementTree.parse(xml).getroot().iter("BehaviorTree")
+            if tree.get("ID") == node.get("ID")
+        ),
+        None,
+    )
+    return (
+        None if definition is None else next(definition.iter("RunPoseEstimation"), None)
+    )
+
+
 def _mandatory(root):
     """The nodes whose failure has to reach the subtree's root."""
     for node in root.iter():
@@ -96,7 +115,8 @@ def test_every_capture_reads_a_fresh_refine():
     """The capture looks the TCP up at the block's last_seen, and TF keeps 10 s.
 
     303's pick capture ran on the hover REFINE_BLOCK's stamp, ~21 s old after descent and
-    grip: every full run aborted at the first grip on "extrapolation into the past".
+    grip: every full run aborted at the first grip on "extrapolation into the past". Since 332
+    the refine before it sits under its own retry, so the sibling is that decorator.
     """
     for xml in sorted(TREE_DIR.glob("*.xml")):
         root = ElementTree.parse(xml).getroot()
@@ -106,12 +126,11 @@ def test_every_capture_reads_a_fresh_refine():
                 if (node.get("ID") or node.tag) != "CaptureBlockGraspOffset":
                     continue
                 prev = siblings[i - 1] if i else None
-                assert prev is not None and prev.tag == "RunPoseEstimation", (
-                    xml.name,
-                    i,
-                )
-                assert prev.get("mode", "").startswith("REFINE_"), xml.name
-                assert prev.get("target_block_id") == node.get("block_id"), xml.name
+                assert prev is not None, (xml.name, i)
+                refine = _refine_in(prev)
+                assert refine is not None, (xml.name, i)
+                assert refine.get("mode", "").startswith("REFINE_"), xml.name
+                assert refine.get("target_block_id") == node.get("block_id"), xml.name
 
 
 def test_a_failed_grip_registration_opens_the_jaws_on_the_ground():
@@ -125,7 +144,7 @@ def test_a_failed_grip_registration_opens_the_jaws_on_the_ground():
     )
     register, release = list(fallback)
     ids = [e.get("ID") or e.tag for e in register.iter()]
-    for step in ("RunPoseEstimation", "CaptureBlockGraspOffset", "SetMpcPayload"):
+    for step in ("SubTreeRefineBlock", "CaptureBlockGraspOffset", "SetMpcPayload"):
         assert step in ids
     assert ids[-1] == "SetBlockTaskStatus", (
         "status last: any failure leaves the block free"

@@ -63,16 +63,6 @@
             <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
             <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, MPC verdict is 0.02 -->
             <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-            <!-- The PI recovery hold after a loaded waypoint descent (issue 306). 0.005 rad is
-                 3.2 cm at the block at r 6.4 m, against the 0.007-0.011 rad the boom coasts low
-                 and the 0.05 of the arrival gate above it. Not the issue's starting 0.003:
-                 measured over the ten loaded holds of a headless row3 place, the boom clears a
-                 0.007-0.011 rad coast to under 0.005 in 0.4-1.4 s, but on one of them it
-                 plateaued at 0.0039 and crept at 0.07 mrad/s, i.e. Psi's low-speed region, where
-                 p 0.5 on a 4 mrad error commands 2 mrad/s and the axis barely moves. At 0.003
-                 that hold burned the whole timeout and failed the goal. Set wherever
-                 ex_watch_landed is true: unset is the node's 0.05, which the coast passes. -->
-            <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>
             <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
             <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 1.10"/>  <!-- 0.80 + 0.30 the loaded boom ends low -->
             <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
@@ -137,17 +127,8 @@
   <BehaviorTree ID="SubTreePlaceMiss">
     <Sequence name="place_miss">
       <!-- No detection, no pass: on the frozen offset this measured FK against FK (303). -->
-      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-        server_timeout="10000" mode="REFINE_GRASPED"
-        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-      <Action ID="CaptureBlockGraspOffset"
-        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-        world_frame="world" grasp_offset="{grasp_offset}"
-        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-        s_log_8_z="{vision_s_log_8_z}"/>
-      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-        x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+      <Script code="mi_window_s := 2.7"/>
+      <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
       <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z + 1.10 - meas_z; place_pass := place_pass + 1"/>
       <Script code="pass_verdict := !(miss_z &lt; 0.50) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
       <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
@@ -185,7 +166,6 @@
            not left to the move_above before, because SubTreePlaceFromHover enters without
            one and would inherit whatever the last move left. -->
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-      <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>  <!-- rad, 3.2 cm at the block; issue 306 -->
       <!-- From the seed, not 0: a hover the operator already corrected is not undone. The miss
            below is still against the unshifted place_approach, so off stays the total. -->
       <Script code="off_x := seed_off_x; off_y := seed_off_y; still_off := true; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0"/>
@@ -226,34 +206,25 @@
                  the boom's bend at this pose enters the offset instead of the pickup's. No
                  detection fails the approach (303): on the frozen offset the pass measures FK
                  against FK and the bend it should cancel does not cancel (lab day 11-09). -->
-            <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-              server_timeout="10000" mode="REFINE_GRASPED"
-              target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-            <Action ID="CaptureBlockGraspOffset"
-              service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-              block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-              world_frame="world" grasp_offset="{grasp_offset}"
-              s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-              s_log_8_z="{vision_s_log_8_z}"/>
-            <!-- 2.7 s: one period of the carried pendulum. -->
-            <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-              x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+            <Script code="mi_window_s := 2.7"/>
+            <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.45 - meas_z"/>
             <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
-            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.15) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'shift_last' : 'shift'))"/>
+            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'shift_last' : 'shift'))"/>
             <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
               verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
               off_x="{off_x}" off_y="{off_y}"/>
             <!-- Gross-failure gate, not a correction: a descent that stopped 28 cm short is
                  not corrected laterally. A lateral miss is corrected: steady wind holds the
                  block 14 cm aside, the same on every retry. A constant offset error is a
-                 constant miss_z, so the band has to hold it: 0.15 covers the 72 mm reference
-                 gap (lab day 11-09) plus the 5-7 cm the loaded boom still ends low. What catches a wrong
+                 constant miss_z, so the band has to hold it: 0.20 covers the 72 mm reference
+                 gap (lab day 11-09) plus the boom sag, which the 11-09 bags read as 0.13-0.19
+                 on normal approaches - 0.15 had ~0 margin. What catches a wrong
                  offset is the load-off watch (issue 289): every descent on this path ends on
                  the ground whatever the plan thought the height was. Low only: a block left high just lands
-                 later (sim JTC sagged 33 cm under load); 0.15 low fails place_approach with
-                 nothing yet touched down. -->
-            <ScriptCondition code="miss_z &lt; 0.15"/>
+                 later (sim JTC sagged 33 cm under load); 0.20 low still catches a 28 cm short
+                 stop, with nothing yet touched down. -->
+            <ScriptCondition code="miss_z &lt; 0.20"/>
             <Script code="still_off := miss_x * miss_x + miss_y * miss_y &gt;= 0.0025"/>
             <!-- Every miss of 1 cm or more is moved out; the 5 cm gate only decides whether
                  that move is measured again. Under 1 cm, no move. corr_done only once the
@@ -288,23 +259,14 @@
       <Fallback _skipIf="load_off">
         <ScriptCondition code="corr_done"/>
         <Sequence>
-          <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-            server_timeout="10000" mode="REFINE_GRASPED"
-            target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-          <Action ID="CaptureBlockGraspOffset"
-            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-            block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-            world_frame="world" grasp_offset="{grasp_offset}"
-            s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-            s_log_8_z="{vision_s_log_8_z}"/>
-          <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-            x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
+          <Script code="mi_window_s := 2.7"/>
+          <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
           <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.45 - meas_z"/>
-          <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.15) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'within' : 'final_fail')"/>
+          <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0025 ? 'within' : 'final_fail')"/>
           <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
             verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
             off_x="{off_x}" off_y="{off_y}"/>
-          <ScriptCondition code="miss_z &lt; 0.15"/>
+          <ScriptCondition code="miss_z &lt; 0.20"/>
           <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
         </Sequence>
       </Fallback>
@@ -333,7 +295,6 @@
              campaign that passed a 0.05 or 0.20 gate were inside 0.0100 rad on every joint, so
              0.02 keeps a factor of two and the retry re-plans rather than aborts if it misses. -->
         <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>
-        <SetBlackboard output_key="ex_hold_tolerance" value="0.005"/>  <!-- rad, 3.2 cm at the block; issue 306 -->
         <!-- Retry re-plans from where it stopped, as move_above does: an MPC that escalated
              mid-move leaves the crane short and this wait times out. -->
         <Decorator ID="RetryUntilSuccessful" num_attempts="2">
@@ -372,23 +333,11 @@
       <Script code="sd_saved := slow_down; slow_down := slow_down * td_scale"/>
       <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
       <Script code="slow_down := sd_saved"/>
-      <!-- The block is down and the boom has sprung back, so the loaded offset no longer
-           describes where the block is relative to FK's gripper. Re-measure it before the
-           release writes the placed pose with it: on the loaded offset that pose was a bend
-           out (0.11-0.19 m, lab day 2026-11-04), in the world model, in the collision scene
-           the lift below plans against, and as the prior the final REFINE_BLOCK has to
-           associate within (0.35 m). No detection fails the place here (303): the pose write
-           below is the only record of where the block ended up. The early-contact path takes
-           this measurement itself. -->
-      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-        server_timeout="10000" mode="REFINE_GRASPED"
-        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-      <Action ID="CaptureBlockGraspOffset"
-        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-        world_frame="world" grasp_offset="{grasp_offset}"
-        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-        s_log_8_z="{vision_s_log_8_z}"/>
+      <!-- No re-measure on the landed block (332). It only fed the COARSE write below, which
+           the post-release REFINE_BLOCK overwrites, while its own failure left the block
+           landed, the jaws shut and the block TASK_MOVE. So the write uses the in-air offset:
+           the hook is pinned on landing, and the misplaced gate in the release is what reads
+           the difference. -->
       <SubTree ID="SubTreeRelease" _autoremap="true"/>
     </Sequence>
   </BehaviorTree>
@@ -398,9 +347,9 @@
   <BehaviorTree ID="SubTreeRelease">
     <Sequence name="release">
 
-      <!-- 4. Write final block pose, then open gripper. The offset this applies to FK's
-           gripper has to be one measured after the load came off - the boom springs back by
-           its bend there - so both callers re-measure it immediately before entering here.
+      <!-- 4. Write final block pose, then open gripper. The offset is the last one measured in
+           the air (332): the early-contact caller re-measures on the ground, the touchdown
+           does not.
            Before the open: once the jaws let go the gripper swings, and FK x the offset wrote
            poses 0.1-0.4 m off (327 sim). pose_status and confidence are the plugin's defaults,
            COARSE and under 1: this is FK x the offset, and the REFINE_BLOCK at the end of the
@@ -412,7 +361,8 @@
         block_id="{grasp_object_contains}"
         world_frame="world"
         grasp_offset="{grasp_offset}"
-        task_status="3"/>
+        task_status="3"
+        x="{written_x}" y="{written_y}" z="{written_z}"/>
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="true"/>
       <SubTree ID="SubTreeGripper" _autoremap="true"/>
@@ -446,47 +396,55 @@
            Only a relative_to_world_model slot (stack_block_1_on_block_2) builds on it.
            Mandatory since 303: the write above is COARSE, so without this pass nothing ever
            measured the placed block. -->
-      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-        server_timeout="10000" mode="REFINE_BLOCK" target_block_id="{grasp_object_contains}"
-        timeout_s="8.0"/>
+      <SubTree ID="SubTreeRefineBlock" _autoremap="true"/>
+      <!-- How far the lidar had to move the block from where the hook let it go. Over 0.10 m
+           the block is not on its slot: in every oracle example_wall run with noise seed 0 the
+           descent stalled with the hook still carrying ~17-19 cm over the slot, the touchdown
+           took that for a landing (its WaitForLoadOff accepts 0.20 m, port default), the jaws
+           opened and block_2 fell ~0.2 m - laterally 5-14 cm out, and TASK_PLACED (332).
+           Two one-sided tests, not the correction's norm: laterally it is symmetric, but in z
+           only *below* the written pose counts, because the lidar reads a ground block
+           0.12-0.25 m too high (readiness A3) while a block let go in the air was written
+           that much too high - so on the machine the bias blunts the z arm, and it is the
+           sim's bias-free oracle it catches the drop in. -->
+      <ScriptCondition name="Block misplaced - the lidar moved it over 0.10 m from the release"
+        code="(refine_x - written_x) * (refine_x - written_x) + (refine_y - written_y) * (refine_y - written_y) &lt; 0.01 &amp;&amp; refine_z - written_z &gt; -0.10"/>
 
     </Sequence>
   </BehaviorTree>
 
   <!-- The load came off before the descent's target (WaitForLoadOff logs "early contact" and
-       the height): the block rests on ground the plan put lower than it is. Nothing descends
-       again from here, and no height decides anything - the ground is the better reference
-       for z than the plan, which is what the simple path already leans on. Laterally on the
+       the height): the block rests on something the plan put lower than it is. Nothing
+       descends again from here, and the height only has to tell the slot's own ground from a
+       neighbour's top (332) - within that it decides nothing, the ground being the better
+       reference for z than the plan, which is what the simple path already leans on. On the
        slot, let go; otherwise lift clear and fail the place, so the block does not stay
        where the next one is planned. -->
   <BehaviorTree ID="SubTreeEarlyContact">
     <Sequence name="early_contact">
       <!-- Where it came to rest: the lidar first, the block may have slid in the jaws as the
            hook unloaded. No detection fails the place (303): the band below and the pose write
-           both read this offset. -->
-      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-        server_timeout="10000" mode="REFINE_GRASPED"
-        target_block_id="{grasp_object_contains}" timeout_s="8.0"/>
-      <Action ID="CaptureBlockGraspOffset"
-        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-        world_frame="world" grasp_offset="{grasp_offset}"
-        s_log_8_x="{vision_s_log_8_x}" s_log_8_y="{vision_s_log_8_y}"
-        s_log_8_z="{vision_s_log_8_z}"/>
-      <!-- 0.5 s, not the loaded 2.7: the block is down, there is no pendulum to average out. -->
-      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="0.5"
-        x="{meas_x}" y="{meas_y}" z="{meas_z}"/>
-      <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y"/>
+           both read this offset.
+           0.5 s, not the loaded 2.7: the block is down, there is no pendulum to average out. -->
+      <Script code="mi_window_s := 0.5"/>
+      <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
+      <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z - meas_z"/>
       <!-- IfThenElse, not a Fallback: a Fallback would also take the lift branch when the
            release itself failed late, and that lift runs with lf_carries true, i.e. 880 kg
            of feedforward onto a hook whose jaws are already open. The band decides which
            branch runs; a failure inside the chosen branch fails the place. -->
       <IfThenElse>
-        <!-- The place's own lateral band, the one its last in-air pass accepts. -->
-        <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
+        <!-- The place's own lateral band, the one its last in-air pass accepts, and the slot's
+             own height (332): load-off alone is also satisfied by a block resting on a
+             neighbour, on the hedge or in an occupied slot, which is where the jaws must not
+             open (readiness S1). 0.30 m covers the lidar's one-sided z bias on a ground
+             block (it reads 0.12-0.25 m too high, readiness A3), which eats the band on one
+             side; a neighbour or the hedge is ~0.6 m up. The trigger
+             is unchanged - this decides the release, not the contact. -->
+        <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025 &amp;&amp; miss_z * miss_z &lt; 0.09"/>
         <SubTree ID="SubTreeRelease" _autoremap="true"/>
         <Decorator ID="ForceFailure">
-          <Sequence>
+          <Sequence name="The block came down off its slot - lifted clear, jaws still shut">
             <SetBlackboard output_key="lf_carries" value="true"/>
             <SubTree ID="SubTreeLift" _autoremap="true"/>
           </Sequence>

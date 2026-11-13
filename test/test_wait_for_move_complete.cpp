@@ -78,8 +78,9 @@ struct Outcome
 // The subtree's shape: the arrival oracle, the action goal that runs instead of
 // it off the MPC arm, the PI recovery hold on the loaded waypoint descents
 // (issue 306, on either arm) and the settle wait that follows the goal (220).
-// The hold's 0.003 is the tight tolerance the coast is waited out at, and its
-// one override stands for the subtree's telescope, whose tolerance is metres.
+// The hold takes its own tolerance from the server's `hold_tolerance` parameter
+// (0.005 by default, issue 332), not from the port; its one override stands for
+// the subtree's telescope, whose tolerance is metres.
 constexpr char kTree[] =
   R"(<root BTCPP_format="4">
        <BehaviorTree ID="T">
@@ -87,7 +88,7 @@ constexpr char kTree[] =
            <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.05"
              joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD" mpc_drives="{mpc_drives}"/>
            <Script _skipIf="mpc_drives" code="commanded := 1"/>
-           <WaitForMoveComplete trajectory="{trajectory}" goal_tolerance="0.003"
+           <WaitForMoveComplete trajectory="{trajectory}"
              goal_tolerances="theta1_slewing_joint:0.05" decay_only="true"
              joints="JOINTS" timeout_ms="TIMEOUT" hold_s="HOLD"
              _skipIf="ex_until_landed || !ex_watch_landed"/>

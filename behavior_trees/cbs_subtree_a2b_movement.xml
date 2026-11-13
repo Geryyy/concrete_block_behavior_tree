@@ -60,11 +60,6 @@
 <root BTCPP_format="4">
   <!-- The one MPC-execute subtree: A2B moves, lift, carrying descent. Caller sets:
          ex_goal_tolerance     arrival tolerance [rad|m]
-         ex_hold_tolerance     the PI recovery hold's tolerance [rad] on the loaded waypoint
-                               descents (ex_watch_landed), where the arrival tolerance is far
-                               wider than the coast it has to take back; issue 306. Unset
-                               leaves the node's 0.05 default, i.e. a hold that passes at
-                               once, so every caller that sets ex_watch_landed true sets it.
          ex_sway_bound         sway rate bound at arrival [rad/s], 0: the MPC verdict's
          ex_hold_s             dwell under the arrival bounds [s]: 2.7 (one period of the
                                carried pendulum) loaded, 0.3 empty; issue 255. Set it
@@ -204,25 +199,27 @@
                Boom, arm and telescope: the three a vertical descent commands. The slew and
                rotator stop ~5 mrad short of any goal (subtree_place_block.xml) and nothing
                here drives them back, so a tight gate on them would only time out.
-               Tolerances: ex_hold_tolerance for the two revolute, the same ~2 cm at the block
-               for the telescope in the unit it measures in.
+               Tolerances: the two revolute take the BT server's `hold_tolerance` parameter,
+               which the node reads itself (332), so a lab day picks its fallback with a launch
+               argument instead of three literals in this tree; the default and the reasoning
+               are in config/bt_server_override.yaml. The telescope takes the same ~2 cm at the
+               block in the unit it measures in.
                10 s, and short on purpose: this hold is *active*, a loaded active hold pumps
                the tip mode (issue 234) and the early-contact watch beside the arrival wait is
                halted by then, so the timeout is what bounds both. Measured over the ten loaded
                holds of a headless row3 place: the boom stops 0.0002-0.0106 rad low (sim does
                reproduce the 11-09 coast) and clears it to under 0.005 in 0.4-1.4 s, so the
-               hold costs the 2.7 s dwell plus that, 2.7-4.1 s. 10 s is 2.4x the worst of
+               hold costs its dwell plus that, 0.9-1.9 s. 10 s is 5x the worst of
                those. Reaching it fails the goal with the joint and its residual named.
-               hold_s is the shared key, 2.7 s loaded, and it is the cost: the dwell runs on
-               the positions and the rates, so an already-decayed descent pays 2.7 s where the
-               Sleep charged 5. -->
+               0.5 s of dwell, not the arrival's 2.7 (332): the dwell runs on the positions and
+               the rates, the 2.7 s of the carried pendulum was already paid at the arrival
+               above, and a 2.7 s measure window follows this hold anyway. -->
           <WaitForMoveComplete name="PI recovery hold" decay_only="true"
             _skipIf="ex_until_landed || !ex_watch_landed"
             trajectory="{trajectory}"
             joints="theta2_boom_joint,theta3_arm_joint,q4_big_telescope"
-            goal_tolerance="{ex_hold_tolerance}"
             goal_tolerances="q4_big_telescope:0.02"
-            hold_s="{ex_hold_s}"
+            hold_s="0.5"
             timeout_ms="10000"/>
           <SwitchController name="Deactivate controller"
             activate_controllers=""

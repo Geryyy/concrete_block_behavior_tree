@@ -124,6 +124,8 @@ public:
       // which is the controller the cbs_mpc* profiles run. One number and not a
       // per-joint map, because that file sets the same 0.05 for every joint it
       // actually constrains -- see `joints`.
+      // The decay hold ignores this port: its band is a lab-day decision, so it takes the
+      // server's `hold_tolerance` parameter instead (issue 332).
       BT::InputPort<double>("goal_tolerance", 0.05, "Per-joint position tolerance [rad|m]"),
       // The exception to that one number, for the joint whose unit is not the
       // others': the decay hold asks 0.005 rad of boom and arm and 0.02 m of the

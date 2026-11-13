@@ -31,6 +31,8 @@
   <!-- Take over the block the jaws already hold instead of picking it (issue 274). No gripper
        phase and no descent here: the jaws stay closed, nothing is aimed at the stale pickup
        pose, and the caller carries on to the place from wherever the cancel left the crane.
+       No lift either: SubTreeLift plans from {COG}, which a fresh run has not written, and the
+       place's own A2B approach retries over a lift anyway.
        Not held: the jaws are empty and the block is loose somewhere the plan does not know, so
        this fails rather than descend blind. GetBlockTaskStatus logs what the operator has to do
        (put it back, reset it to TASK_FREE); the failing node's name says it too. -->
@@ -47,24 +49,20 @@
         name="No grasp signal for a TASK_MOVE block - check the hook before approaching"
         topic="/gripper/grasp_detected" timeout_ms="2000"/>
       <!-- Look at what is in the hand before anything is planned on it: the offset recovered
-           below is the belief the cancelled run held, and an abort is what shifts a load. The
-           grip_tilt the crooked-grip gate reads comes off this. No detection fails the task
-           (303), as in the pick. -->
-      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-        server_timeout="10000" mode="REFINE_GRASPED" target_block_id="{grasp_object_contains}"
-        timeout_s="8.0"/>
-      <!-- The world model rewrites every TASK_MOVE pose as TCP * its stored grasp offset once
-           per marker_refresh_period_s (0.5 s) and stamps it last_seen, which is the stamp this
-           node looks the TCP up at. So this recovers the offset the cancelled run captured
+           here is the belief the cancelled run held, and an abort is what shifts a load. The
+           grip_tilt the crooked-grip gate reads comes off it. No detection fails the task
+           (303), as in the pick.
+           The world model rewrites every TASK_MOVE pose as TCP * its stored grasp offset once
+           per marker_refresh_period_s (0.5 s) and stamps it last_seen, which is the stamp the
+           capture looks the TCP up at. So this recovers the offset the cancelled run captured
            (vision-refined, if REFINE_GRASPED ran) without re-picking the block. -->
-      <Action ID="CaptureBlockGraspOffset" name="Recover grasp offset"
-        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-        block_id="{grasp_object_contains}" gripper_frame="K8_tool_center_point"
-        world_frame="world" grasp_offset="{grasp_offset}"
-        s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
-      <!-- Same 10 cm sanity clamp as the pick. -->
-      <Script code="s_log_8_x := s_log_8_x &gt; 0.10 ? 0.10 : (s_log_8_x &lt; -0.10 ? -0.10 : s_log_8_x);
-                    s_log_8_y := s_log_8_y &gt; 0.10 ? 0.10 : (s_log_8_y &lt; -0.10 ? -0.10 : s_log_8_y)"/>
+      <Script code="mi_window_s := 2.7"/>
+      <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
+      <!-- The only caller that passes the measured block centre on: same 10 cm sanity clamp
+           as the pick. -->
+      <Script code="s_log_8_x := mi_s_log_8_x &gt; 0.10 ? 0.10 : (mi_s_log_8_x &lt; -0.10 ? -0.10 : mi_s_log_8_x);
+                    s_log_8_y := mi_s_log_8_y &gt; 0.10 ? 0.10 : (mi_s_log_8_y &lt; -0.10 ? -0.10 : mi_s_log_8_y);
+                    s_log_8_z := mi_s_log_8_z"/>
       <!-- The MPC may have been restarted since, and the first move below is a carrying one. -->
       <Action ID="SetMpcPayload" name="Set MPC payload"
         service_name="/crane/mpc/set_payload"
@@ -73,11 +71,6 @@
         s_log_8_x="{s_log_8_x}"
         s_log_8_y="{s_log_8_y}"
         s_log_8_z="{s_log_8_z}"/>
-      <!-- grip_tilt for the crooked-grip gate in SubTreePickAndPlaceBlock. No lift first:
-           SubTreeLift plans from {COG}, which a fresh run has not written, and the place's own
-           A2B approach retries over a lift anyway. -->
-      <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}" window_s="2.7"
-        tilt="{grip_tilt}"/>
     </Sequence>
   </BehaviorTree>
 </root>

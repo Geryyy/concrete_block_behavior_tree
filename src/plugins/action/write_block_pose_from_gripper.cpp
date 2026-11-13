@@ -90,6 +90,9 @@ void WriteBlockPoseFromGripper::on_tick()
   request_->pose.orientation.y = q.y();
   request_->pose.orientation.z = q.z();
   request_->pose.orientation.w = q.w();
+  setOutput("x", request_->pose.position.x);
+  setOutput("y", request_->pose.position.y);
+  setOutput("z", request_->pose.position.z);
   request_->pose_status = pose_status;
   request_->task_status = task_status;
   request_->confidence = static_cast<float>(confidence);
