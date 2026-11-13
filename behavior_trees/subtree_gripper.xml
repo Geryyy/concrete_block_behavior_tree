@@ -8,13 +8,15 @@
     <Sequence name="gripper">
       <!-- Loose: only q9 moves here, the crane joints just hold station. -->
       <SetBlackboard output_key="ex_goal_tolerance" value="0.20"/>
+      <!-- Approval before planning: the plan holds the joints read now, and the arm is
+           uncontrolled until execution starts (a stale hold dragged landed blocks). -->
+      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="CalcGripMovement" name="Plan gripper move"
         carriesLog="{gr_carries}" logShapeText="{log_shape_text}" phase="{gr_phase}"
         phiToolN="{phi}" service_name="grip_traj_movement"
         server_timeout="40000" slowDown="{slow_down}"
         p_cyl_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
-      <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
       <Action ID="PublishGripperState" name="Publish payload to MPC"
         carries="{gr_carries}" mass="{payload_mass}"
         log_shape_text="{log_shape_text}"
