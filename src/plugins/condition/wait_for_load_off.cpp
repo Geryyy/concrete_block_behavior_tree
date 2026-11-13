@@ -27,6 +27,13 @@ WaitForLoadOff::WaitForLoadOff(const std::string & name, const BT::NodeConfig & 
 {
   node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
   getInput("joint", joint_);
+  // The height a touchdown may still call a landing is a lab-day decision, so it is the
+  // server's parameter rather than a literal in the tree (issue 342). node_ outlives the
+  // tree and every reload reconstructs this plugin, so declaring unconditionally throws
+  // ParameterAlreadyDeclared on the second load. The watch instance sets the port itself.
+  touchdown_max_above_ = node_->has_parameter("touchdown_max_above_target")
+    ? node_->get_parameter("touchdown_max_above_target").as_double()
+    : node_->declare_parameter<double>("touchdown_max_above_target", 0.10);
   callback_group_ = node_->create_callback_group(
     rclcpp::CallbackGroupType::MutuallyExclusive, false);
   callback_group_executor_.add_callback_group(
@@ -85,7 +92,8 @@ BT::NodeStatus WaitForLoadOff::onRunning()
   const auto now = node_->get_clock()->now();
   const auto log = node_->get_logger();
 
-  double mass = 0.0, target_z = 0.0, drop_fraction = 0.5, max_above = 0.05, floor = 0.01;
+  double mass = 0.0, target_z = 0.0, drop_fraction = 0.5, floor = 0.01;
+  double max_above = touchdown_max_above_;
   int timeout_ms = 20000;
   geometry_msgs::msg::Point centre_k8;
   std::string lever_frame, k8_frame, world_frame;

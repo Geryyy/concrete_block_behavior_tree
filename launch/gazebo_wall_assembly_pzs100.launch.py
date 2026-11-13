@@ -216,6 +216,17 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "touchdown_max_above_target",
+                default_value="0.10",  # = bt_server_override.yaml, which says why
+                description=(
+                    "How high [m] over place_z a touchdown may still call the load "
+                    "coming off a landing (issue 342). Above it the block is resting "
+                    "on something the plan has lower, so it lifts clear, enters once "
+                    "more and then fails. FK through the nominal 1.05 m offset, so on "
+                    "the machine it carries the loaded boom's bend (0.11-0.19 m)."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "seed_file",
                 default_value=PathJoinSubstitution(
                     [
@@ -463,6 +474,10 @@ def generate_launch_description():
                         ),
                         "hold_tolerance": ParameterValue(
                             LaunchConfiguration("hold_tolerance"), value_type=float
+                        ),
+                        "touchdown_max_above_target": ParameterValue(
+                            LaunchConfiguration("touchdown_max_above_target"),
+                            value_type=float,
                         ),
                     },
                     {

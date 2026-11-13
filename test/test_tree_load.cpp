@@ -156,9 +156,9 @@ void seed_task(const BT::Blackboard::Ptr & blackboard)
   blackboard->set("grasp_object_contains", std::string("block_0"));
   blackboard->set("moving_block_id", std::string());
   blackboard->set("log_shape_text", std::string("radius_top: 0.541, radius_bottom: 0.541"));
-  // The block where the step aimed it: place_z + 0.45 with every place_* zero. Lower and
+  // The block where the step aimed it: place_z + 0.75 with every place_* zero. Lower and
   // SubTreePlaceApproach's own height gate fails the pass, which is not what is under test.
-  blackboard->set("meas_z", 0.45);
+  blackboard->set("meas_z", 0.75);
 }
 
 // Bounded in wall time, not in ticks: the /tf retry of issue 320 waits between its attempts,

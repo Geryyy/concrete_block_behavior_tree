@@ -147,7 +147,9 @@ def test_nothing_re_measures_after_the_touchdown():
     left the block landed, the jaws shut and the block TASK_MOVE (303)."""
     ids = _ids(_subtree("subtree_place_block.xml", "SubTreeTouchdown"))
     assert "SubTreeMeasureInHand" not in ids and "CaptureBlockGraspOffset" not in ids
-    assert ids.index("SubTreeDescendTo") < ids.index("SubTreeRelease")
+    assert ids.index("SubTreeTouchdownStroke") < ids.index("SubTreeRelease")
+    stroke = _ids(_subtree("subtree_place_block.xml", "SubTreeTouchdownStroke"))
+    assert "SubTreeMeasureInHand" not in stroke and "SubTreeDescendTo" in stroke
 
 
 def test_the_in_hand_measurement_is_defined_once_and_parameterised_per_caller():

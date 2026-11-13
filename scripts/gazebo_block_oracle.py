@@ -51,8 +51,10 @@ class GazeboBlockOracle(Node):
         self.yaw = math.radians(
             self.declare_parameter("gazebo_seed_frame_yaw_deg", 180.0).value
         )
-        # The testsite ground's surface: blocks rest 2.5 cm above their world-model height.
-        self.ground = self.declare_parameter("gazebo_ground_z", 0.025).value
+        # The testsite ground's surface in gz. 0.0 since the slab was sunk to put its top at
+        # z=0 (testsite_description seibersdorf_3d_reduced/model.sdf): the 0.025 left here
+        # reported every block 2.5 cm low. wall_report.py's GZ_GROUND is the same number.
+        self.ground = self.declare_parameter("gazebo_ground_z", 0.0).value
         self.sigma_pos = self.declare_parameter("sigma_position_m", 0.01).value
         self.sigma_ang = math.radians(
             self.declare_parameter("sigma_angle_deg", 0.5).value

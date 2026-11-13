@@ -46,6 +46,20 @@ lifecycle_manager:
     # and then jumps to 0.012 (325 notes), so the lab-day fallback is 0.008; raise it with the
     # launch argument of the same name, not here.
     hold_tolerance: 0.005
+    # How high over place_z a touchdown may still call the load coming off a landing, read by
+    # WaitForLoadOff when the tree leaves the port unset (issue 342). Above it the block is
+    # resting on something the plan has lower -- on course 0 the neighbour it was entered
+    # against -- so the touchdown lifts clear, enters once more and then fails with the jaws
+    # shut. 0.10 is a sim value: the height is FK through the nominal 1.05 m TCP -> block
+    # centre offset, and every stall measured in the 2026-11-13 screen read +0.13 to +0.19 m
+    # while a clean landing read -0.02 to -0.05, so 0.10 separates them with margin either
+    # way. On the machine that FK carries the loaded boom's bend, which the 11-04 and 11-09
+    # bags read as 0.11-0.19 m at the slot (332 notes, readiness A3): a correct landing can
+    # read most of the band there, so a lab day raises it rather than discovering it as a
+    # failed place -- in sim with the launch argument of the same name, on the real launch
+    # here, which has no such argument yet. Was the node's 0.20 port default, which accepted
+    # every stall as a landing.
+    touchdown_max_above_target: 0.10
     # Simulation test hook.  Gazebo launch arguments override these values;
     # disabled by default and never enabled by the real-crane launch.
     simulated_placement_disturbance.enabled: false

@@ -183,6 +183,10 @@ if(BUILD_TESTING)
     test_refine_retry_and_release_gates
     test/test_refine_retry_and_release_gates.py
   )
+  ament_add_pytest_test(
+    test_touchdown_lands_on_the_floor
+    test/test_touchdown_lands_on_the_floor.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")

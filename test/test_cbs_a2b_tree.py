@@ -362,7 +362,7 @@ def test_the_run_pace_is_a_parameter_the_slow_legs_multiply():
         for tree in ElementTree.parse(TREE_DIR / "subtree_place_block.xml")
         .getroot()
         .iter("BehaviorTree")
-        if tree.get("ID") == "SubTreeTouchdown"
+        if tree.get("ID") == "SubTreeTouchdownStroke"
     )
     codes = [node.get("code") for node in touchdown.iter("Script")]
     assert "sd_saved := slow_down; slow_down := slow_down * td_scale" in codes

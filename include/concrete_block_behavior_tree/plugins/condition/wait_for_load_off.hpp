@@ -38,6 +38,9 @@ namespace concrete_block_behavior_tree
 // contact above `max_above_target`) or it never did. The tree reads it to tell early
 // contact from any other failure; run as a watch beside a descent to a waypoint,
 // `max_above_target` -1.0 makes every load-off that failure (issue 289).
+// An unset `max_above_target` port takes the server's `touchdown_max_above_target`
+// parameter, which is the lab day's decision, not the tree's; see
+// config/bt_server_override.yaml.
 class WaitForLoadOff : public BT::StatefulActionNode
 {
 public:
@@ -58,7 +61,8 @@ public:
       BT::InputPort<std::string>(
         "frame", "K0_mounting_base", "Frame target_z is in, z up: the planning frame"),
       BT::InputPort<double>("drop_fraction", 0.25, "Share of m g r the effort must lose"),
-      BT::InputPort<double>("max_above_target", 0.20, "Highest the block may have stayed [m]"),
+      // No default: unset means the `touchdown_max_above_target` parameter (issue 342).
+      BT::InputPort<double>("max_above_target", "Highest the block may have stayed [m]"),
       BT::InputPort<double>("floor_below_target", 0.01, "Lowest block centre ever [m]"),
       BT::InputPort<int>("timeout_ms", 20000, "Give up after [ms]"),
       BT::OutputPort<bool>("load_off", "Did the load come off, however this ended"),
@@ -86,6 +90,7 @@ private:
 
   std::mutex mutex_;
   std::string joint_;
+  double touchdown_max_above_{0.10};  // the port's fallback, from the server parameter
   std::vector<double> window_;
   double effort_{0.0};
   bool fresh_{false};

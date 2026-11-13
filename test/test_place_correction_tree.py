@@ -130,12 +130,12 @@ def test_every_loaded_descent_runs_the_landed_watch():
     SubTreeTouchdown watched the load. Each of these owns a loaded descent, and exactly one
     of them -- the touchdown -- is the descent that *ends* on landing.
     """
-    watched = ("SubTreePlaceSimple", "SubTreePlaceApproach", "SubTreePlaceFinish")
+    watched = ("SubTreePlaceSimple", "SubTreePlaceApproach", "SubTreePlaceEntry")
     for tree_id in watched:
         codes = [code for _, code in _scripts(tree_id)]
         assert [c for c in codes if "ex_watch_landed := true" in c], tree_id
 
-    touchdown = [code for _, code in _scripts("SubTreeTouchdown")]
+    touchdown = [code for _, code in _scripts("SubTreeTouchdownStroke")]
     assert [c for c in touchdown if "ex_until_landed := true" in c], touchdown
     for tree_id in watched:
         codes = [code for _, code in _scripts(tree_id)]
@@ -269,9 +269,7 @@ def test_early_contact_replaces_the_touchdown_everywhere_a_descent_is_watched():
     # skip it rather than fly it with the block on the ground.
     finish = _subtree("SubTreePlaceFinish")
     entry = next(
-        node
-        for node in finish.iter("Sequence")
-        if any(child.tag == "Decorator" for child in node)
+        node for node in finish.iter("SubTree") if node.get("ID") == "SubTreePlaceEntry"
     )
     assert entry.get("_skipIf") == "load_off"
 
@@ -303,9 +301,9 @@ def test_the_place_goals_are_nominal_heights_and_the_pacing_is_constant():
     not stop the block short of its neighbour), 0.40 m at 8.0 per metre = 3.2, the same
     per-metre scale the simple path's 1.0 m stroke runs at.
     """
-    entry = next(c for _, c in _scripts("SubTreePlaceFinish") if "dz_z :=" in c)
+    entry = [c for _, c in _scripts("SubTreePlaceEntry") if "dz_z :=" in c][-1]
     assert entry.endswith("dz_z := place_z + 0.20"), entry
-    aim = next(c for _, c in _scripts("SubTreeTouchdown") if "dz_z :=" in c)
+    aim = next(c for _, c in _scripts("SubTreeTouchdownStroke") if "dz_z :=" in c)
     assert aim.startswith("dz_z := place_z - 0.20"), aim
     assert next(c for _, c in _scripts("SubTreePlaceFinish") if "td_scale :=" in c) == (
         "td_scale := 3.2"
