@@ -3,6 +3,7 @@
 // `window_s`: one pendulum period puts the mean at the swing's centre, where one sample read
 // 0.5 cm off a block swinging +-3 cm.
 
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -30,8 +31,7 @@ public:
   : BT::StatefulActionNode(name, conf)
   {
     node_ = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    tf_buffer_ = shared_tf_buffer(config().blackboard, node_, tf_listener_);
     // Latched, so a panel attaching mid-run still sees the last measurement, and one publisher
     // shared by every instance, so it sees only that one and not each node's last in any order.
     static rclcpp::Publisher<std_msgs::msg::String>::SharedPtr shared;
@@ -129,7 +129,7 @@ private:
   }
 
   rclcpp::Node::SharedPtr node_;
-  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
   std::string frame_;

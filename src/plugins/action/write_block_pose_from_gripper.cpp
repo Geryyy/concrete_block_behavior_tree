@@ -1,3 +1,4 @@
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/plugins/action/write_block_pose_from_gripper.hpp"
 
 #include <stdexcept>
@@ -17,8 +18,7 @@ WriteBlockPoseFromGripper::WriteBlockPoseFromGripper(
   const BT::NodeConfig & conf)
 : nav2_behavior_tree::BtServiceNode<ServiceT>(service_node_name, conf)
 {
-  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_buffer_ = shared_tf_buffer(config().blackboard, node_, tf_listener_);
 }
 
 void WriteBlockPoseFromGripper::on_tick()

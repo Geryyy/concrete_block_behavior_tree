@@ -1,3 +1,4 @@
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/plugins/condition/wait_for_load_off.hpp"
 
 #include <algorithm>
@@ -49,8 +50,7 @@ WaitForLoadOff::WaitForLoadOff(const std::string & name, const BT::NodeConfig & 
   pub_ = node_->create_publisher<std_msgs::msg::Float64MultiArray>("/crane/load_off", 10);
   status_ = node_->create_publisher<std_msgs::msg::String>(
     "/cbs/status/load_off", rclcpp::QoS(1).transient_local());
-  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(node_->get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_buffer_ = shared_tf_buffer(config().blackboard, node_, tf_listener_);
 }
 
 void WaitForLoadOff::callback(const JointState::SharedPtr msg)

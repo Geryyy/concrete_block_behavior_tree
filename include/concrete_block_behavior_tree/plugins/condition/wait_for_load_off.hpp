@@ -85,7 +85,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_;
   // /cbs/status/load_off: the same numbers as the log line, for CBSRunPanel. Latched.
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_;
-  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   std::mutex mutex_;

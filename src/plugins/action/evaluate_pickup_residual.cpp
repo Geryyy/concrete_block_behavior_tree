@@ -1,3 +1,4 @@
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -31,8 +32,7 @@ public:
   EvaluatePickupResidual(const std::string & name, const BT::NodeConfig & config)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(name, config)
   {
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    tf_buffer_ = shared_tf_buffer(config.blackboard, node_, tf_listener_);
     status_pub_ = node_->create_publisher<std_msgs::msg::String>(
       "/assembly_operator/pickup_refinement_status", rclcpp::QoS(1).transient_local());
     indicator_pub_ = node_->create_publisher<std_msgs::msg::Bool>(

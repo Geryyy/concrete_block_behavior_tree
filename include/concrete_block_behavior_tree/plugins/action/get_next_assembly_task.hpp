@@ -1,5 +1,6 @@
 #pragma once
 
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include <cmath>
 #include <memory>
 #include <string>
@@ -24,8 +25,7 @@ public:
   GetNextAssemblyTaskService(const std::string & service_name, const BT::NodeConfig & conf)
   : nav2_behavior_tree::BtServiceNode<ServiceT>(service_name, conf)
   {
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    tf_buffer_ = shared_tf_buffer(config().blackboard, node_, tf_listener_);
     if (!node_->has_parameter("simulated_placement_disturbance.enabled")) {
       node_->declare_parameter("simulated_placement_disturbance.enabled", false);
     }
