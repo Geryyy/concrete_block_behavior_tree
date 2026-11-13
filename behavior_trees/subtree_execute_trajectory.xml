@@ -4,10 +4,11 @@
       <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
         wait_rising_edge="False">
         <Sequence>
+          <!-- 3000 ms reply budgets: covers a 2 s network stall, only paid when a reply is late -->
           <Action name="Activate controller" ID="SwitchController"
             activate_controllers="trajectory_controller_a2b"
             deactivate_controllers=""
-            server_timeout="1000"
+            server_timeout="3000"
             service_name="/controller_manager/switch_controller"/>
           <!-- ex_goal_tolerance is set by every caller right before it invokes
                this subtree, so no motion inherits the previous one's value.
@@ -16,14 +17,14 @@
                a crane motion. -->
           <Action ID="FollowJointTrajectory"
             server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-            server_timeout="500"
+            server_timeout="3000"
             trajectory="{trajectory}"
             goal_tolerance="{ex_goal_tolerance}"
             goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
           <Action name="Deactivate controller" ID="SwitchController"
             activate_controllers=""
             deactivate_controllers="trajectory_controller_a2b"
-            server_timeout="1000"
+            server_timeout="3000"
             service_name="/controller_manager/switch_controller"/>
         </Sequence>
       </Decorator>
@@ -31,7 +32,7 @@
         <Action name="Deactivate controller fallback" ID="SwitchController"
           activate_controllers=""
           deactivate_controllers="trajectory_controller_a2b"
-          server_timeout="1000"
+          server_timeout="3000"
           service_name="/controller_manager/switch_controller"/>
       </Decorator>
     </Fallback>

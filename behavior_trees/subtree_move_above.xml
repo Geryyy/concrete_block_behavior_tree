@@ -58,11 +58,12 @@
            K8_tool_center_point transform stood still at sim 39.392 while now() ran on, both
            attempts of replan_on_missed_goal hit it 0.69 s apart and the goal aborted before
            the crane moved (records/analysis_317/wall_rec). Under load the publisher catches up,
-           so retry the lookup alone with wall time between the attempts: ~6 s of cover, the
-           0.5 s the node's own tf2 wait blocks for plus 0.5 s here, six times. A /tf that stays
-           silent past that is an outage, and still fails the move with the node's own message,
-           ~12 s in, replan_on_missed_goal having run the whole move twice. -->
-      <Decorator ID="RetryUntilSuccessful" num_attempts="6" name="wait_out_tf_stall">
+           so retry the lookup alone with wall time between the attempts: the 0.5 s the node's
+           own tf2 wait blocks for plus 0.5 s here, so attempt n starts at (n-1) s and 11
+           attempts carry the last lookup past a 10 s freeze. A /tf that stays silent past that
+           is an outage, and still fails the move with the node's own message, ~21 s in,
+           replan_on_missed_goal having run the whole move twice. -->
+      <Decorator ID="RetryUntilSuccessful" num_attempts="11" name="wait_out_tf_stall">
         <Fallback>
           <Action ID="OptimizeTargetAngle" name="Prefer symmetric block yaw" phi="{phi}"/>
           <!-- RetryUntilSuccessful re-ticks a synchronous child without letting time pass, so

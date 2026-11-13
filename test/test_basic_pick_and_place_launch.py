@@ -574,6 +574,40 @@ def test_real_wall_assembly_launch_includes_world_model_without_gazebo():
     ), "Real launch should start the grasp detector"
 
 
+def _declared_defaults(ld):
+    """Default of every DeclareLaunchArgument in `ld`, as a performed string.
+
+    Executed in declaration order into one context: a default may be another argument's
+    LaunchConfiguration (the sim's `world_model_seed_file` is `seed_file`), which performs
+    only once that one is set.
+    """
+    context = LaunchContext()
+    for entity in _walk_entities(ld.entities):
+        if isinstance(entity, DeclareLaunchArgument):
+            entity.execute(context)
+    return dict(context.launch_configurations)
+
+
+# Issue 329: the real launch declared neither survey_site nor the sim's wall values, so the
+# machine ran the in-code 4 deg / 1.0 m that collided with a neighbour in sim, and no survey.
+# The point is that the two launches agree, so the sim launch is the oracle, not a literal.
+def test_real_wall_launch_shares_the_sim_wall_arguments():
+    sim = _declared_defaults(
+        _load_launch_module(
+            "gazebo_wall_assembly_pzs100.launch.py"
+        ).generate_launch_description()
+    )
+    real = _declared_defaults(
+        _load_launch_module(
+            "real_wall_assembly_pzs100.launch.py"
+        ).generate_launch_description()
+    )
+
+    for name in ("place_approach_angle_deg", "lift_height", "survey_site"):
+        assert name in real, f"real wall launch does not declare {name}"
+        assert real[name] == sim[name], name
+
+
 # ── Every plugin cbs.rviz names has to exist on the CBS profile ──────────────
 #
 # `cbs.rviz` is handed to the timber-backed twin by `pzs100_bringup.launch.py`.

@@ -169,6 +169,10 @@ if(BUILD_TESTING)
     test_survey_before_first_pick
     test/test_survey_before_first_pick.py
   )
+  ament_add_pytest_test(
+    test_network_stall_timeouts
+    test/test_network_stall_timeouts.py
+  )
 endif()
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/${PROJECT_NAME}.dsv.in")

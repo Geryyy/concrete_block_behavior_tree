@@ -90,10 +90,11 @@
       <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
         wait_rising_edge="False">
         <Sequence>
+          <!-- 3000 ms reply budgets: covers a 2 s network stall, only paid when a reply is late -->
           <SwitchController name="Activate controller"
             activate_controllers="trajectory_controller_a2b"
             deactivate_controllers=""
-            server_timeout="1000"
+            server_timeout="3000"
             service_name="/controller_manager/switch_controller"/>
           <!-- `joints`: the actuated five. The /a2b_movement answer is the canonical eight and
                carries theta6_tip_joint / theta7_tilt_joint, which the plan does not aim and
@@ -134,7 +135,7 @@
               <Fallback _skipIf="mpc_drives">
                 <Action ID="FollowJointTrajectory"
                   server_name="/trajectory_controller_a2b/follow_joint_trajectory"
-                  server_timeout="500"
+                  server_timeout="3000"
                   trajectory="{trajectory}"
                   goal_tolerance="{ex_goal_tolerance}"
                   goal_tolerance_joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"/>
@@ -226,7 +227,7 @@
           <SwitchController name="Deactivate controller"
             activate_controllers=""
             deactivate_controllers="trajectory_controller_a2b"
-            server_timeout="1000"
+            server_timeout="3000"
             service_name="/controller_manager/switch_controller"/>
           <!-- The settle half the goal never had (issue 220). The goal tests positions
                and a goal_time; nothing on this arm damps sway, so a tree that moved on
@@ -276,7 +277,7 @@
         <SwitchController name="Deactivate controller"
           activate_controllers=""
           deactivate_controllers="trajectory_controller_a2b"
-          server_timeout="1000"
+          server_timeout="3000"
           service_name="/controller_manager/switch_controller"/>
       </Decorator>
     </Fallback>

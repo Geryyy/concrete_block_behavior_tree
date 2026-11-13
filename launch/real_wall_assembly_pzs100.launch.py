@@ -1,4 +1,5 @@
-"""Real PZS100 wall-assembly operator stack, without Gazebo.
+"""
+Real PZS100 wall-assembly operator stack, without Gazebo.
 
 This starts only ROS-side infrastructure for the real crane: description/TF,
 motion-planning servers, point-cloud block detection + world model, wall-plan server, BT server,
@@ -45,6 +46,11 @@ def generate_launch_description():
         PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
         / "config"
         / "gripper_grasp_detector_real.yaml"
+    )
+    survey_sites_config = (
+        PathSubstitution(FindPackageShare("concrete_block_behavior_tree"))
+        / "config"
+        / "survey_sites.yaml"
     )
     mp_launch_file = PythonExpression(
         ["'mp.launch.py' if '", planner, "' == 'ilqr' else 'mp_esdf.launch.py'"]
@@ -175,13 +181,25 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "place_approach_angle_deg",
-                default_value="4.0",
+                default_value="18.0",  # waypoint 0.10 m to the open side; 4 left no clearance
                 description="Pre-place lateral approach angle in degrees.",
             ),
             DeclareLaunchArgument(
                 "lift_height",
-                default_value="1.0",
+                default_value="1.5",  # ground pickup; truck bed needs >= 2.07
                 description="Vertical post-grasp/post-place lift height for CalcGripMovement.",
+            ),
+            DeclareLaunchArgument(
+                "survey_site",
+                default_value="",
+                description=(
+                    "Site whose survey poses the wall tree drives to and runs "
+                    "SCENE_DISCOVERY from before the first pick; see "
+                    "config/survey_sites.yaml. Empty (default): no survey, and the "
+                    "assembly loop's reactive discovery is the only one. The survey "
+                    "plans an empty hook, so check the jaws before setting it on a "
+                    "restarted goal."
+                ),
             ),
             DeclareLaunchArgument(
                 "compensate_elasticity",
@@ -373,6 +391,7 @@ def generate_launch_description():
                 parameters=[
                     base_bt_config,
                     override_bt_config,
+                    survey_sites_config,
                     {"use_sim_time": use_sim_time},
                     {"behaviortree": LaunchConfiguration("bt_xml")},
                     {
@@ -380,6 +399,9 @@ def generate_launch_description():
                             LaunchConfiguration("a2b_mpc_drives"), value_type=bool
                         ),
                         "mpc_horizon_topic": LaunchConfiguration("mpc_horizon_topic"),
+                        "survey_site": ParameterValue(
+                            LaunchConfiguration("survey_site"), value_type=str
+                        ),
                     },
                 ],
                 condition=IfCondition(LaunchConfiguration("start_bt_action_server")),
