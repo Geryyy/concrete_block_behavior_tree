@@ -57,17 +57,13 @@ def generate_launch_description():
     # this backend neither legacy server nor the ESDF mapping starts, and the
     # crane_planner included below is the sole owner of /a2b_movement.
     mp_backend = PythonExpression(["'cbs' if '", planner, "' == 'cbs' else 'timber'"])
-    # PZS100 PID and MPC controller configs both live in CBS. Only 'mpc' selects
-    # the in-JTC JtcMpcPlugin: the two 'cbs_mpc*' values run the PID JTC and put
-    # the standalone crane_mpc beside it, and two MPCs in one launch is the
-    # failure 107 names.
+    # The PZS100 JTC config lives in CBS. One config for every value of `controller`
+    # since 341 retired the in-JTC JtcMpcPlugin: the two 'cbs_mpc*' values run this
+    # same PID JTC and put the standalone crane_mpc beside it, and two MPCs in one
+    # launch is the failure 107 names.
     ctrl_package = "concrete_block_behavior_tree"
-    ctrl_config = PythonExpression(
-        [
-            "'ros2_control/crane_controller_hydraulic_a2b_jtc_mpc_pzs100.ros2_control.yaml' if '",
-            controller,
-            "' == 'mpc' else 'ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml'",
-        ]
+    ctrl_config = (
+        "ros2_control/crane_controller_hydraulic_a2b_jtc_pid_pzs100.ros2_control.yaml"
     )
 
     ld = LaunchDescription(
@@ -85,11 +81,10 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="pid",
-                choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
+                choices=["pid", "cbs_mpc", "cbs_mpc_active"],
                 description=(
                     "Low-level A2B controller: 'pid' is the JTC with the PID "
-                    "plugin; 'mpc' is the same JTC with the in-process "
-                    "JtcMpcPlugin; 'cbs_mpc' keeps the PID JTC and starts the "
+                    "plugin; 'cbs_mpc' keeps that JTC and starts the "
                     "standalone crane_mpc node beside it, in shadow mode; "
                     "'cbs_mpc_active' composes identically but puts that node "
                     "in active mode, so its horizon drives the JTC. Both "
@@ -170,9 +165,8 @@ def generate_launch_description():
                     "controller_a2b_config": ctrl_config,
                     # `mpc` is misnamed: its only use in gazebo_model_bt.launch.py
                     # is UnlessCondition on the one trajectory_controller_a2b
-                    # spawner, i.e. mpc:=True spawns no A2B controller at all. Both
-                    # configs are read by that same spawner, so ctrl_config above is
-                    # the whole switch. Undeclared there, so it must still be passed.
+                    # spawner, i.e. mpc:=True spawns no A2B controller at all.
+                    # Undeclared there, so it must still be passed.
                     "mpc": "False",
                     "mp_launch_file": mp_launch_file,
                     "mp_backend": mp_backend,
@@ -250,11 +244,6 @@ def generate_launch_description():
             / "crane_planner.launch.py",
             launch_arguments={
                 "use_sim_time": "true",
-                # JtcMpcPlugin never reads desired.effort -- it feeds forward from
-                # its own actuator model -- and the mpc JTC config does not set
-                # `effort_field_is_feedforward`, so a plan carrying C3's inversion
-                # is rejected at goal acceptance. Drop it on that profile only.
-                "c3_feedforward": PythonExpression(["'", controller, "' != 'mpc'"]),
             }.items(),
             condition=IfCondition(PythonExpression(["'", planner, "' == 'cbs'"])),
         )

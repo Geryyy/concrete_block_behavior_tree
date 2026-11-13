@@ -55,11 +55,10 @@ def test_taking_over_a_held_block_neither_opens_the_jaws_nor_descends():
     at = ids.index("WaitForGraspSignal")
 
     # Carry state the place needs, rebuilt from the world model's FK-tracked TASK_MOVE pose:
-    # the shared in-hand measurement (332) gives the offset, the block centre for the MPC and
-    # the grip_tilt the regrip gate in SubTreePickAndPlaceBlock reads.
+    # the shared in-hand measurement (332) gives the offset, the block centre the place's first
+    # move hands the MPC (341) and the grip_tilt the regrip gate in SubTreePickAndPlaceBlock
+    # reads.
     assert ids.index("SubTreeMeasureInHand") > at
-    assert ids.index("SetMpcPayload") > ids.index("SubTreeMeasureInHand")
-    assert resume[ids.index("SetMpcPayload")].get("carries") == "true"
     # Hands it on, rather than letting the capture overwrite the key the planner reads.
     assert [
         e.get("code")

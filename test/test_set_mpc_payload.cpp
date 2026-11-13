@@ -82,9 +82,9 @@ Outcome run(
 TEST(SetMpcPayload, carries_the_block_mass_on_grip_and_clears_it_on_release)
 {
   // The grasp offset CaptureBlockGraspOffset wrote, and {payload_mass}: the same
-  // pair PublishGripperState already hands the in-JTC plugin. K8's z runs *down*
-  // the chain, so a block hanging under the gripper has r_z > 0 (the envelope's
-  // nominal is +1 m; grip_estimator writes d_contact + r_log).
+  // pair the A2B planner is handed. K8's z runs *down* the chain, so a block
+  // hanging under the gripper has r_z > 0 (the envelope's nominal is +1 m;
+  // grip_estimator writes d_contact + r_log).
   const auto outcome = run(
     "/crane/mpc/set_payload", true,
     R"(<SetMpcPayload service_name="/crane/mpc/set_payload" carries="true"

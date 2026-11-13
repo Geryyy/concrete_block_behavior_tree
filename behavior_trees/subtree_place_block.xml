@@ -428,7 +428,10 @@
       </Fallback>
 
       <!-- 3. The hook is empty again. After the jaws open, not before: until
-           then the MPC is still driving a loaded crane. -->
+           then the MPC is still driving a loaded crane. Kept when 341 dropped the other two
+           dedicated calls: SubTreeLift's own SetMpcPayload sits behind a 40 s plan call and the
+           approval press, so an abort in that window would leave 880 kg bound on an empty hook,
+           and the panel's move-empty trees state no payload of their own. -->
       <Action ID="SetMpcPayload" name="Clear MPC payload"
         service_name="/crane/mpc/set_payload"
         carries="false"/>

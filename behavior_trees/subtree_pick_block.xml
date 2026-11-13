@@ -122,20 +122,14 @@
             s_log_8_x="{s_log_8_x}"
             s_log_8_y="{s_log_8_y}"
             s_log_8_z="{s_log_8_z}"/>
-          <!-- 5. Tell the MPC what it now carries. An unknown block is the one
-               condition that leaves 174's measured mismatch envelope, and the lift
-               below is the first carrying move. The COM's xy (planner and MPC alike) is clamped
-               to 10 cm, a sanity bound on the measurement: both solve the sway equilibrium for the
-               declared off-axis load, and a tighter clamp moves the hanging block off the model. -->
+          <!-- 5. Clamp what the MPC and the planner are about to be told. An unknown block is
+               the one condition that leaves 174's measured mismatch envelope, and the lift below
+               is the first carrying move: its own SetMpcPayload hands the pair over. The COM's
+               xy (planner and MPC alike) is clamped to 10 cm, a sanity bound on the measurement:
+               both solve the sway equilibrium for the declared off-axis load, and a tighter clamp
+               moves the hanging block off the model. -->
           <Script code="s_log_8_x := s_log_8_x &gt; 0.10 ? 0.10 : (s_log_8_x &lt; -0.10 ? -0.10 : s_log_8_x);
                         s_log_8_y := s_log_8_y &gt; 0.10 ? 0.10 : (s_log_8_y &lt; -0.10 ? -0.10 : s_log_8_y)"/>
-          <Action ID="SetMpcPayload" name="Set MPC payload"
-            service_name="/crane/mpc/set_payload"
-            carries="true"
-            mass="{payload_mass}"
-            s_log_8_x="{s_log_8_x}"
-            s_log_8_y="{s_log_8_y}"
-            s_log_8_z="{s_log_8_z}"/>
           <Action ID="SetBlockTaskStatus" name="Mark block TASK_MOVE"
             service_name="/world_model_node/set_block_task_status"
             server_timeout="5000"

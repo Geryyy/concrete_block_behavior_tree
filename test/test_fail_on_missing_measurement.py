@@ -144,7 +144,7 @@ def test_a_failed_grip_registration_opens_the_jaws_on_the_ground():
     )
     register, release = list(fallback)
     ids = [e.get("ID") or e.tag for e in register.iter()]
-    for step in ("SubTreeRefineBlock", "CaptureBlockGraspOffset", "SetMpcPayload"):
+    for step in ("SubTreeRefineBlock", "CaptureBlockGraspOffset"):
         assert step in ids
     assert ids[-1] == "SetBlockTaskStatus", (
         "status last: any failure leaves the block free"

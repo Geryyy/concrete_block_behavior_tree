@@ -45,9 +45,8 @@
         trajectory="{trajectory}" yN="{COG}"/>
       <Script code="slow_down := lf_sd_saved"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <Action ID="PublishGripperState" name="Publish payload to MPC"
+      <Action ID="SetMpcPayload" name="Set MPC payload"
         carries="{lf_carries}" mass="{payload_mass}"
-        log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeCbsA2BMovement" _autoremap="true"/>
     </Sequence>

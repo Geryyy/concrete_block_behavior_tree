@@ -19,8 +19,8 @@ namespace concrete_block_behavior_tree
 // rotator runs 2.2x past its clamp. The same corner arrives once the OCP knows.
 //
 // Same source as the planner: {payload_mass} and the {s_log_8_*} that
-// CaptureBlockGraspOffset writes at the grasp. PublishGripperState forwards those
-// same keys to the in-JTC MPC plugin; this is the standalone node's channel.
+// CaptureBlockGraspOffset writes at the grasp. Since 341 this is the only payload
+// channel CBS has -- the in-JTC plugin and its gripper_state topic are gone.
 //
 // Deliberately not a nav2 BtServiceNode: that constructor throws when no server
 // answers, and these subtrees are built for controller:=pid too, where no
@@ -33,9 +33,9 @@ namespace concrete_block_behavior_tree
 // profile without an MPC, not a failed pick.
 //
 // Precondition: crane_mpc drops its warm start and re-seeds the force state on
-// every accepted change (node.py, `forget_plan`). Both call sites sit between
-// trajectories with the crane near rest; ticking this mid-move is a different
-// question and needs its own issue.
+// every accepted *change* -- an unchanged payload stays warm (node.py,
+// `forget_plan`). Every call site sits between trajectories with the crane near
+// rest; ticking this mid-move is a different question and needs its own issue.
 class SetMpcPayload : public BT::SyncActionNode
 {
 public:

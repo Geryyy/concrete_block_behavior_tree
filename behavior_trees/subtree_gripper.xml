@@ -17,9 +17,8 @@
         server_timeout="40000" slowDown="{slow_down}"
         p_cyl_8_x="{s_log_8_x}"
         trajectory="{trajectory}" yN="{COG}"/>
-      <Action ID="PublishGripperState" name="Publish payload to MPC"
+      <Action ID="SetMpcPayload" name="Set MPC payload"
         carries="{gr_carries}" mass="{payload_mass}"
-        log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <SubTree ID="SubTreeExecuteTrajectory" _autoremap="true"/>
     </Sequence>

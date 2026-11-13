@@ -64,14 +64,7 @@
       <Script code="s_log_8_x := mi_s_log_8_x &gt; 0.10 ? 0.10 : (mi_s_log_8_x &lt; -0.10 ? -0.10 : mi_s_log_8_x);
                     s_log_8_y := mi_s_log_8_y &gt; 0.10 ? 0.10 : (mi_s_log_8_y &lt; -0.10 ? -0.10 : mi_s_log_8_y);
                     s_log_8_z := mi_s_log_8_z"/>
-      <!-- The MPC may have been restarted since, and the first move below is a carrying one. -->
-      <Action ID="SetMpcPayload" name="Set MPC payload"
-        service_name="/crane/mpc/set_payload"
-        carries="true"
-        mass="{payload_mass}"
-        s_log_8_x="{s_log_8_x}"
-        s_log_8_y="{s_log_8_y}"
-        s_log_8_z="{s_log_8_z}"/>
+      <!-- The place's first move carries; every move subtree sets the payload from these keys. -->
     </Sequence>
   </BehaviorTree>
 </root>

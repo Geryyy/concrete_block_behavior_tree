@@ -85,16 +85,16 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "controller",
                 default_value="cbs_mpc_active",
-                choices=["pid", "mpc", "cbs_mpc", "cbs_mpc_active"],
+                choices=["pid", "cbs_mpc", "cbs_mpc_active"],
                 description=(
                     "Low-level A2B controller: 'cbs_mpc_active' (default) keeps "
                     "the PID JTC and starts the standalone crane_mpc node beside "
                     "it in active mode, so its horizon drives the JTC -- the CBS "
                     "pipeline every working wall build uses; 'cbs_mpc' composes "
                     "identically but in shadow mode; 'pid' is the JTC with the "
-                    "PID plugin; 'mpc' is the same JTC with the in-process "
-                    "JtcMpcPlugin. Both cbs_mpc values require planner:=cbs, so "
-                    "overriding planner alone is a launch-time error"
+                    "PID plugin and no MPC at all. Both cbs_mpc values require "
+                    "planner:=cbs, so overriding planner alone is a launch-time "
+                    "error"
                 ),
             ),
             DeclareLaunchArgument(
@@ -106,7 +106,7 @@ def generate_launch_description():
                     "crane_planner; 'ilqr'/'vpsto' are the legacy timber servers "
                     "-- usable with the default initial_pose:=2, but they refuse "
                     "initial_pose:=1 outright on the same arm row, so select one "
-                    "only with controller:=pid or controller:=mpc"
+                    "only with controller:=pid"
                 ),
             ),
             DeclareLaunchArgument(

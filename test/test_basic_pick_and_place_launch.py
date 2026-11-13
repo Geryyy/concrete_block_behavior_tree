@@ -185,7 +185,7 @@ def test_basic_pick_and_place_launch_defaults_to_the_cbs_pipeline():
 
     assert forwarded("planner") == "cbs"
     assert forwarded("controller") == "cbs_mpc_active"
-    for planner, controller in (("ilqr", "pid"), ("vpsto", "mpc"), ("cbs", "cbs_mpc")):
+    for planner, controller in (("ilqr", "pid"), ("vpsto", "pid"), ("cbs", "cbs_mpc")):
         context.launch_configurations["planner"] = planner
         context.launch_configurations["controller"] = controller
         assert forwarded("planner") == planner
@@ -209,8 +209,10 @@ def test_basic_pick_and_place_launch_defaults_to_the_cbs_pipeline():
 def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
     """`mpc` gates the only trajectory_controller_a2b spawner -- it must stay False.
 
-    The controller switch is the selected yaml, not the flag: passing mpc:=True
-    left `controller:=mpc` with no A2B server behind /follow_joint_trajectory.
+    It is the included launch's own argument, not this launch's `controller`:
+    passing mpc:=True left the profile with no A2B server behind
+    /follow_joint_trajectory. Every `controller` value reads the one PID JTC
+    config since 341 retired the in-JTC plugin.
     """
     from launch.utilities import (
         normalize_to_list_of_substitutions,
@@ -229,7 +231,7 @@ def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
     )
     launch_arguments = dict(include.launch_arguments)
 
-    for controller, expected_yaml in (("pid", "jtc_pid"), ("mpc", "jtc_mpc")):
+    for controller in ("pid", "cbs_mpc", "cbs_mpc_active"):
         context = LaunchContext()
         for entity in _walk_entities(ld.entities):
             if isinstance(entity, DeclareLaunchArgument):
@@ -242,7 +244,7 @@ def test_pzs100_bringup_never_suppresses_the_a2b_controller_spawner():
             )
 
         assert resolve("mpc") == "False"
-        assert expected_yaml in resolve("controller_a2b_config")
+        assert "jtc_pid" in resolve("controller_a2b_config")
 
 
 def _includes_launch_file(ld, name, **configurations):
@@ -290,7 +292,6 @@ def test_cbs_mpc_controller_refuses_a_planner_that_publishes_no_reference():
         ("cbs_mpc", "cbs"),
         ("cbs_mpc_active", "cbs"),
         ("pid", "ilqr"),
-        ("mpc", "ilqr"),
         ("pid", "cbs"),
     ):
         context.launch_configurations.update(controller=controller, planner=planner)
@@ -298,7 +299,7 @@ def test_cbs_mpc_controller_refuses_a_planner_that_publishes_no_reference():
 
 
 def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
-    """`cbs_mpc*` are the third and fourth values; `pid`/`mpc` keep their sets.
+    """`cbs_mpc*` are the second and third values; `pid` starts no MPC.
 
     `cbs_mpc_active` composes exactly as `cbs_mpc` -- same PID JTC, same
     standalone node -- and differs in the node's `mode` alone, which is the one
@@ -329,11 +330,10 @@ def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
         ).launch_arguments
     )
 
-    for controller, planner, starts_mpc, expected_yaml, expected_mode in (
-        ("cbs_mpc", "cbs", True, "jtc_pid", "shadow"),
-        ("cbs_mpc_active", "cbs", True, "jtc_pid", "active"),
-        ("pid", "ilqr", False, "jtc_pid", None),
-        ("mpc", "ilqr", False, "jtc_mpc", None),
+    for controller, planner, starts_mpc, expected_mode in (
+        ("cbs_mpc", "cbs", True, "shadow"),
+        ("cbs_mpc_active", "cbs", True, "active"),
+        ("pid", "ilqr", False, None),
     ):
         assert (
             _includes_launch_file(
@@ -353,9 +353,9 @@ def test_only_cbs_mpc_starts_the_standalone_mpc_and_it_keeps_the_pid_jtc():
                 context, normalize_to_list_of_substitutions(value)
             )
 
-        # The JtcMpcPlugin config is 'mpc' alone: crane_mpc must never run
-        # beside a second MPC inside the JTC.
-        assert expected_yaml in resolve(launch_arguments["controller_a2b_config"])
+        # One JTC config for every value: crane_mpc is the only MPC since 341,
+        # so nothing can put a second one inside the JTC.
+        assert "jtc_pid" in resolve(launch_arguments["controller_a2b_config"])
         if starts_mpc:
             assert resolve(mpc_arguments["mode"]) == expected_mode
             # No start gate unless a human asks for one. The gate waits for a
@@ -499,7 +499,6 @@ def test_only_cbs_mpc_active_takes_the_action_goal_out_of_the_tree():
     for controller, expected in (
         ("cbs_mpc_active", "True"),
         ("cbs_mpc", "False"),
-        ("mpc", "False"),
         ("pid", "False"),
     ):
         context = LaunchContext()

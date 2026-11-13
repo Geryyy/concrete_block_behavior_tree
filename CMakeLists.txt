@@ -10,7 +10,6 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   concrete_block_assembly_interfaces
   concrete_block_world_model_interfaces
   crane_msgs
-  epsilon_crane_control_interfaces
   geometry_msgs
   lsrl_behavior_tree
   nav2_behavior_tree
@@ -59,7 +58,6 @@ add_bt_plugin(BT_cb_wait_for_operator_command_action src/plugins/action/wait_for
 add_bt_plugin(BT_cb_run_pose_estimation_action src/plugins/action/run_pose_estimation.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_placement_residual_action src/plugins/action/evaluate_placement_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_evaluate_pickup_residual_action src/plugins/action/evaluate_pickup_residual.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
-add_bt_plugin(BT_cb_publish_gripper_state_action src/plugins/action/publish_gripper_state.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_set_mpc_payload_action src/plugins/action/set_mpc_payload.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_get_slow_down_action src/plugins/action/get_slow_down.cpp ${THIS_PACKAGE_INCLUDE_DEPENDS})
 add_bt_plugin(BT_cb_iterate_survey_poses_decorator

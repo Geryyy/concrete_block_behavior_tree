@@ -92,9 +92,8 @@
         slowDown="{slow_down}" tEnd="0.0"
         trajectory="{trajectory}" yN="{yN}"/>
       <Action ID="CheckUserApproval" topic="/gpio_controller/remote_ctrl_states"/>
-      <Action ID="PublishGripperState" name="Publish payload to MPC"
+      <Action ID="SetMpcPayload" name="Set MPC payload"
         carries="{mv_carries}" mass="{payload_mass}"
-        log_shape_text="{log_shape_text}"
         s_log_8_x="{s_log_8_x}" s_log_8_y="{s_log_8_y}" s_log_8_z="{s_log_8_z}"/>
       <!-- Not SubTreeExecuteTrajectory: with the MPC driving, that held an action goal
            against the MPC's topic re-goals and ended the move without waiting for the
