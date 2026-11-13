@@ -25,7 +25,7 @@
           <Script code="mv_carries := 'false'"/>
           <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
           <RunPoseEstimation
-            service_name="/world_model_node/run_pose_estimation" server_timeout="10000"
+            service_name="/world_model_node/run_pose_estimation" server_timeout="12000"
             mode="SCENE_DISCOVERY" timeout_s="10.0" block_count="{survey_blocks}"/>
         </Sequence>
       </IterateSurveyPoses>

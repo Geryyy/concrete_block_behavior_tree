@@ -125,7 +125,7 @@
                   </ForceSuccess>
                   <ForceSuccess>
                     <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"
-                      server_timeout="10000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>
+                      server_timeout="12000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>
                   </ForceSuccess>
                   <AlwaysFailure/>
                 </Sequence>
