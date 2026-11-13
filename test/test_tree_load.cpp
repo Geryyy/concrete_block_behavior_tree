@@ -153,6 +153,13 @@ void seed_task(const BT::Blackboard::Ptr & blackboard)
   {
     blackboard->set(key, 0.0);
   }
+  // What a caller of SubTreeCbsA2BMovement sets before the SubTree call, and what the move
+  // itself writes. Seeded since the settle wait moved out of the approval decorator (item
+  // 10): `with_decorators` substitutes that decorator and drops its children, so these are
+  // the first reads of those keys this harness ever reaches.
+  for (const char * key : {"ex_until_landed", "ex_watch_landed", "mpc_drives"}) {
+    blackboard->set(key, false);
+  }
   blackboard->set("grasp_object_contains", std::string("block_0"));
   blackboard->set("moving_block_id", std::string());
   blackboard->set("log_shape_text", std::string("radius_top: 0.541, radius_bottom: 0.541"));

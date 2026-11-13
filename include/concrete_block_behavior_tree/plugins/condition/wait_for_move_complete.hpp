@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "behaviortree_cpp/action_node.h"
-#include "crane_msgs/msg/sway_settled.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -43,6 +42,9 @@ namespace concrete_block_behavior_tree
 //    where the tool would settle" and are read out through an uncalibrated
 //    offset. The MPC does not track them either -- /crane/reference is the six
 //    actuated columns -- and the sway half below is what covers them.
+//  - the passive pair theta6_tip_joint / theta7_tilt_joint has |dq_u| <=
+//    `sway_bound` continuously for `hold_s`, off the same /joint_states. A joint
+//    the stream does not carry, or a NaN rate, is not still.
 //  - every joint in `joints` has |dq_a| <= `dq_a_bound` continuously for
 //    `hold_s` (issue 249). Position alone said arrived while the crane was
 //    still running: a quiet-planned A2B approach ended 0.032 rad inside the 0.05
@@ -52,26 +54,31 @@ namespace concrete_block_behavior_tree
 //    off the move and nothing left to damp it. The dwell is the same one the sway
 //    half needs and for a weaker reason -- the rate is read off an encoder
 //    difference, so a single sample under the bound is a sample, not a stop.
-//  - /crane/sway_settled has read SETTLED_YES continuously for `hold_s`,
-//    and the newest verdict is no older than kSettledMaxAge.
-// SETTLED_UNKNOWN is not success: a bracketing IMU that stopped answering makes
-// "settled" unknowable, and unknowable must not read as settled.
 //
-// Why the sway verdict needs a hold and not just a sample: the verdict is
-// `all(|dq_u| <= bound)` on the passive *rate*, and a pendulum at maximum
-// deflection has zero rate. A swinging load therefore publishes SETTLED_YES
-// twice per period, at the turning points. One sample of it is a coin flip on
-// exactly the load this node exists to refuse.
+// THE SWAY GATE IS THE PENDULUM'S OWN RATE, NOT A VERDICT (framework review item
+// 1). It used to be crane_mpc's /crane/sway_settled, which needs that node alive
+// in at least shadow mode and its clock within a second of this one: on the
+// machine the BT and crane_mpc run on different boxes, so IPC-vs-PC skew over
+// 0.2 s failed every settle wait, and a crane_mpc that was never started failed it
+// 3 s in. The verdict was `all(|dq_u| <= dq_u_settled)` on the two passive joints,
+// which /joint_states carries directly, so this node reads them itself and
+// crane_mpc is no longer in the loop. Nothing else changes: the same bound, the
+// same dwell.
+//
+// Why the sway half needs a hold and not just a sample: the gate is on the passive
+// *rate*, and a pendulum at maximum deflection has zero rate. A swinging load is
+// therefore under the bound twice per period, at the turning points. One sample of
+// it is a coin flip on exactly the load this node exists to refuse.
 //
 // The caches are cleared in onStart(), so nothing latched before the move can
-// satisfy it; kSettledMaxAge then covers the producer that dies mid-move, where
+// satisfy it; kJointStateMaxAge then covers the stream that stops mid-move, where
 // the JTC still runs its last trajectory to the end and would otherwise arrive
-// under the last verdict of a dead estimator.
+// off a frozen sample.
 //
 // AND THE COMMANDER HAS TO STILL BE COMMANDING (issue 239). On the MPC arm this
 // node also watches `horizon_topic`, and fails the move when it goes quiet for
-// kHorizonMaxAge. crane_mpc stops publishing `max_reference_age` (20 s) after the
-// plan on /crane/reference ends, which on a 5-15 s plan is ~25-35 s into this
+// kHorizonMaxAge. crane_mpc stops publishing `max_reference_age` (crane_mpc.yaml)
+// after the plan on /crane/reference ends, which on a 5-15 s plan is well into this
 // node's window; the JTC runs that last horizon out and then holds *its own last
 // point*, not the plan's end, so the arrival error freezes there and no later tick
 // can change it. Without this the move spent the rest of `timeout_ms` -- measured
@@ -85,10 +92,8 @@ namespace concrete_block_behavior_tree
 // sway either, so the tree used to descend into a swinging block. A second
 // instance of this node runs *after* the goal with `settle_only`, which drops
 // the profile gate and the plan-duration wait (the goal already played the
-// plan) and leaves the half the goal never had. It needs a live
-// /crane/sway_settled, and crane_mpc is its only publisher: on bare
-// `controller:=pid` nothing answers and this instance times out. See
-// wiki/commissioning.md on which switch the lab-day fallback actually is.
+// plan) and leaves the half the goal never had. /joint_states is all it needs,
+// so it passes on bare `controller:=pid` too.
 //
 // DECAY-ONLY, THE PI RECOVERY HOLD (issue 306). A loaded waypoint descent leaves
 // the boom 0.007-0.011 rad low -- it keeps lowering ~0.8 s after the command
@@ -143,14 +148,13 @@ public:
       // so it is a "never going to arrive" bound, not a tracking tolerance.
       BT::InputPort<int>("timeout_ms", 120000, "Give up and fail after this long"),
       BT::InputPort<std::string>("joint_states_topic", "/joint_states", "Measured joint state"),
-      BT::InputPort<std::string>("settled_topic", "/crane/sway_settled", "Sway verdict"),
       // Watched, not consumed: what the MPC drives the JTC with, so this node can
       // see its own commander stop. Subscribed on the MPC arm only.
       BT::InputPort<std::string>(
         "horizon_topic", "", "The MPC's command; empty: ROS param mpc_horizon_topic"),
-      // 0: the verdict's own dq_u_settled (0.02). A lift or a pickup descent waited ~5 s on
-      // a decaying sway that nothing after it needs that still.
-      BT::InputPort<double>("sway_bound", 0.0, "Sway rate bound [rad/s], 0: the verdict's"),
+      // 0: kSwayBound. A lift or a pickup descent waited ~5 s on a decaying sway that
+      // nothing after it needs that still.
+      BT::InputPort<double>("sway_bound", 0.0, "Passive rate bound [rad/s], 0: kSwayBound"),
       // Read off the holds of bag ~/Documents/sim_captures/2026-10-09-wall-assembly.
       // Over the 1285 s of its /joint_states where the actuated positions move less
       // than 1e-3 rad per 2 s -- a stillness criterion that does not use the rate
@@ -168,10 +172,9 @@ public:
       // descends onto it and the grasp tolerates it -- so ~1.2 s per move was spent in
       // front of a crane already standing still. The XML sets it short there and leaves
       // the loaded A2B and the placement descents at the default.
-      // Under kSettledMaxAge it stops being a dwell on the sway half: one SETTLED_YES
-      // stays fresh for 1 s, so a 0.3 s hold can be carried by a single verdict and the
-      // turning-point argument above no longer holds. That is the trade on an empty hook
-      // and not on a loaded one, which is why the short value is XML and not the default.
+      // Short is still a dwell on both halves now that the sway gate reads the passive
+      // rates off the 100 Hz stream: 0.3 s is 30 samples, where the old verdict stayed
+      // fresh for a whole second and a 0.3 s hold could be carried by one of them.
       BT::InputPort<double>(
         "hold_s", kSettledMinHold.count() / 1000.0, "Dwell under both bounds [s]"),
       // True only where this node is the commander, from the `a2b_mpc_drives`
@@ -195,7 +198,6 @@ public:
 private:
   using JointState = sensor_msgs::msg::JointState;
   using JointTrajectory = trajectory_msgs::msg::JointTrajectory;
-  using SwaySettled = crane_msgs::msg::SwaySettled;
 
   // Why the move is not over yet, or empty when it is. The sentence is what the
   // timeout reports, so the failure says which half was missing.
@@ -210,8 +212,9 @@ private:
   // issue 241 only the first offending joint of a failed move was ever reported.
   // Caller holds mutex_.
   std::string joint_errors_text() const;
-  // The verdict's YES, or, with a sway_bound, its rates against that. UNKNOWN never is.
-  bool still(const SwaySettled & verdict) const;
+  // max |dq_u| over the passive pair, NaN when the state does not carry both or a rate
+  // is NaN -- an unreadable pendulum is not a still one. Caller holds mutex_.
+  double sway_rate(const JointState & state) const;
   // The checked joints over dq_a_bound, with their rates; empty when every one of
   // them is under it. A joint /joint_states carries no rate for is listed too --
   // "no rate" is not "not moving". Caller holds mutex_.
@@ -224,25 +227,26 @@ private:
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   rclcpp::executors::SingleThreadedExecutor callback_group_executor_;
   rclcpp::Subscription<JointState>::SharedPtr joint_state_sub_;
-  rclcpp::Subscription<SwaySettled>::SharedPtr settled_sub_;
   // /cbs/status/settle: the sway gate as this node applies it, per tick. Latched, shared.
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   // Null off the MPC arm, where the action goal is the commander and the horizon
   // is nobody's business.
   rclcpp::Subscription<JointTrajectory>::SharedPtr horizon_sub_;
 
-  // crane_mpc decimates this stream by 2 and publishes every change, so a live
-  // producer is quiet for two of its cycles at most: 240 ms on the 0.12 s grid
-  // it ships today, and a few hundred on a box loaded enough to overrun it.
-  // Four times that is still inside this bound, which is why the bound is not
-  // written as a multiple of a cycle time that has moved twice already.
-  static constexpr std::chrono::milliseconds kSettledMaxAge{1000};
-  // Before this, "no verdict yet" is indistinguishable from "the producer has not
-  // been discovered". After it, zero publishers means there is no producer: fail
-  // instead of spending the whole timeout on a question nothing will answer. The
-  // subscription is built at tree load, long before any move starts, so this is
-  // generous by a wide margin.
+  // The passive pair's bound when `sway_bound` is unset or <= 0, which is what two of
+  // the trees pass: crane_mpc's own `dq_u_settled`, the verdict this gate replaced.
+  static constexpr double kSwayBound{0.02};
+  // The two passive joints of the pendulum, by name: the stacks publish different
+  // /joint_states name sets in different orders.
+  static constexpr const char * kSwayJoints[]{"theta6_tip_joint", "theta7_tilt_joint"};
+  // Before this, the MPC's horizon not having arrived yet and it never arriving read
+  // the same. The subscription is built at tree load, long before any move starts, so
+  // this is generous by a wide margin.
   static constexpr std::chrono::milliseconds kProducerGrace{3000};
+  // A stream that stopped must not read as arrived off its last sample: every gate here
+  // is now on /joint_states, so this is the one freshness bound left. 100 Hz, so it is
+  // 100 missed samples, not a late one.
+  static constexpr std::chrono::milliseconds kJointStateMaxAge{1000};
   // The MPC re-goals the JTC every Ts, so this is not a late cycle: it is
   // `max_reference_age` spent past the plan's end, or any other gate crane_mpc falls
   // silent on. Not a multiple of Ts, though -- it is how long the *machine* outlives
@@ -265,12 +269,12 @@ private:
   // JTC (0.24 s) converts the stale trajectory to a zero-velocity hold long before
   // that, so the joints stop moving ~0.24 s into the silence and no later tick can
   // change the arrival error. What actually has to fit inside this bound is the sway
-  // dwell plus one verdict age -- kSettledMinHold + kSettledMaxAge = 3700 ms, which is
+  // dwell plus one state age -- kSettledMinHold + kJointStateMaxAge = 3700 ms, which is
   // exactly the number 239 landed on by the other argument. The grid derivation below
   // is a superset of that and is what issue 247 asked for; its cost is that an
   // MPC-death-mid-move holds the operator on the deadman for the full bound rather
   // than for the ~1.2 s the machine is actually still moving. Whether this should
-  // instead read `kSettledMinHold + kSettledMaxAge` and stop tracking the grid at all
+  // instead read `kSettledMinHold + kJointStateMaxAge` and stop tracking the grid at all
   // is a live question -- see 247's notes.
   static constexpr int kMpcHorizonKnots{40};
   static constexpr std::chrono::milliseconds kMpcKnot{120};
@@ -287,22 +291,14 @@ private:
   // The requirement above, now that the bound no longer states it: whatever the grid
   // does, a dwell begun before the silence has to be able to finish inside it.
   static_assert(
-    kHorizonMaxAge >= kSettledMinHold + kSettledMaxAge,
+    kHorizonMaxAge >= kSettledMinHold + kJointStateMaxAge,
     "kHorizonMaxAge must outlast a sway dwell that began before the silence");
-
-  // What the sway half gets from kSettledMaxAge, for the position and rate half: a
-  // stream that stopped must not read as arrived off its last sample. 100 Hz, so this
-  // is 100 missed samples, not a late one -- and the decay hold has no other input,
-  // the sway gates it would otherwise have tripped over being dropped there.
-  static constexpr std::chrono::milliseconds kJointStateMaxAge{1000};
 
   mutable std::mutex mutex_;
   std::optional<JointState> joint_state_;
   std::chrono::steady_clock::time_point joint_state_received_;
-  std::optional<SwaySettled> settled_;
-  std::chrono::steady_clock::time_point settled_received_;
-  // When the current unbroken run of SETTLED_YES began.
-  std::optional<std::chrono::steady_clock::time_point> settled_since_;
+  // When the current unbroken run of passive rates under the bound began.
+  std::optional<std::chrono::steady_clock::time_point> sway_still_since_;
   // Same, for the actuated rates. Kept on the /joint_states stream and not on the
   // tick, so the dwell runs through the plan instead of starting at its end: a move
   // that was already standing still arrives without paying 2.7 s for it.
@@ -316,7 +312,7 @@ private:
   bool mpc_drives_{false};
   bool settle_only_{false};
   bool decay_only_{false};
-  double sway_bound_{0.0};
+  double sway_bound_{kSwayBound};
   double dq_a_bound_{0.01};
   std::chrono::milliseconds hold_{kSettledMinHold};
   JointTrajectory trajectory_;

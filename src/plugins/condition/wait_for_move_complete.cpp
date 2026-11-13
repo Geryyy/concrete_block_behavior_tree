@@ -75,10 +75,8 @@ WaitForMoveComplete::WaitForMoveComplete(
     : decay_only_ ? "the PI recovery hold after it" : "the arrival oracle");
 
   std::string joint_states_topic;
-  std::string settled_topic;
   std::string horizon_topic;
   getInput("joint_states_topic", joint_states_topic);
-  getInput("settled_topic", settled_topic);
   getInput("horizon_topic", horizon_topic);
   // Unset port: launch-bound like a2b_mpc_drives. The IPC's JTC listens on its own
   // ~/joint_trajectory and crane_mpc publishes there (horizon_topic launch arg).
@@ -104,11 +102,18 @@ WaitForMoveComplete::WaitForMoveComplete(
       const auto now = std::chrono::steady_clock::now();
       joint_state_ = *msg;
       joint_state_received_ = now;
-      // Same shape as the sway dwell below: any sample over the bound restarts it.
+      // Any sample over the bound restarts the dwell.
       if (!moving_joints_text(*msg).empty()) {
         dq_a_still_since_.reset();
       } else if (!dq_a_still_since_) {
         dq_a_still_since_ = now;
+      }
+      // The sway half, same shape: the passive pair's own rates, which is what
+      // crane_mpc's verdict was computed from anyway.
+      if (!(sway_rate(*msg) <= sway_bound_)) {
+        sway_still_since_.reset();
+      } else if (!sway_still_since_) {
+        sway_still_since_ = now;
       }
       // And the same for being inside the tolerance, which the rate bound alone does
       // not imply: 0.005 rad at the 0.01 rad/s bound is 0.5 s of band, so a joint
@@ -117,21 +122,6 @@ WaitForMoveComplete::WaitForMoveComplete(
         in_band_since_.reset();
       } else if (!in_band_since_) {
         in_band_since_ = now;
-      }
-    },
-    options);
-  // crane_mpc publishes the verdict RELIABLE/VOLATILE, depth 1.
-  settled_sub_ = node_->create_subscription<SwaySettled>(
-    settled_topic, rclcpp::QoS(10),
-    [this](SwaySettled::SharedPtr msg) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      settled_ = *msg;
-      settled_received_ = std::chrono::steady_clock::now();
-      // Any verdict that is not YES restarts the hold.
-      if (!still(*msg)) {
-        settled_since_.reset();
-      } else if (!settled_since_) {
-        settled_since_ = settled_received_;
       }
     },
     options);
@@ -192,6 +182,10 @@ BT::NodeStatus WaitForMoveComplete::onStart()
     std::lock_guard<std::mutex> lock(mutex_);
     sway_bound_ = 0.0;
     getInput("sway_bound", sway_bound_);
+    // Two trees pass 0.0, which used to mean "take the verdict's own bound".
+    if (!(sway_bound_ > 0.0)) {
+      sway_bound_ = kSwayBound;
+    }
     getInput("dq_a_bound", dq_a_bound_);
     double hold_s = kSettledMinHold.count() / 1000.0;
     getInput("hold_s", hold_s);
@@ -233,10 +227,9 @@ BT::NodeStatus WaitForMoveComplete::onStart()
   }
 
   {
-    // A verdict latched before the move began says nothing about this move.
+    // A dwell that began before the move says nothing about this move.
     std::lock_guard<std::mutex> lock(mutex_);
-    settled_.reset();
-    settled_since_.reset();
+    sway_still_since_.reset();
     dq_a_still_since_.reset();
     in_band_since_.reset();
     joint_state_.reset();
@@ -269,14 +262,13 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
   {
     std::lock_guard<std::mutex> lock(mutex_);
     const auto now = std::chrono::steady_clock::now();
-    double rate = std::numeric_limits<double>::quiet_NaN();
-    if (settled_) {
-      rate = std::max(std::abs(settled_->velocity[0]), std::abs(settled_->velocity[1]));
-    }
+    const double rate = joint_state_
+      ? sway_rate(*joint_state_)
+      : std::numeric_limits<double>::quiet_NaN();
     std_msgs::msg::String line;
     line.data = settle_status(
-      sway_bound_, rate, settled_ ? settled_->settled : 0, settled_ && still(*settled_),
-      settled_since_ ? std::chrono::duration<double>(now - *settled_since_).count() : 0.0,
+      sway_bound_, rate, rate <= sway_bound_,
+      sway_still_since_ ? std::chrono::duration<double>(now - *sway_still_since_).count() : 0.0,
       hold_.count() / 1000.0, std::chrono::duration<double>(now - start_time_).count(),
       reason);
     status_pub_->publish(line);
@@ -314,23 +306,6 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
       horizon_sub_->get_topic_name(), static_cast<int>(horizon_quiet.count()), reason.c_str());
     return BT::NodeStatus::FAILURE;
   }
-  // No publisher means the question cannot be answered, and no amount of waiting
-  // makes one: spending the whole timeout in front of a motionless machine, with
-  // the controller active and the operator holding the deadman, is the worst way
-  // to learn that. Not gated on having heard nothing yet (issue 241): a crane_mpc
-  // that dies *mid-move* is the same dead end, and the settle wait is where it
-  // bites -- 60 s of it. kProducerGrace covers the start, where "not discovered
-  // yet" and "never will be" read the same.
-  if (!decay_only_ && elapsed_ms > kProducerGrace.count() &&
-    settled_sub_->get_publisher_count() == 0)
-  {
-    RCLCPP_WARN(
-      node_->get_logger(),
-      "Nothing publishes %s, so whether the load is still is unknowable: start crane_mpc "
-      "(shadow is enough) or do not run this tree",
-      settled_sub_->get_topic_name());
-    return BT::NodeStatus::FAILURE;
-  }
   if (elapsed_ms > timeout_ms_) {
     // Named, and it names this instance: the goal ends here (303 style), and which of
     // the three waits ended it is what says whether the move or the hold after it
@@ -347,8 +322,7 @@ BT::NodeStatus WaitForMoveComplete::onRunning()
 void WaitForMoveComplete::onHalted()
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  settled_.reset();
-  settled_since_.reset();
+  sway_still_since_.reset();
   dq_a_still_since_.reset();
   in_band_since_.reset();
   joint_state_.reset();
@@ -420,15 +394,16 @@ std::string WaitForMoveComplete::not_arrived_reason() const
     return {};
   }
 
-  if (!settled_ || now - settled_received_ > kSettledMaxAge) {
-    return "no fresh sway verdict";
+  // The pendulum's own rates, off the stream above: no second producer, no second
+  // clock. A joint the state does not carry reads NaN here and fails the negated <=.
+  const double rate = sway_rate(*joint_state_);
+  if (!(rate <= sway_bound_)) {
+    return "the load is not settled: passive rate " + std::to_string(rate) + " over " +
+           std::to_string(sway_bound_);
   }
-  if (!still(*settled_)) {
-    return "the load is not settled: " + settled_->message;
-  }
-  if (!settled_since_ || now - *settled_since_ < hold_) {
-    // A turning point of a full-amplitude swing reads SETTLED_YES for an
-    // instant, because the verdict is on the rate.
+  if (!sway_still_since_ || now - *sway_still_since_ < hold_) {
+    // A turning point of a full-amplitude swing reads still for an instant,
+    // because the gate is on the rate.
     return "the load has not read settled for long enough to be still";
   }
   return {};
@@ -509,18 +484,17 @@ bool WaitForMoveComplete::in_band(const JointState & state) const
   return true;
 }
 
-bool WaitForMoveComplete::still(const SwaySettled & verdict) const
+double WaitForMoveComplete::sway_rate(const JointState & state) const
 {
-  if (sway_bound_ <= 0.0 || verdict.settled == SwaySettled::SETTLED_UNKNOWN) {
-    return verdict.settled == SwaySettled::SETTLED_YES;
-  }
-  for (const double rate : verdict.velocity) {
-    // Negated <=: a NaN rate must not read as still.
-    if (!(std::abs(rate) <= sway_bound_)) {
-      return false;
+  double rate = 0.0;
+  for (const auto & joint : kSwayJoints) {
+    const size_t j = index_of(state.name, joint);
+    if (j >= state.velocity.size() || std::isnan(state.velocity[j])) {
+      return std::numeric_limits<double>::quiet_NaN();
     }
+    rate = std::max(rate, std::abs(state.velocity[j]));
   }
-  return true;
+  return rate;
 }
 
 }  // namespace concrete_block_behavior_tree

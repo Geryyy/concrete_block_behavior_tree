@@ -3,7 +3,6 @@
 // `window_s`: one pendulum period puts the mean at the swing's centre, where one sample read
 // 0.5 cm off a block swinging +-3 cm.
 
-#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -11,6 +10,7 @@
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/status_text.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -23,6 +23,14 @@
 
 namespace concrete_block_behavior_tree
 {
+
+namespace
+{
+// A TCP older than this says where the hook was, not where it is: the 11-09 LAN stalled /tf
+// 1.5 s and the mean would have been taken over the same frozen sample. Skipped, not fatal --
+// a gap inside the window costs samples, and only an empty window is a failure.
+constexpr double kMaxTcpAge = 0.2;
+}  // namespace
 
 class MeasureBlockFromGripper : public BT::StatefulActionNode
 {
@@ -74,6 +82,13 @@ public:
     if ((node_->now() - start_).seconds() < window_) {
       return sample() ? BT::NodeStatus::RUNNING : BT::NodeStatus::FAILURE;
     }
+    if (samples_ == 0) {
+      RCLCPP_ERROR(
+        node_->get_logger(),
+        "MeasureBlockFromGripper: no TCP newer than %.1f s in the %.1f s window; the block's "
+        "position is unknown", kMaxTcpAge, window_);
+      return BT::NodeStatus::FAILURE;
+    }
     const tf2::Vector3 p = sum_ / static_cast<double>(samples_);
     setOutput("x", p.x());
     setOutput("y", p.y());
@@ -113,6 +128,13 @@ private:
     } catch (const tf2::TransformException & e) {
       RCLCPP_ERROR(node_->get_logger(), "MeasureBlockFromGripper: %s", e.what());
       return false;
+    }
+    const double age = (node_->now() - rclcpp::Time(tcp.header.stamp)).seconds();
+    if (age > kMaxTcpAge) {
+      RCLCPP_WARN_THROTTLE(
+        node_->get_logger(), *node_->get_clock(), 1000,
+        "MeasureBlockFromGripper: skipping a %.2f s old TCP", age);
+      return true;
     }
     tf2::Transform frame_tcp, tcp_block;
     tf2::fromMsg(tcp.transform, frame_tcp);

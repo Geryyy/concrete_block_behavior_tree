@@ -3,16 +3,21 @@
 // No sim run tells you this one is wrong until a block is placed on a swinging
 // load, so the cases below are driven against the real node over real topics:
 // arrived and settled, arrived and still running, arrived and swinging, arrived
-// and unknown, never arrived
+// with the pendulum unreadable, never arrived
 // -- plus the three ways it could say "arrived" about a move that did not
 // happen, and the profile gate that keeps the action path for `pid`. On that
 // path the same node runs again after the goal as the settle wait (issue 220),
 // and on a loaded waypoint descent a third time as the PI recovery hold
 // (issue 306: the joints alone, at a tenth of the arrival tolerance), so the
 // tree below is the subtree's shape, all three instances included.
+//
+// Both halves now come off /joint_states: the sway gate used to be crane_mpc's
+// /crane/sway_settled verdict, which needed that node alive and its clock inside
+// a second of this one (framework review item 1).
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -27,7 +32,6 @@
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
 using concrete_block_behavior_tree::WaitForMoveComplete;
-using crane_msgs::msg::SwaySettled;
 using sensor_msgs::msg::JointState;
 using trajectory_msgs::msg::JointTrajectory;
 
@@ -35,6 +39,8 @@ namespace
 {
 
 constexpr char kCheckedJoints[] = "theta1_slewing_joint,theta2_boom_joint";
+// Over the node's 0.02 rad/s bound by 15x: a load still swinging at the arrival.
+constexpr double kSwinging = 0.3;
 
 // Two checked joints plus a passive one, which is what a plan off /a2b_movement
 // looks like: the canonical eight carry theta6/theta7, which nothing aims.
@@ -52,16 +58,27 @@ JointTrajectory goal_trajectory(double plan_seconds)
 // Deliberately neither the order nor the width of the trajectory: the two stacks
 // publish different /joint_states name sets in different orders, so a node that
 // matches by index reads the wrong axis here. theta6 is parked far from its
-// planned value, where an uncalibrated pendulum reading would sit, and swings at
-// 0.3 rad/s throughout: the passive rates are the sway verdict's business, not
-// this node's rate gate.
-JointState measured(double theta1, double theta2, double dq_theta1 = 0.0)
+// planned value, where an uncalibrated pendulum reading would sit: the passive
+// *positions* are nobody's gate, only their rates are.
+JointState measured(double theta1, double theta2, double dq_theta1 = 0.0, double dq_u = 0.0)
 {
   JointState state;
   state.name = {"q9_left_rail_joint", "theta6_tip_joint", "theta2_boom_joint",
-    "theta1_slewing_joint"};
-  state.position = {0.7, 0.4, theta2, theta1};
-  state.velocity = {0.0, 0.3, 0.0, dq_theta1};
+    "theta7_tilt_joint", "theta1_slewing_joint"};
+  state.position = {0.7, 0.4, theta2, 0.1, theta1};
+  state.velocity = {0.0, dq_u, 0.0, dq_u, dq_theta1};
+  return state;
+}
+
+// The same state with the tilt axis gone from the stream, which is a dead sensor
+// or a renamed joint. Half a pendulum is not a readable one.
+JointState without_tilt(JointState state)
+{
+  const auto at = std::find(state.name.begin(), state.name.end(), "theta7_tilt_joint");
+  const auto i = std::distance(state.name.begin(), at);
+  state.name.erase(at);
+  state.position.erase(state.position.begin() + i);
+  state.velocity.erase(state.velocity.begin() + i);
   return state;
 }
 
@@ -119,25 +136,21 @@ std::string tree_text(int timeout_ms, double hold_s)
   return text;
 }
 
-// `settled_ticks` < 0 publishes the verdict for the whole run; otherwise the
-// verdict stream stops after that many ticks, and `state` only starts being
-// published after `arrive_after_ticks` -- a producer that died mid-move.
+// `sway_ticks` >= 0 starts the pendulum swinging that many ticks in, which is a
+// load that reads still for an instant -- a turning point -- and then does not.
+// `state` only starts being published after `arrive_after_ticks`.
 // `horizon_ticks` is the same for the MPC's command: < 0 drives the whole run,
 // and a count is the MPC falling silent that many ticks in.
-// `producer_dies_after_ticks` >= 0 destroys the verdict publisher that many ticks
-// in, which is a crane_mpc that exits mid-move -- not the same as a producer that
-// goes quiet, because the publisher count drops to zero.
 // `hold_s` is the dwell both arrival gates have to hold, defaulted to the loaded
 // 2.7 s so that every case above it reads as the move it was written for.
 // `watch_landed` is a loaded descent to a waypoint, the one move the PI recovery
 // hold runs on. `state_ticks` >= 0 stops /joint_states that many ticks in, which is
-// the broadcaster dying mid-move -- the one input the hold has.
+// the broadcaster dying mid-move -- the one input either half has.
 Outcome run(
-  bool mpc_drives, const JointState & state, uint8_t settled_value, int timeout_ms,
-  int settled_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
-  bool until_landed = false, bool with_producer = true, int horizon_ticks = -1,
-  int producer_dies_after_ticks = -1, double hold_s = 2.7, bool watch_landed = false,
-  int state_ticks = -1)
+  bool mpc_drives, const JointState & state, int timeout_ms,
+  int sway_ticks = -1, int arrive_after_ticks = 0, double plan_seconds = 0.2,
+  bool until_landed = false, int horizon_ticks = -1, double hold_s = 2.7,
+  bool watch_landed = false, int state_ticks = -1)
 {
   auto node = std::make_shared<rclcpp::Node>("test_wait_for_move_complete");
   node->declare_parameter<bool>("a2b_mpc_drives", mpc_drives);
@@ -146,11 +159,6 @@ Outcome run(
   // The move is only driven while this flows; nothing reads the content.
   auto horizon_pub = node->create_publisher<JointTrajectory>(
     "/crane/mpc/horizon", rclcpp::QoS(1));
-  // No publisher at all is a different case from one that says nothing: it is
-  // every profile that starts no crane_mpc.
-  auto settled_pub = with_producer
-    ? node->create_publisher<SwaySettled>("/crane/sway_settled", rclcpp::QoS(10))
-    : nullptr;
 
   auto blackboard = BT::Blackboard::create();
   blackboard->set<rclcpp::Node::SharedPtr>("node", node);
@@ -165,24 +173,22 @@ Outcome run(
   factory.registerNodeType<WaitForMoveComplete>("WaitForMoveComplete");
   auto tree = factory.createTreeFromText(tree_text(timeout_ms, hold_s), blackboard);
 
-  SwaySettled verdict;
-  verdict.settled = settled_value;
-
   const auto started = std::chrono::steady_clock::now();
   const auto deadline = started + std::chrono::milliseconds(timeout_ms + 3000);
   BT::NodeStatus status = BT::NodeStatus::RUNNING;
   for (int tick = 0; std::chrono::steady_clock::now() < deadline; ++tick) {
     if (state_ticks < 0 || tick < state_ticks) {
-      state_pub->publish(tick >= arrive_after_ticks ? state : measured(0.0, 0.0));
+      JointState sample = tick >= arrive_after_ticks ? state : measured(0.0, 0.0);
+      if (sway_ticks >= 0 && tick >= sway_ticks) {
+        for (const std::string joint : {"theta6_tip_joint", "theta7_tilt_joint"}) {
+          const auto at = std::find(sample.name.begin(), sample.name.end(), joint);
+          sample.velocity[std::distance(sample.name.begin(), at)] = kSwinging;
+        }
+      }
+      state_pub->publish(sample);
     }
     if (horizon_ticks < 0 || tick < horizon_ticks) {
       horizon_pub->publish(JointTrajectory());
-    }
-    if (producer_dies_after_ticks >= 0 && tick >= producer_dies_after_ticks) {
-      settled_pub.reset();
-    }
-    if (settled_pub && (settled_ticks < 0 || tick < settled_ticks)) {
-      settled_pub->publish(verdict);
     }
     status = tree.tickExactlyOnce();
     if (status != BT::NodeStatus::RUNNING) {
@@ -196,18 +202,11 @@ Outcome run(
       std::chrono::steady_clock::now() - started)};
 }
 
-// Arrived, still, and nothing on the topic to say so.
-Outcome run_without_a_verdict_producer(int timeout_ms)
-{
-  return run(
-    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, timeout_ms, -1, 0, 0.2, false, false);
-}
-
 }  // namespace
 
 TEST(WaitForMoveComplete, succeeds_when_the_joints_arrived_and_the_load_is_settled)
 {
-  const auto outcome = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 6000);
+  const auto outcome = run(true, measured(1.0, 2.0), 6000);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   // The failure this issue closes: never both commanders on one move. The
   // passive theta6_tip_joint sits 0.4 rad from its planned value throughout,
@@ -215,12 +214,28 @@ TEST(WaitForMoveComplete, succeeds_when_the_joints_arrived_and_the_load_is_settl
   EXPECT_EQ(outcome.commanded, 0);
 }
 
+TEST(WaitForMoveComplete, settles_with_nothing_publishing_the_sway_verdict)
+{
+  // Framework review item 1, and the whole point of it: `controller:=pid` starts no
+  // crane_mpc, so /crane/sway_settled has no publisher at all -- and on the machine the
+  // two run on different boxes, where a clock skew over 0.2 s aged every verdict out.
+  // This used to fail after kProducerGrace with the controller active and the operator
+  // on the deadman. Nothing subscribes the verdict any more, which is the other half of
+  // the claim: crane_mpc is out of this loop, not merely tolerated in it.
+  auto probe = std::make_shared<rclcpp::Node>("sway_verdict_probe");
+  auto verdict = probe->create_publisher<crane_msgs::msg::SwaySettled>(
+    "/crane/sway_settled", rclcpp::QoS(10));
+  const auto outcome = run(false, measured(1.0, 2.0), 6000);
+  EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(outcome.commanded, 1);
+  EXPECT_EQ(verdict->get_subscription_count(), 0u);
+}
+
 TEST(WaitForMoveComplete, does_not_call_a_move_over_before_the_plan_has_run)
 {
   // Arrived and settled from the first tick, on a two-second plan: a placement
   // correction whose endpoint is already inside tolerance of the start.
-  const auto outcome =
-    run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 2.0);
+  const auto outcome = run(true, measured(1.0, 2.0), 8000, -1, 0, 2.0);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_GE(outcome.elapsed, std::chrono::milliseconds(2000));
 }
@@ -233,10 +248,8 @@ TEST(WaitForMoveComplete, a_short_hold_does_not_pay_the_carried_pendulum_on_an_e
   // or pickup move has no gate on its residual sway, so the XML asks for 0.3 s
   // there -- enough to tell a stop from one sample under the rate bound, which is
   // all the dwell is for without a block on the hook.
-  const auto loaded = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000);
-  const auto empty = run(
-    true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true, -1, -1,
-    0.3);
+  const auto loaded = run(true, measured(1.0, 2.0), 8000);
+  const auto empty = run(true, measured(1.0, 2.0), 8000, -1, 0, 0.2, false, -1, 0.3);
   EXPECT_EQ(loaded.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(empty.status, BT::NodeStatus::SUCCESS);
   // 2.4 s is the difference of the two dwells; both runs pay the same 0.2 s plan
@@ -244,12 +257,13 @@ TEST(WaitForMoveComplete, a_short_hold_does_not_pay_the_carried_pendulum_on_an_e
   EXPECT_GE(loaded.elapsed - empty.elapsed, std::chrono::milliseconds(2000));
 }
 
-TEST(WaitForMoveComplete, does_not_accept_a_single_turning_point_reading_as_settled)
+TEST(WaitForMoveComplete, does_not_accept_a_single_still_sample_as_settled)
 {
-  // The verdict is on the passive *rate*, so a load at full deflection reads
-  // SETTLED_YES for an instant. Ten ticks of YES and then silence is that
-  // instant; it must not carry the move.
-  const auto outcome = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 900, 10);
+  // The gate is on the passive *rate*, so a load at full deflection reads still
+  // for an instant. Ten ticks of it and then a swing is that instant; it must not
+  // carry the move. The same run without the swing succeeds at 0.3 s of dwell
+  // (the empty-move case above), so this is the swing and not the budget.
+  const auto outcome = run(true, measured(1.0, 2.0), 2000, 10, 0, 0.2, false, -1, 0.3);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
 }
 
@@ -263,37 +277,29 @@ TEST(WaitForMoveComplete, does_not_call_a_move_over_while_the_actuated_joints_st
   // The same 6 s window the success case above gets, not the 900 ms the other
   // failures get: inside 900 ms the sway dwell has not completed either, so a
   // short window fails with or without this gate and would pin nothing.
-  const auto outcome = run(true, measured(1.0, 2.0, -0.04), SwaySettled::SETTLED_YES, 6000);
+  const auto outcome = run(true, measured(1.0, 2.0, -0.04), 6000);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 0);
 }
 
 TEST(WaitForMoveComplete, fails_when_the_joints_arrived_but_the_load_is_swinging)
 {
-  const auto outcome = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900);
+  const auto outcome = run(true, measured(1.0, 2.0, 0.0, kSwinging), 900);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 0);
 }
 
-TEST(WaitForMoveComplete, fails_when_the_sway_is_unknown)
+TEST(WaitForMoveComplete, fails_when_the_pendulum_is_not_in_the_stream)
 {
-  // Unknowable must not read as settled -- that is what the third value is for.
-  const auto outcome = run(true, measured(1.0, 2.0), SwaySettled::SETTLED_UNKNOWN, 900);
-  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
-}
-
-TEST(WaitForMoveComplete, does_not_let_a_dead_producer_certify_an_arrival_it_never_saw)
-{
-  // The verdict stream stops 0.2 s in; the joints reach the goal 1.4 s in, by
-  // which time the last SETTLED_YES is older than kSettledMaxAge.
-  const auto outcome =
-    run(true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 2500, 10, 70);
+  // Unreadable must not read as settled: the verdict had SETTLED_UNKNOWN for this,
+  // and off /joint_states it is a joint the stream does not carry, or a NaN rate.
+  const auto outcome = run(true, without_tilt(measured(1.0, 2.0)), 900);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
 }
 
 TEST(WaitForMoveComplete, fails_instead_of_hanging_when_the_move_never_arrives)
 {
-  const auto outcome = run(true, measured(0.2, 2.0), SwaySettled::SETTLED_YES, 900);
+  const auto outcome = run(true, measured(0.2, 2.0), 900);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 0);
 }
@@ -303,7 +309,7 @@ TEST(WaitForMoveComplete, stands_aside_where_the_action_goal_is_still_the_comman
   // pid / mpc / cbs_mpc: the arrival oracle skips itself and the action runs
   // unchanged. Commanding is all it gives up there -- the settle wait after the
   // goal is the same node.
-  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 6000);
+  const auto outcome = run(false, measured(1.0, 2.0), 6000);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(outcome.commanded, 1);
 }
@@ -313,7 +319,7 @@ TEST(WaitForMoveComplete, does_not_let_the_action_arm_move_on_from_a_swinging_lo
   // Issue 220, and the whole reason the settle wait exists: the goal returns on
   // positions and a goal_time, and nothing on this arm damps sway, so the tree
   // used to descend into a swinging block the instant the goal came back.
-  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900);
+  const auto outcome = run(false, measured(1.0, 2.0, 0.0, kSwinging), 900);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 1);
 }
@@ -328,8 +334,7 @@ TEST(WaitForMoveComplete, the_recovery_hold_ends_a_loaded_descent_once_the_error
   // would time out on every descent.
   for (const bool mpc_drives : {true, false}) {
     const auto outcome = run(
-      mpc_drives, measured(0.98, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true,
-      -1, -1, 0.3, true);
+      mpc_drives, measured(0.98, 2.0), 8000, -1, 0, 0.2, false, -1, 0.3, true);
     EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS) << "mpc_drives=" << mpc_drives;
     EXPECT_EQ(outcome.held, 1) << "mpc_drives=" << mpc_drives;
   }
@@ -343,8 +348,7 @@ TEST(WaitForMoveComplete, the_recovery_hold_fails_on_a_coast_the_arrival_gate_pa
   // ended whatever the residual was; the timeout now fails the goal instead of
   // measuring the block off a boom that never came back.
   const auto outcome = run(
-    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 3000, -1, 0, 0.2, false, true, -1, -1,
-    0.3, true);
+    false, measured(1.0, 1.98), 3000, -1, 0, 0.2, false, -1, 0.3, true);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.commanded, 1);  // the move itself arrived
   EXPECT_EQ(outcome.held, 0);
@@ -361,8 +365,7 @@ TEST(WaitForMoveComplete, the_recovery_hold_dwells_on_the_position_and_not_only_
   // zero throughout, so the rate dwell completes while the move is nowhere near its
   // goal -- a hold that dwelled on the rate alone would pass at 1.0 s.
   const auto outcome = run(
-    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 50, 0.2, false, true, -1,
-    -1, 1.0, true);
+    false, measured(1.0, 2.0), 20000, -1, 50, 0.2, false, -1, 1.0, true);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(outcome.held, 1);
   // 1 s out of band, then the 1 s dwell, then the settle wait's own 1 s: 3 s. Without
@@ -372,14 +375,13 @@ TEST(WaitForMoveComplete, the_recovery_hold_dwells_on_the_position_and_not_only_
 
 TEST(WaitForMoveComplete, the_recovery_hold_refuses_a_joint_state_stream_that_stopped)
 {
-  // The hold has no second input: no sway verdict, so neither kSettledMaxAge nor the
-  // publisher count covers it. With /joint_states gone the dwells would run out on a
-  // frozen sample and the hold would report the error decayed, with the controller
-  // still active over the slot and the measurement that follows taken off the same
-  // dead state. The stream stops 0.4 s in, which is inside the dwell.
+  // With /joint_states gone the dwells would run out on a frozen sample and the hold
+  // would report the error decayed, with the controller still active over the slot and
+  // the measurement that follows taken off the same dead state. Since item 1 the sway
+  // half has no other input either, so this is the one freshness bound left. The stream
+  // stops 0.4 s in, which is inside the dwell.
   const auto outcome = run(
-    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 6000, -1, 0, 0.2, false, true, -1, -1,
-    2.7, true, 20);
+    false, measured(1.0, 2.0), 6000, -1, 0, 0.2, false, -1, 2.7, true, 20);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_EQ(outcome.held, 0);
 }
@@ -391,11 +393,9 @@ TEST(WaitForMoveComplete, the_recovery_hold_runs_on_no_other_move)
   // 0.05 arrival gate is the whole test and nothing descends onto the residual.
   // Skipped, not waited out: a hold on each would cost a run its empty moves.
   const auto landing = run(
-    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, true, true, -1, -1,
-    0.3, true);
+    false, measured(1.0, 1.98), 8000, -1, 0, 0.2, true, -1, 0.3, true);
   const auto empty = run(
-    false, measured(1.0, 1.98), SwaySettled::SETTLED_YES, 8000, -1, 0, 0.2, false, true, -1, -1,
-    0.3, false);
+    false, measured(1.0, 1.98), 8000, -1, 0, 0.2, false, -1, 0.3, false);
   EXPECT_EQ(landing.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(landing.held, 0);
   EXPECT_EQ(empty.status, BT::NodeStatus::SUCCESS);
@@ -404,13 +404,12 @@ TEST(WaitForMoveComplete, the_recovery_hold_runs_on_no_other_move)
 
 TEST(WaitForMoveComplete, the_recovery_hold_asks_nothing_of_the_load)
 {
-  // It gates the joints and their rates and no verdict, so it passes where nothing
-  // publishes one -- `controller:=pid` starts no crane_mpc. The settle wait after
-  // it is what fails that run, which is the decision issue 220 took; the hold must
-  // not fail it a second time, and for a question it never asks.
+  // It gates the joints and their rates and no sway, so it passes with the pendulum
+  // still swinging. The settle wait after it is what fails that run, which is the
+  // decision issue 220 took; the hold must not fail it a second time, and for a
+  // question it never asks.
   const auto outcome = run(
-    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 0, 0.2, false, false, -1,
-    -1, 0.3, true);
+    false, measured(1.0, 2.0, 0.0, kSwinging), 20000, -1, 0, 0.2, false, -1, 0.3, true);
   EXPECT_EQ(outcome.held, 1);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
 }
@@ -422,42 +421,9 @@ TEST(WaitForMoveComplete, leaves_a_landing_descent_to_wait_for_load_off)
   // whatever the move before left on the blackboard. Gating a touchdown on sway
   // would fail the landing the Parallel's sibling is still deciding, and would
   // read an unset key on any tree that reached a descent first.
-  const auto outcome =
-    run(false, measured(1.0, 2.0), SwaySettled::SETTLED_NO, 900, -1, 0, 0.2, true);
+  const auto outcome = run(false, measured(1.0, 2.0, 0.0, kSwinging), 900, -1, 0, 0.2, true);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
   EXPECT_EQ(outcome.commanded, 1);
-}
-
-TEST(WaitForMoveComplete, fails_at_once_when_nothing_publishes_the_verdict)
-{
-  // controller:=pid starts no crane_mpc, so the topic has no publisher at all.
-  // Spending the whole budget on that -- controller active, deadman held, machine
-  // motionless -- is the worst way to find out, so it goes after kProducerGrace.
-  const auto outcome = run_without_a_verdict_producer(20000);
-  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
-  EXPECT_EQ(outcome.commanded, 1);
-  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(12000));
-}
-
-TEST(WaitForMoveComplete, fails_at_once_when_the_verdict_producer_dies_mid_move)
-{
-  // Issue 241, the settle arm's sibling of 239. The joints arrived and the load
-  // reads still, but crane_mpc exits 0.6 s in -- before the 2.7 s dwell can
-  // complete -- so the publisher count drops to zero and nothing will ever
-  // finish the dwell. The check used to be gated on having heard no verdict at
-  // all, which a producer that dies *mid*-move has already defeated, so this
-  // burned the settle wait's whole 60 s in front of a motionless machine with
-  // the deadman held.
-  // 20 ticks, ~0.4 s: it has to be long enough that a verdict was heard (or the
-  // old code fails here too and this proves nothing) and short enough that the
-  // 2.7 s dwell cannot complete first (or the node legitimately succeeds). Those
-  // bound the tick period to 135 ms, against ~20 ms measured.
-  const auto outcome = run(
-    false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 0, 0.2, false, true, -1, 20);
-  EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
-  // It is the settle wait that fails, so the goal did run.
-  EXPECT_EQ(outcome.commanded, 1);
-  EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(10000));
 }
 
 TEST(WaitForMoveComplete, fails_at_once_when_the_mpc_stops_driving_the_move)
@@ -467,8 +433,7 @@ TEST(WaitForMoveComplete, fails_at_once_when_the_mpc_stops_driving_the_move)
   // the arrival error freezes: this move is 0.8 rad short of its goal and will
   // stay there. It used to spend the rest of the window -- 90 s live -- and then
   // report the tolerance miss from 90 s earlier.
-  const auto outcome = run(
-    true, measured(0.2, 2.0), SwaySettled::SETTLED_YES, 60000, -1, 0, 0.2, false, true, 20);
+  const auto outcome = run(true, measured(0.2, 2.0), 60000, -1, 0, 0.2, false, 20);
   EXPECT_EQ(outcome.status, BT::NodeStatus::FAILURE);
   EXPECT_LT(outcome.elapsed, std::chrono::milliseconds(8000));
 }
@@ -481,8 +446,7 @@ TEST(WaitForMoveComplete, lets_a_move_the_last_horizon_still_finishes_finish)
   // dwell -- inside that is over, not failed. Horizon stops at ~1.8 s and the joints
   // arrive at ~4.0 s: at a 1 s bound this failed at 3.0 s, a second before the
   // arrival it was already driving towards.
-  const auto outcome = run(
-    true, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 20000, -1, 200, 0.2, false, true, 90);
+  const auto outcome = run(true, measured(1.0, 2.0), 20000, -1, 200, 0.2, false, 90);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
 }
 
@@ -491,7 +455,7 @@ TEST(WaitForMoveComplete, does_not_replay_the_plan_duration_after_the_goal_arriv
   // The goal already played the plan. Anchoring the settle wait's plan end on
   // its own onStart would add the whole plan to every move on this arm, which
   // is a 20 s plan inside an 8 s budget here.
-  const auto outcome = run(false, measured(1.0, 2.0), SwaySettled::SETTLED_YES, 8000, -1, 0, 20.0);
+  const auto outcome = run(false, measured(1.0, 2.0), 8000, -1, 0, 20.0);
   EXPECT_EQ(outcome.status, BT::NodeStatus::SUCCESS);
 }
 

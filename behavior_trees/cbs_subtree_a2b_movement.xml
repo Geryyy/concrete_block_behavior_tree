@@ -50,11 +50,11 @@
      Sequence falls through to the unchanged action.
 
      WaitForMoveComplete is the completion oracle the action goal used to be. It is not a
-     like-for-like replacement: it also requires /crane/sway_settled to read SETTLED_YES,
-     which no goal ever checked. See the node's header. The action arm gets that half back
-     from a second instance with `settle_only` after the goal (issue 220), so both arms
-     leave the load still, and both therefore need crane_mpc alive to publish the verdict,
-     in shadow mode if it is not driving.
+     like-for-like replacement: it also requires the passive pair theta6/theta7 to be under
+     `ex_sway_bound`, which no goal ever checked. See the node's header. The action arm gets
+     that half back from a second instance with `settle_only` after the Fallback (issue 220,
+     item 10), so both arms leave the load still. Neither needs crane_mpc for it: the rates
+     come off /joint_states (item 1).
 
      epsilon_crane_behavior_tree is a shared reference package and is not edited. -->
 <root BTCPP_format="4">
@@ -81,6 +81,7 @@
        mpc_drives is written by WaitForMoveComplete; a landing descent skips that node and
        reads the value of the move before. -->
   <BehaviorTree ID="SubTreeCbsA2BMovement">
+    <Sequence>
     <Fallback name="Fallback to deactivate controllers">
       <Decorator ID="GetUserApproval" topic="/gpio_controller/remote_ctrl_states"
         wait_rising_edge="False">
@@ -114,8 +115,8 @@
               <!-- 120 s is the stalled-clock backstop, not the window (issue 239). What
                    bounds this wait is crane_mpc's own hold: the node watches
                    /crane/mpc/horizon and fails the move the moment the MPC stops driving
-                   it, which is `max_reference_age` (20 s) past the end of the plan on
-                   /crane/reference. Past that the JTC holds the last horizon point and
+                   it, which is `max_reference_age` (crane_mpc.yaml) past the end of the plan
+                   on /crane/reference. Past that the JTC holds the last horizon point and
                    neither gate can change, so the 120 s was spent on a question nothing
                    would answer: measured 90 s of it, on every move, in all four runs of
                    issue 238. The value stays, because it is reached only if /clock stalls and
@@ -226,48 +227,6 @@
             deactivate_controllers="trajectory_controller_a2b"
             server_timeout="3000"
             service_name="/controller_manager/switch_controller"/>
-          <!-- The settle half the goal never had (issue 220). The goal tests positions
-               and a goal_time; nothing on this arm damps sway, so a tree that moved on
-               from the goal descended into a swinging block. Same node, same
-               /crane/sway_settled hold, `settle_only` dropping the profile gate and the
-               plan-duration wait the goal already served. Not on a landing descent:
-               WaitForLoadOff ends those and the load is on the ground.
-               crane_mpc is the only publisher of the verdict, so `controller:=pid`
-               alone cannot pass this; wiki/commissioning.md 8a.
-               Nested for the same reason PublishMpcReference above is: a single script
-               reading `mpc_drives || ex_until_landed` reads both sides, and on a landing
-               descent the first WaitForMoveComplete is skipped, so mpc_drives can be
-               unset. The outer skip reads only what every caller sets.
-
-               AFTER THE DEACTIVATE, NOT INSIDE THE MOVE (issue 234). Held, the loaded
-               0.35 Hz tip mode does not decay at all: 60 s of hold with the A2B JTC
-               active grew the swing 0.181 to 0.204 rad peak-to-peak, with the actuated
-               commands ringing at the tip's own frequency (arm 0.004 rad/s at
-               0.350 Hz). Deactivated, the same mode decays monotonically with
-               tau = 21 s. The position hold is a pump, not a brake, so the gate has to
-               be waited out with the controller off. The machine already stands with
-               this controller inactive between every pair of moves, so this adds no
-               state it does not already see; a failure here leaves it inactive too,
-               which is where the ForceFailure branch would have put it.
-               60 s, was 30: the 30 s was sized on an empty hook's ~5 s decay and a
-               loaded mode has no such decay. Measured on the slowed lift of
-               subtree_lift.xml, the gate is reached at ~33 s (arrival 0.092 rad/s,
-               0.05 rad/s bound, 0.0522 rad/s still left at 30 s and the 2.7 s dwell
-               on top), so 30 s missed it by a hair. 60 s is twice the measured
-               time to the bound. A settled arrival still leaves in ~3 s, which
-               is what every empty move does, so this is a bound on the bad case and
-               not a dwell. -->
-          <Sequence _skipIf="ex_until_landed">
-            <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
-              _skipIf="mpc_drives"
-              trajectory="{trajectory}"
-              joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
-              goal_tolerance="{ex_goal_tolerance}"
-              sway_bound="{ex_sway_bound}"
-              hold_s="{ex_hold_s}"
-              timeout_ms="60000"
-              mpc_drives="{mpc_drives}"/>
-          </Sequence>
         </Sequence>
       </Decorator>
       <Decorator ID="ForceFailure">
@@ -278,5 +237,51 @@
           service_name="/controller_manager/switch_controller"/>
       </Decorator>
     </Fallback>
+    <!-- The settle half the goal never had (issue 220). The goal tests positions
+         and a goal_time; nothing on this arm damps sway, so a tree that moved on
+         from the goal descended into a swinging block. Same node, `settle_only`
+         dropping the profile gate and the plan-duration wait the goal already served.
+         Not on a landing descent: WaitForLoadOff ends those and the load is on the
+         ground. The gate is the passive pair's own rates off /joint_states, so
+         `controller:=pid` passes it with no crane_mpc running at all (item 1).
+         Nested for the same reason PublishMpcReference above is: a single script
+         reading `mpc_drives || ex_until_landed` reads both sides, and on a landing
+         descent the first WaitForMoveComplete is skipped, so mpc_drives can be
+         unset. The outer skip reads only what every caller sets.
+
+         OUTSIDE THE APPROVAL, AND AFTER THE DEACTIVATE (issues 234, item 10). This
+         waits in front of a standing crane with the controller already off, so
+         holding button12 through it bought nothing and cost the run every move:
+         letting go, or a 1.5 s gap in the gpio stream, halted the wait and failed
+         a move that was over. Inside the Fallback it also ran the ForceFailure
+         deactivate on a controller that was already inactive.
+
+         Held, the loaded 0.35 Hz tip mode does not decay at all: 60 s of hold with the
+         A2B JTC active grew the swing 0.181 to 0.204 rad peak-to-peak, with the actuated
+         commands ringing at the tip's own frequency (arm 0.004 rad/s at 0.350 Hz).
+         Deactivated, the same mode decays monotonically with tau = 21 s. The position
+         hold is a pump, not a brake, so the gate has to be waited out with the
+         controller off. The machine already stands with this controller inactive
+         between every pair of moves, so this adds no state it does not already see.
+         60 s, was 30: the 30 s was sized on an empty hook's ~5 s decay and a
+         loaded mode has no such decay. Measured on the slowed lift of
+         subtree_lift.xml, the gate is reached at ~33 s (arrival 0.092 rad/s,
+         0.05 rad/s bound, 0.0522 rad/s still left at 30 s and the 2.7 s dwell
+         on top), so 30 s missed it by a hair. 60 s is twice the measured
+         time to the bound. A settled arrival still leaves in ~3 s, which
+         is what every empty move does, so this is a bound on the bad case and
+         not a dwell. -->
+    <Sequence _skipIf="ex_until_landed">
+      <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
+        _skipIf="mpc_drives"
+        trajectory="{trajectory}"
+        joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
+        goal_tolerance="{ex_goal_tolerance}"
+        sway_bound="{ex_sway_bound}"
+        hold_s="{ex_hold_s}"
+        timeout_ms="60000"
+        mpc_drives="{mpc_drives}"/>
+    </Sequence>
+    </Sequence>
   </BehaviorTree>
 </root>

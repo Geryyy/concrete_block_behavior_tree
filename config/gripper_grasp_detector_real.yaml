@@ -5,12 +5,15 @@ gripper_grasp_detector:
     q9_joint_name: q9_left_rail_joint
 
     # q9 position must be inside this inclusive window.
+    # min 0.15, not 0.05: a free close runs to ~0.0 at 1.34e5 of effort, i.e. over the
+    # threshold below, and spends ~1.6 s in [0.05, 0.2] -- longer than hold_time_s, so it
+    # fired on an empty hook. From 0.15 it is ~0.55 s, and the machine clamp 0.187 keeps
+    # its margin (11-09 bags).
     position_window:
-      min: 0.05
+      min: 0.15
       max: 0.2
 
     # abs(q9 effort) must stay above this threshold for hold_time_s.
-    # effort_threshold: 10000.0 # empty
     effort_threshold: 100000.0 # grasp
     hold_time_s: 1.0
 

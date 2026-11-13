@@ -64,20 +64,21 @@ inline std::string pose_status(
   return std::string(line);
 }
 
-/// `/cbs/status/settle` -- WaitForMoveComplete per tick: the sway gate it applies. `bound` 0
-/// means it takes crane_mpc's verdict (`verdict` SwaySettled.SETTLED_*) and not the rates;
-/// `still` that gate now, `held`/`hold` its dwell, `msg` what the move still waits for.
+/// `/cbs/status/settle` -- WaitForMoveComplete per tick: the sway gate it applies. `rate` is
+/// max |dq_u| of the passive pair against `bound`, `still` that gate now, `held`/`hold` its
+/// dwell, `msg` what the move still waits for.
 /// The PI recovery hold (`decay_only`, issue 306) publishes it too and asks no sway gate, so
-/// there `verdict`/`still` are 0 because nothing read them; `msg` and `elapsed` are the hold.
+/// there `still` is whatever the pair reads and nothing gated on it; `msg` and `elapsed` are
+/// the hold.
 inline std::string settle_status(
-  double bound, double rate, int verdict, bool still, double held_s, double hold_s,
+  double bound, double rate, bool still, double held_s, double hold_s,
   double elapsed_s, const std::string & reason)
 {
   char line[320];
   std::snprintf(
     line, sizeof(line),
-    "bound=%.3f rate=%.3f verdict=%d still=%d held=%.1f hold=%.1f elapsed=%.1f msg=%s",
-    bound, rate, verdict, still ? 1 : 0, held_s, hold_s, elapsed_s,
+    "bound=%.3f rate=%.3f still=%d held=%.1f hold=%.1f elapsed=%.1f msg=%s",
+    bound, rate, still ? 1 : 0, held_s, hold_s, elapsed_s,
     reason.empty() ? "arrived" : reason.c_str());
   return std::string(line);
 }

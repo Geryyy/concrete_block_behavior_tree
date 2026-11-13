@@ -39,10 +39,11 @@
   <BehaviorTree ID="SubTreeResumeCarry">
     <Sequence name="resume_carry">
       <!-- Transient_local Bool, 10 Hz: true for signal_duration_s after the jaws last squeezed
-           over effort_threshold, refreshed by every sample that still does. In sim a held block
-           keeps it true and this gate answered in 0.1 s. On the machine (4.0 s tail, threshold
-           100000) it is NOT measured whether a passively held block stays over it - characterise
-           that before trusting the resume there. 2 s only covers the publish period. -->
+           over effort_threshold. On the machine the clamp holds with the valve closed and the
+           effort decays to ~200, well under the 1e5 threshold, so the squeeze is detected once
+           and then *latched* while q9 stays in the window (gripper_grasp_detector.cpp, 11-09
+           15-43-38). In sim a held block stays over the threshold and this gate answered in
+           0.1 s either way. 2 s only covers the publish period. -->
       <!-- The name is what the operator sees on the failure, so it says what the signal said,
            not what the hook holds: a block clamped under an expired signal fails here too. -->
       <Action ID="WaitForGraspSignal"

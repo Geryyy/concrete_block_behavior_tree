@@ -108,6 +108,13 @@ if(BUILD_TESTING)
   ament_add_gtest(test_wait_for_move_complete test/test_wait_for_move_complete.cpp TIMEOUT 180)
   target_link_libraries(test_wait_for_move_complete BT_cb_wait_for_move_complete_condition)
   ament_target_dependencies(test_wait_for_move_complete ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  # The /tf-age behaviour of the landing gate; drives the plugin over real topics.
+  ament_add_gtest(test_wait_for_load_off test/test_wait_for_load_off.cpp)
+  target_link_libraries(test_wait_for_load_off BT_cb_wait_for_load_off_condition)
+  ament_target_dependencies(test_wait_for_load_off ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  # The grasp signal replayed against the detector node; header-only, no plugin.
+  ament_add_gtest(test_gripper_grasp_detector test/test_gripper_grasp_detector.cpp)
+  ament_target_dependencies(test_gripper_grasp_detector rclcpp sensor_msgs std_msgs)
   ament_add_gtest(test_set_mpc_payload test/test_set_mpc_payload.cpp)
   target_link_libraries(test_set_mpc_payload BT_cb_set_mpc_payload_action)
   ament_target_dependencies(test_set_mpc_payload ${THIS_PACKAGE_INCLUDE_DEPENDS})

@@ -6,11 +6,20 @@
   <BehaviorTree ID="SubTreePickBlock">
     <Sequence name="pick_block">
       <!-- Nothing in the jaws (327): a clamped block would be lifted as an empty hook and
-           dropped where the jaws open at the hover. Shut and empty passes, a first run starts so. -->
+           dropped where the jaws open at the hover. The jaws have to be parked fully open
+           before every goal and every restart: on the machine they rest mid-stroke (0.24 to
+           0.40) and a shut gripper reads 0.187, so neither end of `jaws_empty` is where a
+           hand-parked tool sits (item 6). -->
       <ScriptCondition name="A block is TASK_MOVE - set it down by hand, reset it to TASK_FREE"
         code="moving_block_id == ''"/>
       <Action ID="WaitForGraspSignal" name="Jaws may hold a block - check the hook before a pick"
         topic="/gripper/jaws_empty" timeout_ms="2000"/>
+      <!-- The hook is proven empty here, so this is where a payload left over from a failed
+           grip registration or a manual unload goes (item 28). Also false after a restart,
+           where the MPC may still carry the last run's block. -->
+      <Action ID="SetMpcPayload" name="Clear MPC payload"
+        service_name="/crane/mpc/set_payload"
+        carries="false"/>
 
       <!-- 0. A raised pickup (truck bed, block centre over K0 z -0.5) via the start pose's
            direction, folded in: stretched out over the wall, no corridor to the bed survived
@@ -61,10 +70,19 @@
   <!-- Pick after the caller has already reached the selected pickup hover. -->
   <BehaviorTree ID="SubTreePickFromHover">
     <Sequence name="pick_from_hover">
-      <!-- 1. Open gripper -->
-      <SetBlackboard output_key="gr_phase" value="3"/>
-      <SetBlackboard output_key="gr_carries" value="false"/>
-      <SubTree ID="SubTreeGripper" _autoremap="true"/>
+      <!-- 1. Open gripper, unless the release already proved them open (item 31): that
+           saves a plan, an approval press and a controller switch per block. 300 ms is the
+           publish period of the latched signal, not a wait. Jaws that are not open still
+           need the press. -->
+      <Fallback name="jaws_already_open_or_open_them">
+        <Action ID="WaitForGraspSignal" name="Jaws are not open yet"
+          topic="/gripper/jaws_open" timeout_ms="300"/>
+        <Sequence>
+          <SetBlackboard output_key="gr_phase" value="3"/>
+          <SetBlackboard output_key="gr_carries" value="false"/>
+          <SubTree ID="SubTreeGripper" _autoremap="true"/>
+        </Sequence>
+      </Fallback>
 
       <!-- 2. Descend to pickup -->
       <!-- Controller default: the grasp detector verifies this descent, not

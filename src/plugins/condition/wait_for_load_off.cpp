@@ -1,4 +1,3 @@
-#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/plugins/condition/wait_for_load_off.hpp"
 
 #include <algorithm>
@@ -6,6 +5,7 @@
 #include <limits>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/status_text.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "tf2/exceptions.h"
@@ -20,6 +20,11 @@ const rclcpp::Duration kReference{std::chrono::milliseconds(500)};
 const rclcpp::Duration kHold{std::chrono::milliseconds(100)};
 // A frozen transform freezes the floor while the JTC keeps descending.
 constexpr double kMaxTfAge = 0.2;
+// Past this it is frozen; under it, it is the LAN. The 11-09 runs stalled /tf for 1.5 s and
+// the goal ended with the block landed, clamped and TASK_MOVE, which is the worst state this
+// gate can leave. Waiting is safe: the descent is the move's own, and the height checks the
+// wait skips are the ones the stale transform would answer wrongly.
+constexpr double kStaleTfAge = 2.0;
 constexpr double kGravity = 9.81;
 }  // namespace
 
@@ -132,11 +137,18 @@ BT::NodeStatus WaitForLoadOff::onRunning()
     const auto pivot = tf_buffer_->lookupTransform(world_frame, lever_frame, tf2::TimePointZero);
     const double age =
       (now - rclcpp::Time(k8.header.stamp)).seconds();
-    if (age > kMaxTfAge) {
+    if (age > kStaleTfAge) {
       RCLCPP_ERROR(
         log, "WaitForLoadOff: %s is %.2f s old, the block height is unknown; stopping, "
         "the jaws stay shut", k8_frame.c_str(), age);
       return BT::NodeStatus::FAILURE;
+    }
+    if (age > kMaxTfAge) {
+      RCLCPP_WARN_THROTTLE(
+        log, *node_->get_clock(), 1000,
+        "WaitForLoadOff: %s is %.2f s old, waiting for it rather than reading the height off "
+        "it", k8_frame.c_str(), age);
+      return BT::NodeStatus::RUNNING;
     }
     // Hanging: the block sits |s_log_8| straight below K8. Not rotated through K8's
     // attitude -- the tool tilts as the block lands, and a 1 m lever then moved the

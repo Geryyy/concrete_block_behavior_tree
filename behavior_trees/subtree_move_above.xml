@@ -16,6 +16,16 @@
          the correction rather than the crane moving again on its own. -->
     <Decorator ID="RetryUntilSuccessful" num_attempts="2" name="replan_on_missed_goal">
     <Sequence name="move_above">
+      <!-- Before the plan, because CalcA2BMovement's answer is published on /crane/reference
+           by crane_planning as soon as it exists, i.e. before the approval press below: with
+           the JTC still active after a cancel, an active crane_mpc would drive on it with no
+           deadman held (item 19). A no-op when the controller is already inactive, which is
+           where every other path in this tree leaves it, and it clears the MPC reference. -->
+      <SwitchController name="Deactivate controller before planning"
+        activate_controllers=""
+        deactivate_controllers="trajectory_controller_a2b"
+        server_timeout="3000"
+        service_name="/controller_manager/switch_controller"/>
       <!-- 0.02, not the JTC's 0.05: 0.05 rad of slew is 0.35 m at the block, and the descent
            was planned from there while the crane still arrived (sim, 2026-10-01). Without the
            MPC the goal aborts at it when the arm stalls short on the valve dead zone, which is

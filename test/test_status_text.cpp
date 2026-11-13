@@ -36,8 +36,8 @@ TEST(StatusText, a_place_pass_shifts_only_on_a_shift_verdict)
 TEST(StatusText, settle_says_which_gate_it_waits_on)
 {
   EXPECT_EQ(
-    settle_status(0.05, 0.0312, 1, false, 0.0, 2.7, 12.34, "the load is not settled"),
-    "bound=0.050 rate=0.031 verdict=1 still=0 held=0.0 hold=2.7 elapsed=12.3 "
+    settle_status(0.05, 0.0712, false, 0.0, 2.7, 12.34, "the load is not settled"),
+    "bound=0.050 rate=0.071 still=0 held=0.0 hold=2.7 elapsed=12.3 "
     "msg=the load is not settled");
 }
 

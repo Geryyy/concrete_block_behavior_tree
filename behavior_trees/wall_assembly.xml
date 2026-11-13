@@ -106,7 +106,9 @@
                   approach_z="{place_approach_z}"/>
                 <Sequence>
                   <ScriptCondition code="plan_ok &amp;&amp; plan_has_task"/>
-                  <!-- The discovery move is an empty-hook one (327). -->
+                  <!-- The discovery move is an empty-hook one (327). Jaws parked fully open,
+                       as every goal needs them (item 6): a machine tool resting mid-stroke
+                       passes neither end of this gate. -->
                   <Action ID="WaitForGraspSignal" name="Jaws may hold a block - no discovery move"
                     topic="/gripper/jaws_empty" timeout_ms="2000"/>
                   <!-- Back over the last pickup first: from the wall the column-mounted lidar

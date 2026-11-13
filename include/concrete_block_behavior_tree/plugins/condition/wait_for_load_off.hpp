@@ -31,7 +31,9 @@ namespace concrete_block_behavior_tree
 // FAILURE, which halts the descent, when the centre goes `floor_below_target`
 // under `target_z` -- the kinematic floor, for when the effort never drops --, when
 // the load comes off higher than `max_above_target` (early ground contact), on a
-// non-finite or zero input, on a transform older than 0.2 s, or at `timeout_ms`.
+// non-finite or zero input, on a transform older than 2 s, or at `timeout_ms`. Between
+// 0.2 and 2 s it waits instead: the 11-09 LAN stalled /tf 1.5 s and a one-tick trip there
+// ended the goal with the block landed, clamped and TASK_MOVE (framework review item 12).
 // Assumes the effort falls when the hook unloads (boom, sim and the 2026-08-19 bags:
 // positive under load).
 // `load_off` says which of the two it was: the load came off (SUCCESS, or the early

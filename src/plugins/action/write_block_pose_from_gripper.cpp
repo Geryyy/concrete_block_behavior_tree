@@ -1,9 +1,9 @@
-#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "concrete_block_behavior_tree/plugins/action/write_block_pose_from_gripper.hpp"
 
 #include <stdexcept>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_behavior_tree/plugins/shared_tf_buffer.hpp"
 #include "tf2/exceptions.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Transform.h"
@@ -12,6 +12,12 @@
 
 namespace concrete_block_behavior_tree
 {
+
+namespace
+{
+// Same bound as MeasureBlockFromGripper's: a TCP older than this is where the hook was.
+constexpr double kMaxTcpAge = 0.2;
+}  // namespace
 
 WriteBlockPoseFromGripper::WriteBlockPoseFromGripper(
   const std::string & service_node_name,
@@ -63,6 +69,18 @@ void WriteBlockPoseFromGripper::on_tick()
       node_->get_logger(),
       "WriteBlockPoseFromGripper: tf lookup '%s' <- '%s' failed: %s",
       world_frame.c_str(), gripper_frame.c_str(), e.what());
+    should_send_request_ = false;
+    return;
+  }
+  // This write is the placed block's pose for the rest of the run; a stale TCP would put it
+  // where the hook was before the /tf stall (1.5 s on 11-09), and nothing measures it again
+  // until the post-place refine has to match it within 0.35 m.
+  const double age = (node_->now() - rclcpp::Time(world_tcp_tf.header.stamp)).seconds();
+  if (age > kMaxTcpAge) {
+    RCLCPP_ERROR(
+      node_->get_logger(),
+      "WriteBlockPoseFromGripper: '%s' is %.2f s old, so where the block was let go is "
+      "unknown; not writing it", gripper_frame.c_str(), age);
     should_send_request_ = false;
     return;
   }

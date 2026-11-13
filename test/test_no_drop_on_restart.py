@@ -63,16 +63,23 @@ def test_jaws_that_did_not_open_leave_the_block_in_hand():
     def at(match):
         return next(i for i, e in enumerate(body) if match(e))
 
-    opened = at(lambda e: e.get("ID") == "SubTreeGripper")
-    assert body[opened - 2].get("value") == "3"  # gr_phase: open
     checked = at(lambda e: e.tag == "Fallback")
     cleared = at(lambda e: e.get("ID") == "SetMpcPayload")
     assert body[cleared].get("carries") == "false"
-    assert opened < checked < cleared
+    assert checked < cleared
+    assert body[checked - 2].get("value") == "3"  # gr_phase: open
 
-    check, otherwise = list(body[checked])
-    assert _is_jaws_check(check, "/gripper/jaws_open")
-    back, fail = list(otherwise)
+    # One arbiter, and it is the jaw sensor (framework review item 14): the open and
+    # the sensor that confirms it are one branch, so a failed open is not a state of
+    # its own. It used to leave TASK_PLACED where a timed-out open left TASK_MOVE --
+    # the same physical state, reached by two restart paths.
+    opened, otherwise = list(body[checked])
+    gripper, confirmed = list(opened)
+    assert gripper.get("ID") == "SubTreeGripper"
+    assert _is_jaws_check(confirmed, "/gripper/jaws_open")
+    not_open, back, fail = list(otherwise)
+    assert not_open.tag == "Inverter"
+    assert _is_jaws_check(list(not_open)[0], "/gripper/jaws_open")
     assert back.get("ID") == "SetBlockTaskStatus" and back.get("task_status") == "2"
     assert back.get("grasp_offset") == "{grasp_offset}"  # FK-tracked from here on
     assert fail.tag == "AlwaysFailure"

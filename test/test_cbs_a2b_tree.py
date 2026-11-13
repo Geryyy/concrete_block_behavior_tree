@@ -177,20 +177,30 @@ def test_cbs_a2b_subtree_waits_for_the_load_to_settle_after_the_action():
     guard = next(node for node in root.iter("Sequence") if settle in list(node))
     assert guard.get("_skipIf") == "ex_until_landed"
 
+    # Outside the approval (framework review item 10): this waits in front of a standing
+    # crane with the controller already off, so holding button12 through it bought
+    # nothing -- letting go, or a 1.5 s gap in the gpio stream, halted the wait and
+    # failed a move that was over.
+    approval = next(
+        node for node in root.iter("Decorator") if node.get("ID") == "GetUserApproval"
+    )
+    assert settle not in list(approval.iter())
+
     # After the goal, not before: before it, the plan has not run. And after the
     # deactivate (issue 234): held, the loaded tip mode does not decay at all --
     # the position hold rings at its frequency and feeds it -- while deactivated it
     # decays with tau = 21 s. A settle gate waited out under the hold cannot pass.
     parent = next(node for node in root.iter("Sequence") if guard in list(node))
     children = list(parent)
-    goal = next(node for node in children if node.tag == "Parallel")
+    move = next(node for node in children if node.tag == "Fallback")
+    assert children.index(guard) > children.index(move)
+    goal = next(move.iter("Parallel"))
     off = next(
         node
-        for node in children
+        for node in move.iter("SwitchController")
         if node.get("deactivate_controllers") == "trajectory_controller_a2b"
     )
-    assert children.index(guard) > children.index(goal)
-    assert children.index(guard) > children.index(off)
+    assert goal is not None and off is not None
 
 
 def test_a_loaded_waypoint_descent_holds_until_the_error_has_decayed():

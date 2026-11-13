@@ -399,14 +399,27 @@
         x="{written_x}" y="{written_y}" z="{written_z}"/>
       <SetBlackboard output_key="gr_phase" value="3"/>
       <SetBlackboard output_key="gr_carries" value="true"/>
-      <SubTree ID="SubTreeGripper" _autoremap="true"/>
-      <!-- A jaw goal that ends SUCCESS is no open: a cancelled one reads so too. Not open (shut
-           = lost on the way) puts the block back to TASK_MOVE, so a restart resumes it instead of
-           picking the next one with it in the jaws, and the MPC stays loaded (327). -->
+      <!-- ONE ARBITER, AND IT IS THE JAW SENSOR (item 14). A jaw goal that ends SUCCESS is no
+           open: a cancelled one reads so too, so the open and the sensor are one branch. The
+           open subtree failing is then not a state of its own: a failed SubTreeGripper used
+           to leave TASK_PLACED and a timed-out open TASK_MOVE, which is the same physical
+           state reached by two restart paths. Second branch: only if the jaws are *not* open
+           does the block go back to TASK_MOVE, so a restart resumes it instead of picking the
+           next one with it in the jaws, and the MPC stays loaded (327). Open but failed stays
+           TASK_PLACED. Either way this ends the goal. -->
       <Fallback name="jaws_opened_or_back_in_hand">
-        <Action ID="WaitForGraspSignal" name="Jaws did not open on the placed block - check the hook"
-          topic="/gripper/jaws_open" timeout_ms="5000"/>
         <Sequence>
+          <SubTree ID="SubTreeGripper" _autoremap="true"/>
+          <Action ID="WaitForGraspSignal" name="Jaws did not open on the placed block - check the hook"
+            topic="/gripper/jaws_open" timeout_ms="5000"/>
+        </Sequence>
+        <Sequence>
+          <!-- 1 s, not 5: the open above already waited that out, so this is the publish
+               period of a signal that is either there or not. -->
+          <Inverter>
+            <Action ID="WaitForGraspSignal" name="Jaws open after a failed release"
+              topic="/gripper/jaws_open" timeout_ms="1000"/>
+          </Inverter>
           <Action ID="SetBlockTaskStatus" name="Mark block TASK_MOVE again"
             service_name="/world_model_node/set_block_task_status" server_timeout="5000"
             block_id="{grasp_object_contains}" task_status="2" grasp_offset="{grasp_offset}"/>
