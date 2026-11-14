@@ -441,9 +441,8 @@
       <SubTree ID="SubTreeLift" _autoremap="true"/>
 
       <!-- 5. The world model keeps the lidar's pose of the placed block, not FK's, and so does
-           the collision scene the planner avoids. Not the next block's target: example_wall's
-           slots are absolute_position, fixed in `world`, so an error here does not compound.
-           Only a relative_to_world_model slot (stack_block_1_on_block_2) builds on it.
+           the collision scene the planner avoids. A relative_to_world_model slot (course 1)
+           takes this pose as its target: its noise goes straight into the bond.
            Mandatory since 303: the write above is COARSE, so without this pass nothing ever
            measured the placed block. -->
       <SubTree ID="SubTreeRefineBlock" _autoremap="true"/>
