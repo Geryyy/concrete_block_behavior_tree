@@ -194,7 +194,7 @@
            short-fall still converges.
            Lateral only (issue 256). Two reasons, both from run2_pp:
            - the waypoint's own z reaches nothing. SubTreePlaceFinish re-commands dz_z
-             absolutely (place_z + 0.20) and SubTreeTouchdown ends on WaitForLoadOff, so a
+             absolutely (place_z + 0.35) and SubTreeTouchdown ends on WaitForLoadOff, so a
              vertically corrected waypoint changes no later target.
            - the grip server converts a commanded block centre with the nominal
              block_grip_z_offset + tcp_z_offset = 1.05 m, while MeasureBlockFromGripper reads
@@ -273,9 +273,9 @@
   <BehaviorTree ID="SubTreePlaceFinish">
     <Sequence name="place_finish">
       <SubTree ID="SubTreePlaceEntry" _autoremap="true" _skipIf="load_off"/>
-      <!-- 0.40 m stroke (place_z + 0.20 to - 0.20) at 8.0 per metre, the same per-metre
+      <!-- 0.55 m stroke (place_z + 0.35 to - 0.20) at 8.0 per metre, the same per-metre
            scale the simple path's 1.3 m stroke uses, so the same speed at the ground. -->
-      <Script code="td_scale := 3.2"/>
+      <Script code="td_scale := 4.4"/>
       <IfThenElse>
         <ScriptCondition code="load_off"/>
         <SubTree ID="SubTreeEarlyContact" _autoremap="true"/>
@@ -293,8 +293,8 @@
       <SetBlackboard output_key="ex_goal_tolerance" value="0.02"/>  <!-- rad; last gate before the block goes down -->
       <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, not the lift's loose 0.1 on the retry -->
       <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-      <!-- a. Straight down on the open side: underside 20 cm over its bearing face, 40 cm under a neighbour's top -->
-      <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.20"/>
+      <!-- a. Straight down on the open side: underside 35 cm over its bearing face (clears 5 cm studs with the boom 30 cm low), 25 cm under a neighbour's top -->
+      <Script code="dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; dz_z := place_z + 0.35"/>
       <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
         <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
@@ -319,7 +319,7 @@
     </Sequence>
   </BehaviorTree>
 
-  <!-- From 20 cm over dz_x/dz_y: the stroke, once or twice, then the release. -->
+  <!-- From 35 cm over dz_x/dz_y: the stroke, once or twice, then the release. -->
   <BehaviorTree ID="SubTreeTouchdown">
     <Sequence name="touchdown">
       <Fallback name="set_down_or_enter_once_more">

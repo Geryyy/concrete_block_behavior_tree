@@ -24,7 +24,7 @@ def _subtree(tree_id):
 
 
 def test_the_entry_comes_down_beside_the_slot_and_moves_in_low():
-    """Issue 345: down on the open side first, then in at place_z + 0.20, so the block never
+    """Issue 345: down on the open side first, then in at place_z + 0.35, so the block never
     crosses a neighbour's top edge; the stroke then holds where it ended, not the target."""
     codes = [
         node.get("code") or "" for node in _subtree("SubTreePlaceEntry").iter("Script")
@@ -32,7 +32,7 @@ def test_the_entry_comes_down_beside_the_slot_and_moves_in_low():
     moves = [c for c in codes if "dz_x :=" in c]
     assert moves == [
         "dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; "
-        "dz_z := place_z + 0.20",
+        "dz_z := place_z + 0.35",
         "dz_x := place_x + off_x; dz_y := place_y + off_y",
         "dz_x := meas_x + off_x; dz_y := meas_y + off_y",
     ], moves

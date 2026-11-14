@@ -297,16 +297,16 @@ def test_the_place_goals_are_nominal_heights_and_the_pacing_is_constant():
     The shift carried the capture's own spread into every goal (9.1 cm over 90 s on one
     grip, 294) and made the touchdown's stroke -- entry at place_z + 0.05, aim at
     place_z - 0.20 -- bias-dependent, so td_scale had to track it. With fixed heights the
-    stroke is fixed: entry at place_z + 0.20 (vertical below it, so an early landing does
-    not stop the block short of its neighbour), 0.40 m at 8.0 per metre = 3.2, the same
+    stroke is fixed: entry at place_z + 0.35 (vertical below it, so an early landing does
+    not stop the block short of its neighbour), 0.55 m at 8.0 per metre = 4.4, the same
     per-metre scale the simple path's 1.0 m stroke runs at.
     """
     entry = [c for _, c in _scripts("SubTreePlaceEntry") if "dz_z :=" in c][-1]
-    assert entry.endswith("dz_z := place_z + 0.20"), entry
+    assert entry.endswith("dz_z := place_z + 0.35"), entry
     aim = next(c for _, c in _scripts("SubTreeTouchdownStroke") if "dz_z :=" in c)
     assert aim.startswith("dz_z := place_z - 0.20"), aim
     assert next(c for _, c in _scripts("SubTreePlaceFinish") if "td_scale :=" in c) == (
-        "td_scale := 3.2"
+        "td_scale := 4.4"
     )
 
     # No goal, and no pacing, may depend on a measured offset again.
