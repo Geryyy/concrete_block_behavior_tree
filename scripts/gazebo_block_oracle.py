@@ -60,6 +60,8 @@ class GazeboBlockOracle(Node):
             self.declare_parameter("sigma_angle_deg", 0.5).value
         )
         self.rng = random.Random(self.declare_parameter("seed", 0).value)
+        self.bias = self.declare_parameter("bias_position_m", [0.0, 0.0, 0.0]).value  # lidar bias
+        self.fail_probability = self.declare_parameter("fail_probability", 0.0).value  # lost cloud
         # One streaming subscription, answered from its newest message: a one-shot
         # `gz topic -e -n 1` per request took over 5 s under load and the refine timed out.
         self.latest: tuple[float, str] | None = None
@@ -102,7 +104,7 @@ class GazeboBlockOracle(Node):
         return xyz, q
 
     def _noisy(self, xyz, q):
-        xyz = [v + self.rng.gauss(0.0, self.sigma_pos) for v in xyz]
+        xyz = [v + b + self.rng.gauss(0.0, self.sigma_pos) for v, b in zip(xyz, self.bias)]
         axis = [self.rng.gauss(0.0, 1.0) for _ in range(3)]
         norm = math.sqrt(sum(a * a for a in axis)) or 1.0
         angle = self.rng.gauss(0.0, self.sigma_ang)
@@ -112,6 +114,10 @@ class GazeboBlockOracle(Node):
         return xyz, _qmul(dq, q)
 
     def _discover(self, request, response):
+        if self.fail_probability > 0.0 and self.rng.random() < self.fail_probability:
+            response.success = False
+            response.message = "no detection (fail_probability)"
+            return response
         try:
             poses = self._gz_poses()
         except Exception as error:  # noqa: BLE001 -- a lost gz message is a failed pass
