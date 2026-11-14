@@ -336,3 +336,21 @@ def test_the_early_contact_release_writes_a_pose_measured_on_the_ground():
     assert "CaptureBlockGraspOffset" not in [
         element.get("ID") for element in _subtree("SubTreeRelease").iter()
     ]
+
+
+def test_the_stroke_holds_the_measured_block_only_beside_a_neighbour():
+    """At a course start (approach == place) meas + off re-applies the gate's raw miss away
+    from the slot (356: stroke extra = -gate miss, 1-2 cm); beside a neighbour it holds b.'s
+    stop against the face (1-4 cm short in 356) instead of pushing into it."""
+    entry = _subtree("SubTreePlaceEntry")
+    hold = next(
+        s
+        for s in entry.iter("Sequence")
+        if any(
+            e.get("code") == "dz_x := meas_x + off_x; dz_y := meas_y + off_y" for e in s
+        )
+    )
+    assert hold.get("_skipIf") == (
+        "place_approach_x == place_x && place_approach_y == place_y"
+    )
+    assert "MeasureBlockFromGripper" in [e.get("ID") for e in hold]

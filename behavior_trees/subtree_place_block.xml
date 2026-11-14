@@ -307,11 +307,14 @@
           <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
         </Decorator>
         <!-- The stroke holds where b. ended, not b.'s target: a block against a face is not pushed into it -->
-        <Script code="mi_window_s := 0.5"/>
-        <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
-          window_s="{mi_window_s}"
-          x="{meas_x}" y="{meas_y}" z="{meas_z}" tilt="{grip_tilt}"/>
-        <Script code="dz_x := meas_x + off_x; dz_y := meas_y + off_y"/>  <!-- + off: commands map to measures shifted by off -->
+        <!-- Course start keeps place + off: no face to hold, meas re-adds its in-air miss -->
+        <Sequence _skipIf="place_approach_x == place_x &amp;&amp; place_approach_y == place_y">
+          <Script code="mi_window_s := 0.5"/>
+          <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
+            window_s="{mi_window_s}"
+            x="{meas_x}" y="{meas_y}" z="{meas_z}" tilt="{grip_tilt}"/>
+          <Script code="dz_x := meas_x + off_x; dz_y := meas_y + off_y"/>  <!-- + off: commands map to measures shifted by off -->
+        </Sequence>
       </Sequence>
     </Sequence>
   </BehaviorTree>
