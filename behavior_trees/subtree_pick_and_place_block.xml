@@ -54,9 +54,10 @@
            grip_tilt the crooked-grip gate reads comes off it. No detection fails the task
            (303), as in the pick.
            The world model rewrites every TASK_MOVE pose as TCP * its stored grasp offset once
-           per marker_refresh_period_s (0.5 s) and stamps it last_seen, which is the stamp the
-           capture looks the TCP up at. So this recovers the offset the cancelled run captured
-           (vision-refined, if REFINE_GRASPED ran) without re-picking the block. -->
+           per marker_refresh_period_s (0.5 s), at the stamp of the snapshot it hands out and
+           not at last_seen, which is the stamp the capture looks the TCP up at for a carried
+           block. So this recovers the offset the cancelled run captured (vision-refined, if
+           REFINE_GRASPED ran) without re-picking the block. -->
       <Script code="mi_window_s := 2.7"/>
       <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
       <!-- The only caller that passes the measured block centre on: same 10 cm sanity clamp

@@ -75,7 +75,9 @@ def test_exactly_one_post_place_refine_and_no_second_status_write():
     its REFINE_BLOCK duplicated the pair at the end of the place.
     """
     release = _subtree("subtree_place_block.xml", "SubTreeRelease")
-    assert _ids(release).count("SubTreeRefineBlock") == 1
+    refines = [n for n in release.iter() if n.get("ID") == "SubTreeRefineBlock"]
+    # One mandatory, plus the second opinion the misplaced gate asks for below (340).
+    assert [n.get("_skipIf") for n in refines] == [None, "on_slot"]
     write = next(
         node for node in release.iter() if node.get("ID") == "WriteBlockPoseFromGripper"
     )
@@ -91,20 +93,33 @@ def test_exactly_one_post_place_refine_and_no_second_status_write():
 
 
 def test_a_misplaced_block_fails_the_goal_by_name():
-    """Refined against written: FK took the block for landed, the lidar moved it 15-31 cm."""
+    """Refined against written: FK took the block for landed, the lidar moved it 15-31 cm.
+
+    And it takes two refines, the smaller deciding: 333's wall5 aborted a wall whose course 0
+    was within 2.6 cm of truth because one REFINE_BLOCK lost a face and moved block_2 0.109 m
+    (340). Two that both read over the arm still fail, however far apart they are.
+    """
     release = _subtree("subtree_place_block.xml", "SubTreeRelease")
-    gate = list(next(release.iter("Sequence")))[-1]
+    body = list(next(release.iter("Sequence")))
+    gate = body[-1]
     assert gate.tag == "ScriptCondition"
     assert "misplaced" in gate.get("name").lower()
-    code = gate.get("code")
-    assert (
-        code.count("refine_x - written_x") == 2
-        and code.count("refine_y - written_y") == 2
-    )
-    assert "0.01" in code
-    # In z only *below* counts: the lidar reads a ground block 0.12-0.25 m too high
-    # (readiness A3), so a symmetric z test would fail every place on the machine.
-    assert "refine_z - written_z > -0.10" in code
+    assert gate.get("code") == "on_slot || on_slot_2"
+    arms = [
+        node.get("code")
+        for node in body
+        if node.tag == "Script" and "on_slot" in (node.get("code") or "")
+    ]
+    assert len(arms) == 2, "the same gate on each refine"
+    for code in arms:
+        assert (
+            code.count("refine_x - written_x") == 2
+            and code.count("refine_y - written_y") == 2
+        )
+        assert "0.01" in code
+        # In z only *below* counts: the lidar reads a ground block 0.12-0.25 m too high
+        # (readiness A3), so a symmetric z test would fail every place on the machine.
+        assert "refine_z - written_z > -0.10" in code
 
     write = next(
         node for node in release.iter() if node.get("ID") == "WriteBlockPoseFromGripper"

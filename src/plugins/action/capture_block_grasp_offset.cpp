@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "concrete_block_world_model_interfaces/msg/block.hpp"
 #include "tf2/exceptions.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Transform.h"
@@ -60,16 +61,21 @@ BT::NodeStatus CaptureBlockGraspOffset::on_completion(std::shared_ptr<ResponseT>
   }
   const geometry_msgs::msg::Pose world_block_pose = it->pose;
 
-  // The TCP at the block's own stamp: the world model writes a carried block's pose from the
-  // TCP at last_seen, and the latest TCP of a swinging hook moved the offset 6 cm. A stamp
-  // the TF buffer no longer covers fails (303): on 11-09 the latest-TCP fallback turned a
-  // 21 s old scene pose into the offset the whole place ran on.
+  // The TCP at the stamp the pose above was written at, so FK cancels out of the offset: the
+  // latest TCP of a swinging hook moved it 6 cm. A carried block's pose is rewritten from the
+  // TCP on the world model's marker timer, at the snapshot's own stamp, while last_seen stays
+  // on the last observation (292) - so TASK_MOVE pairs with the snapshot header and a block
+  // the detector measured with its last_seen. A stamp the TF buffer no longer covers fails
+  // (303): on 11-09 the latest-TCP fallback turned a 21 s old scene pose into the offset the
+  // whole place ran on.
   geometry_msgs::msg::TransformStamped world_tcp_tf;
   geometry_msgs::msg::TransformStamped k8_tcp_tf;
   try {
     k8_tcp_tf = tf_buffer_->lookupTransform(
       k8_frame_, gripper_frame_, tf2::TimePointZero, tf2::durationFromSec(1.0));
-    const rclcpp::Time seen(it->last_seen);
+    using Block = concrete_block_world_model_interfaces::msg::Block;
+    const rclcpp::Time seen(
+      it->task_status == Block::TASK_MOVE ? response->blocks.header.stamp : it->last_seen);
     world_tcp_tf = tf_buffer_->lookupTransform(
       world_frame_, gripper_frame_, seen.nanoseconds() > 0 ? tf2_ros::fromRclcpp(seen) :
       tf2::TimePointZero, tf2::durationFromSec(1.0));

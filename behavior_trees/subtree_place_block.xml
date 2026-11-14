@@ -457,8 +457,13 @@
            0.12-0.25 m too high (readiness A3) while a block let go in the air was written
            that much too high - so on the machine the bias blunts the z arm, and it is the
            sim's bias-free oracle it catches the drop in. -->
-      <ScriptCondition name="Block misplaced - the lidar moved it over 0.10 m from the release"
-        code="(refine_x - written_x) * (refine_x - written_x) + (refine_y - written_y) * (refine_y - written_y) &lt; 0.01 &amp;&amp; refine_z - written_z &gt; -0.10"/>
+      <Script code="on_slot := (refine_x - written_x) * (refine_x - written_x) + (refine_y - written_y) * (refine_y - written_y) &lt; 0.01 &amp;&amp; refine_z - written_z &gt; -0.10"/>
+      <!-- over the arm: one more refine, the smaller correction decides (a 2-face fit read 11 cm off a block placed to 2.6 cm) -->
+      <SubTree ID="SubTreeRefineBlock" _autoremap="true" _skipIf="on_slot"/>
+      <!-- skipped refine leaves refine_* at the first, so on_slot_2 == on_slot -->
+      <Script code="on_slot_2 := (refine_x - written_x) * (refine_x - written_x) + (refine_y - written_y) * (refine_y - written_y) &lt; 0.01 &amp;&amp; refine_z - written_z &gt; -0.10"/>
+      <ScriptCondition name="Block misplaced - two lidar refines both moved it over 0.10 m from the release"
+        code="on_slot || on_slot_2"/>
 
     </Sequence>
   </BehaviorTree>

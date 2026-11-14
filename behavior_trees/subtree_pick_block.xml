@@ -48,19 +48,24 @@
            lifted one came back 15 cm off, and the jaws closed on nothing. No detection, no
            descent (303): on the plan's stale pose the jaws closed 6 cm off centre and every
            later step read that grip back from FK (lab day 11-09). -->
-      <SubTree ID="SubTreeRefineBlock" _autoremap="true"/>
-      <!-- max_correction_m is the node's own default, spelled out because it is what a lab day
-           loosens (332): above it the detection is not applied but fails the pick, the
-           association behind it reaching 0.35 m. No yaw bound here - the pose this node is
-           given carries the *tool* yaw (block yaw + the plan's gripper_yaw_offset_deg 90,
-           wall_plan_server.py:1069), so a yaw residual against it is 90 deg on every block. -->
-      <EvaluatePickupResidual name="Pickup residual too large - look at the block"
-        service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
-        block_id="{grasp_object_contains}" expected_pickup_pose="{target_block_pose_coarse}"
-        planned_pickup_x="{pickup_x}" planned_pickup_y="{pickup_y}"
-        translation_tolerance_m="0.04"
-        max_correction_m="0.15"
-        corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"/>
+      <!-- second look before the residual gate fails the pick: a 2-face fit read 18-25 cm off -->
+      <Decorator ID="RetryUntilSuccessful" num_attempts="2">
+        <Sequence>
+          <SubTree ID="SubTreeRefineBlock" _autoremap="true"/>
+          <!-- max_correction_m is the node's own default, spelled out because it is what a lab day
+               loosens (332): above it the detection is not applied but fails the pick, the
+               association behind it reaching 0.35 m. No yaw bound here - the pose this node is
+               given carries the *tool* yaw (block yaw + the plan's gripper_yaw_offset_deg 90,
+               wall_plan_server.py:1069), so a yaw residual against it is 90 deg on every block. -->
+          <EvaluatePickupResidual name="Pickup residual too large - look at the block"
+            service_name="/world_model_node/get_coarse_blocks" server_timeout="5000"
+            block_id="{grasp_object_contains}" expected_pickup_pose="{target_block_pose_coarse}"
+            planned_pickup_x="{pickup_x}" planned_pickup_y="{pickup_y}"
+            translation_tolerance_m="0.04"
+            max_correction_m="0.15"
+            corrected_pickup_x="{corrected_pickup_x}" corrected_pickup_y="{corrected_pickup_y}"/>
+        </Sequence>
+      </Decorator>
       <Script code="pickup_x := corrected_pickup_x; pickup_y := corrected_pickup_y"/>
 
       <SubTree ID="SubTreePickFromHover" _autoremap="true"/>
