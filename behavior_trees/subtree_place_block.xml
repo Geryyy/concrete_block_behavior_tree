@@ -304,8 +304,11 @@
       <Sequence _skipIf="load_off">
         <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
         <Script code="ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
+        <!-- Twice the pace for b. and its re-flies, the run's slow_down untouched: a 10 cm leg in 2 s
+             peaks at ~15 mrad/s of slew at 6 m, inside the valve deadband (12-38 mrad/s) -->
+        <Script code="slow_down_b := slow_down * 0.5"/>
         <Decorator ID="RetryUntilSuccessful" num_attempts="2">
-          <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+          <SubTree ID="SubTreeDescendTo" _autoremap="true" slow_down="{slow_down_b}"/>
         </Decorator>
         <!-- The stroke holds where b. ended, not b.'s target: a block against a face is not pushed into it -->
         <!-- Course start keeps place + off: no face to hold, meas re-adds its in-air miss -->
@@ -328,7 +331,7 @@
                 <Script code="off_b_x := off_b_x &gt; 0.03 ? 0.03 : (off_b_x &lt; -0.03 ? -0.03 : off_b_x); off_b_y := off_b_y &gt; 0.03 ? 0.03 : (off_b_y &lt; -0.03 ? -0.03 : off_b_y)"/>
                 <Script code="dz_x := place_x + off_x + off_b_x; dz_y := place_y + off_y + off_b_y; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
                 <Decorator ID="RetryUntilSuccessful" num_attempts="2">
-                  <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+                  <SubTree ID="SubTreeDescendTo" _autoremap="true" slow_down="{slow_down_b}"/>
                 </Decorator>
                 <Script code="refly_done := true" _skipIf="!load_off"/>
                 <ScriptCondition code="!load_off"/>
