@@ -80,12 +80,17 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   }
 
   geometry_msgs::msg::PoseStamped pickup, pickup_approach, target, reference, approach;
+  geometry_msgs::msg::PoseStamped approach_low;
+  // x/y at block height: K0 tilts with the truck, so the carry-height point lands 7-9 cm off
+  geometry_msgs::msg::PoseStamped approach_low_in = response->approach_pose;
+  approach_low_in.pose.position.z = response->target_pose.pose.position.z;
   if (response->has_task) {
     if (!to_planning(response->pickup_pose, pickup, "pickup_pose") ||
       !to_planning(response->pickup_approach_pose, pickup_approach, "pickup_approach_pose") ||
       !to_planning(response->target_pose, target, "target_pose") ||
       !to_planning(response->reference_pose, reference, "reference_pose") ||
-      !to_planning(response->approach_pose, approach, "approach_pose"))
+      !to_planning(response->approach_pose, approach, "approach_pose") ||
+      !to_planning(approach_low_in, approach_low, "approach_pose at block height"))
     {
       return BT::NodeStatus::FAILURE;
     }
@@ -95,6 +100,7 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
     target = response->target_pose;
     reference = response->reference_pose;
     approach = response->approach_pose;
+    approach_low = approach_low_in;
   }
 
   setOutput("task_id", response->task_id);
@@ -103,6 +109,8 @@ BT::NodeStatus GetNextAssemblyTaskService::on_completion(std::shared_ptr<Respons
   setOutput("target_block_pose_coarse", pickup);
   setOutput("target_block_pose_precise", target);
   setOutput("reference_block_pose_precise", reference);
+  approach.pose.position.x = approach_low.pose.position.x;  // one approach x/y for every reader
+  approach.pose.position.y = approach_low.pose.position.y;
   setOutput("placement_approach_pose", approach);
 
   // Decomposed scalar ports for epsilon_crane BT nodes (planning frame).

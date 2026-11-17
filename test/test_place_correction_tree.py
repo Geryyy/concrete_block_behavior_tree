@@ -114,7 +114,10 @@ def test_the_correction_averages_its_passes():
     body = next(_subtree("SubTreePlaceApproach").iter("Repeat"))
     assert [
         c for c in (e.get("code") or "" for e in body.iter()) if "corr_done :=" in c
-    ] == ["corr_done := miss_x * miss_x + miss_y * miss_y < 0.0009", "corr_done := true"]
+    ] == [
+        "corr_done := miss_x * miss_x + miss_y * miss_y < 0.0009",
+        "corr_done := true",
+    ]
 
 
 def _ancestors(subtree):
@@ -351,6 +354,7 @@ def test_the_stroke_holds_the_measured_block_only_beside_a_neighbour():
         )
     )
     assert hold.get("_skipIf") == (
-        "place_approach_x == place_x && place_approach_y == place_y"
+        "(place_approach_x - place_x) * (place_approach_x - place_x)"
+        " + (place_approach_y - place_y) * (place_approach_y - place_y) < 0.0001"
     )
     assert "MeasureBlockFromGripper" in [e.get("ID") for e in hold]

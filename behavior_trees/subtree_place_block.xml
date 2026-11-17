@@ -309,7 +309,7 @@
         </Decorator>
         <!-- The stroke holds where b. ended, not b.'s target: a block against a face is not pushed into it -->
         <!-- Course start keeps place + off: no face to hold, meas re-adds its in-air miss -->
-        <Sequence _skipIf="place_approach_x == place_x &amp;&amp; place_approach_y == place_y">
+        <Sequence _skipIf="(place_approach_x - place_x) * (place_approach_x - place_x) + (place_approach_y - place_y) * (place_approach_y - place_y) &lt; 0.0001">  <!-- < 1 cm: course start, TF noise -->
           <Script code="mi_window_s := 0.5"/>
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
             window_s="{mi_window_s}"
