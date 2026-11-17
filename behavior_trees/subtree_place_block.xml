@@ -17,26 +17,17 @@
       <!-- A waypoint descent that stopped short (a push, an MPC escalation) goes back up the
            collision-checked A2B move and comes down again: the grip descents are not
            collision-checked, and a 55 cm diagonal correction beside a placed block knocked
-           two off the wall. -->
-      <!-- A failed approach lifts straight up first: a push swung block_4 onto block_3, and
-           the A2B planner refuses a start 1 cm from a block. -->
+           two off the wall. No lift before the retry: a settle timeout at the hover sent the
+           block 1.5 m up for nothing; a start the planner refuses fails the goal to the operator. -->
       <IfThenElse>
         <ScriptCondition code="place_vertical"/>
         <SubTree ID="SubTreePlaceSimple" _autoremap="true"/>
         <Sequence>
           <Decorator ID="RetryUntilSuccessful" num_attempts="2">
-            <Fallback>
-              <Sequence>
-                <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-                <SubTree ID="SubTreePlaceApproach" _autoremap="true"/>
-              </Sequence>
-              <ForceFailure>
-                <Sequence>
-                  <SetBlackboard output_key="lf_carries" value="true"/>
-                  <SubTree ID="SubTreeLift" _autoremap="true"/>
-                </Sequence>
-              </ForceFailure>
-            </Fallback>
+            <Sequence>
+              <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
+              <SubTree ID="SubTreePlaceApproach" _autoremap="true"/>
+            </Sequence>
           </Decorator>
           <SubTree ID="SubTreePlaceFinish" _autoremap="true"/>
         </Sequence>
@@ -52,60 +43,52 @@
   <BehaviorTree ID="SubTreePlaceSimple">
     <Sequence name="place_simple">
       <Decorator ID="RetryUntilSuccessful" num_attempts="2">
-        <Fallback>
-          <Sequence>
-            <SetBlackboard output_key="mv_x" value="{place_x}"/>
-            <SetBlackboard output_key="mv_y" value="{place_y}"/>
-            <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
-            <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
-            <SetBlackboard output_key="mv_carries" value="true"/>
-            <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-            <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
-            <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, MPC verdict is 0.02 -->
-            <SetBlackboard output_key="ex_hold_s" value="2.7"/>
-            <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
-            <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 1.10"/>  <!-- 0.80 + 0.30 the loaded boom ends low -->
-            <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
-            <SetBlackboard output_key="dz_carries" value="true"/>
-            <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-            <!-- Measure, shift out a miss of 3 cm or more, up to 3 times. Repeat has no break:
-                 convergence fails the body, and corr_done tells the Fallback it was that.
-                 Skipped on early contact: the block is already down, and SubTreePlaceMiss
-                 would read it 1.1 m under the waypoint and fail on the height. -->
-            <Fallback _skipIf="load_off">
-              <Repeat num_cycles="3">
-                <Sequence>
-                  <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
-                  <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0009"/>
-                  <ScriptCondition code="!corr_done"/>
-                  <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
-                  <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
-                  <Script code="slow_down_b := slow_down * 0.5"/>  <!-- a short shift at full pace stalls in the slew deadband -->
-                  <SubTree ID="SubTreeDescendTo" _autoremap="true" slow_down="{slow_down_b}"/>
-                  <!-- Early contact on a corrective descent leaves the loop the same way
-                       convergence does: corr_done tells the Fallback it was benign. -->
-                  <Script code="corr_done := true" _skipIf="!load_off"/>
-                  <ScriptCondition code="!load_off"/>
-                </Sequence>
-              </Repeat>
-              <ScriptCondition code="corr_done"/>
-            </Fallback>
-            <!-- The third shift went down unmeasured: within 5 cm or the approach fails. -->
-            <Fallback _skipIf="load_off">
-              <ScriptCondition code="corr_done"/>
+        <Sequence>
+          <SetBlackboard output_key="mv_x" value="{place_x}"/>
+          <SetBlackboard output_key="mv_y" value="{place_y}"/>
+          <SetBlackboard output_key="mv_z" value="{place_approach_z}"/>
+          <SetBlackboard output_key="mv_yaw" value="{place_yaw}"/>
+          <SetBlackboard output_key="mv_carries" value="true"/>
+          <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
+          <SetBlackboard output_key="ex_goal_tolerance" value="0.05"/>
+          <SetBlackboard output_key="ex_sway_bound" value="0.05"/>  <!-- rad/s, MPC verdict is 0.02 -->
+          <SetBlackboard output_key="ex_hold_s" value="2.7"/>
+          <Script code="off_x := 0.0; off_y := 0.0; corr_done := false; place_attempt := place_attempt + 1; place_pass := 0; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
+          <Script code="dz_x := place_x; dz_y := place_y; dz_z := place_z + 1.10"/>  <!-- 0.80 + 0.30 the loaded boom ends low -->
+          <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
+          <SetBlackboard output_key="dz_carries" value="true"/>
+          <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+          <!-- Measure, shift out a miss of 3 cm or more, up to 3 times. Repeat has no break:
+               convergence fails the body, and corr_done tells the Fallback it was that.
+               Skipped on early contact: the block is already down, and SubTreePlaceMiss
+               would read it 1.1 m under the waypoint and fail on the height. -->
+          <Fallback _skipIf="load_off">
+            <Repeat num_cycles="3">
               <Sequence>
                 <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
-                <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
+                <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0009"/>
+                <ScriptCondition code="!corr_done"/>
+                <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
+                <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
+                <Script code="slow_down_b := slow_down * 0.5"/>  <!-- a short shift at full pace stalls in the slew deadband -->
+                <SubTree ID="SubTreeDescendTo" _autoremap="true" slow_down="{slow_down_b}"/>
+                <!-- Early contact on a corrective descent leaves the loop the same way
+                     convergence does: corr_done tells the Fallback it was benign. -->
+                <Script code="corr_done := true" _skipIf="!load_off"/>
+                <ScriptCondition code="!load_off"/>
               </Sequence>
-            </Fallback>
-          </Sequence>
-          <ForceFailure>
+            </Repeat>
+            <ScriptCondition code="corr_done"/>
+          </Fallback>
+          <!-- The third shift went down unmeasured: within 5 cm or the approach fails. -->
+          <Fallback _skipIf="load_off">
+            <ScriptCondition code="corr_done"/>
             <Sequence>
-              <SetBlackboard output_key="lf_carries" value="true"/>
-              <SubTree ID="SubTreeLift" _autoremap="true"/>
+              <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
+              <ScriptCondition code="miss_x * miss_x + miss_y * miss_y &lt; 0.0025"/>
             </Sequence>
-          </ForceFailure>
-        </Fallback>
+          </Fallback>
+        </Sequence>
       </Decorator>
       <IfThenElse>
         <ScriptCondition code="load_off"/>
