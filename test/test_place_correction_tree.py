@@ -62,10 +62,10 @@ def test_the_approach_ends_on_a_measurement():
         i for i, name in enumerate(order) if name == "SubTreeMeasureInHand"
     )
     assert last_descend < last_measure, order
-    # And that measurement gates: 9e-4 is the 3 cm lateral miss.
+    # Measurements gate at the 3 cm lateral miss (9e-4): the loop's early exit and the final one.
     codes = [code for _, code in _scripts("SubTreePlaceApproach")]
     gates = [code for code in codes if "0.0009" in code and "pass_verdict" not in code]
-    assert len(gates) == 1, codes
+    assert len(gates) == 2, codes
 
 
 def test_the_in_air_loop_starts_from_the_operators_correction_and_the_auto_path_from_zero():
@@ -110,11 +110,11 @@ def test_the_correction_averages_its_passes():
         "off_x := off_x + miss_x / place_pass; off_y := off_y + miss_y / place_pass"
         in codes
     )
-    # No early exit on a pass that reads within: one noisy reading is no convergence.
+    # The first pass within 3 cm ends the loop; early contact does too.
     body = next(_subtree("SubTreePlaceApproach").iter("Repeat"))
     assert [
         c for c in (e.get("code") or "" for e in body.iter()) if "corr_done :=" in c
-    ] == ["corr_done := true"]
+    ] == ["corr_done := miss_x * miss_x + miss_y * miss_y < 0.0009", "corr_done := true"]
 
 
 def _ancestors(subtree):

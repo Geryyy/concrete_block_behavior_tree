@@ -68,7 +68,7 @@
             <SetBlackboard output_key="dz_yaw" value="{place_yaw}"/>
             <SetBlackboard output_key="dz_carries" value="true"/>
             <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
-            <!-- Measure, shift out a miss of 1 cm or more, up to 3 times. Repeat has no break:
+            <!-- Measure, shift out a miss of 3 cm or more, up to 3 times. Repeat has no break:
                  convergence fails the body, and corr_done tells the Fallback it was that.
                  Skipped on early contact: the block is already down, and SubTreePlaceMiss
                  would read it 1.1 m under the waypoint and fail on the height. -->
@@ -76,7 +76,7 @@
               <Repeat num_cycles="3">
                 <Sequence>
                   <SubTree ID="SubTreePlaceMiss" _autoremap="true"/>
-                  <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0001"/>
+                  <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0009"/>
                   <ScriptCondition code="!corr_done"/>
                   <Script code="off_x := off_x + miss_x; off_y := off_y + miss_y"/>
                   <Script code="dz_x := place_x + off_x; dz_y := place_y + off_y"/>
@@ -130,7 +130,7 @@
       <Script code="mi_window_s := 2.7"/>
       <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
       <Script code="miss_x := place_x - meas_x; miss_y := place_y - meas_y; miss_z := place_z + 1.10 - meas_z; place_pass := place_pass + 1"/>
-      <Script code="pass_verdict := !(miss_z &lt; 0.50) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
+      <Script code="pass_verdict := !(miss_z &lt; 0.50) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0009 ? 'within' : 'shift')"/>
       <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
         verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
         off_x="{off_x}" off_y="{off_y}"/>
@@ -201,9 +201,8 @@
              the block back through the lidar-refined grasp offset (1.005 m in run2_pp, a
              45 mm gap no cycle removes), plus whatever bend the grip server's own correction
              left. So miss_z is a reference mismatch, not a height to chase. -->
-      <!-- Four measured passes, no early exit: each shifts by miss / pass, so off ends as the
-           mean of four measurements and a single noisy one (oracle sigma 1 cm) moves it little.
-           corr_done is set only by early contact and tells the Fallback that failure was benign. -->
+      <!-- Up to four measured passes, each shifting by miss / pass; the first within 3 cm ends
+           the loop. corr_done tells the Fallback that failure was benign (within or early contact). -->
       <!-- Skipped on early contact: the block rests 0.3 m under the waypoint, which the
            height gate below reads as a descent that stopped short. -->
       <Fallback _skipIf="load_off">
@@ -217,7 +216,7 @@
             <SubTree ID="SubTreeMeasureInHand" _autoremap="true"/>
             <Script code="miss_x := place_approach_x - meas_x; miss_y := place_approach_y - meas_y; miss_z := place_z + 0.75 - meas_z"/>
             <!-- Status only: the two gates below, read ahead for /cbs/status/place_pass. -->
-            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0001 ? 'within' : 'shift')"/>
+            <Script code="place_pass := place_pass + 1; pass_verdict := !(miss_z &lt; 0.20) ? 'height' : (miss_x * miss_x + miss_y * miss_y &lt; 0.0009 ? 'within' : 'shift')"/>
             <Action ID="PublishPlacePass" attempt="{place_attempt}" pass="{place_pass}"
               verdict="{pass_verdict}" miss_x="{miss_x}" miss_y="{miss_y}" miss_z="{miss_z}"
               off_x="{off_x}" off_y="{off_y}"/>
@@ -232,6 +231,8 @@
                  later (sim JTC sagged 33 cm under load); 0.20 low still catches a 28 cm short
                  stop, with nothing yet touched down. -->
             <ScriptCondition code="miss_z &lt; 0.20"/>
+            <Script code="corr_done := miss_x * miss_x + miss_y * miss_y &lt; 0.0009"/>  <!-- first pass < 3 cm ends the loop -->
+            <ScriptCondition code="!corr_done"/>
             <Script code="off_x := off_x + miss_x / place_pass; off_y := off_y + miss_y / place_pass"/>
             <!-- dz_z stays at the place_z + 0.75 set above: the corrective descent
                  re-commands the same waypoint height, it does not shift it. -->

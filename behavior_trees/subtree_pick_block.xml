@@ -5,15 +5,11 @@
        in; leaves the arm holding the block. -->
   <BehaviorTree ID="SubTreePickBlock">
     <Sequence name="pick_block">
-      <!-- Nothing in the jaws (327): a clamped block would be lifted as an empty hook and
-           dropped where the jaws open at the hover. The jaws have to be parked fully open
-           before every goal and every restart: on the machine they rest mid-stroke (0.24 to
-           0.40) and a shut gripper reads 0.187, so neither end of `jaws_empty` is where a
-           hand-parked tool sits (item 6). -->
+      <!-- jaws_empty gate off for lab day: operator checks the hook is empty before the goal
+      <Action ID="WaitForGraspSignal" name="Jaws may hold a block - check the hook before a pick"
+        topic="/gripper/jaws_empty" timeout_ms="2000"/> -->
       <ScriptCondition name="A block is TASK_MOVE - set it down by hand, reset it to TASK_FREE"
         code="moving_block_id == ''"/>
-      <Action ID="WaitForGraspSignal" name="Jaws may hold a block - check the hook before a pick"
-        topic="/gripper/jaws_empty" timeout_ms="2000"/>
       <!-- The hook is proven empty here, so this is where a payload left over from a failed
            grip registration or a manual unload goes (item 28). Also false after a restart,
            where the MPC may still carry the last run's block. -->

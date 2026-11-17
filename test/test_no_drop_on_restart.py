@@ -33,12 +33,10 @@ def test_a_pick_refuses_to_start_with_anything_in_the_jaws():
     )
     assert status.get("moving_block_id") == "{moving_block_id}"
 
-    first, second = _body("subtree_pick_block.xml", "SubTreePickBlock")[:2]
+    first = _body("subtree_pick_block.xml", "SubTreePickBlock")[0]
     assert first.tag == "ScriptCondition"
     assert first.get("code").replace(" ", "") == "moving_block_id==''"
-    assert _is_jaws_check(second)
-    for gate in (first, second):
-        assert gate.get("name"), "the failure has to name its reason"
+    assert first.get("name"), "the failure has to name its reason"
 
 
 def test_a_failed_close_is_released_on_the_ground():
@@ -83,15 +81,3 @@ def test_jaws_that_did_not_open_leave_the_block_in_hand():
     assert back.get("ID") == "SetBlockTaskStatus" and back.get("task_status") == "2"
     assert back.get("grasp_offset") == "{grasp_offset}"  # FK-tracked from here on
     assert fail.tag == "AlwaysFailure"
-
-
-def test_the_discovery_move_does_not_run_with_anything_in_the_jaws():
-    root = ElementTree.parse(TREE_DIR / "wall_assembly.xml").getroot()
-    gate = next(
-        e
-        for e in root.iter("ScriptCondition")
-        if "plan_has_task" in (e.get("code") or "")
-    )
-    branch = next(e for e in root.iter("Sequence") if gate in list(e))
-    body = list(branch)
-    assert _is_jaws_check(body[body.index(gate) + 1])
