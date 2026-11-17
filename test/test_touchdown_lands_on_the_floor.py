@@ -34,6 +34,8 @@ def test_the_entry_comes_down_beside_the_slot_and_moves_in_low():
         "dz_x := place_approach_x + off_x; dz_y := place_approach_y + off_y; "
         "dz_z := place_z + 0.35",
         "dz_x := place_x + off_x; dz_y := place_y + off_y",
+        "dz_x := place_x + off_x + off_b_x; dz_y := place_y + off_y + off_b_y; "
+        "ex_until_landed := false; ex_watch_landed := true; load_off := false",
         "dz_x := meas_x + off_x; dz_y := meas_y + off_y",
     ], moves
 

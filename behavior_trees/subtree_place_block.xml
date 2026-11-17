@@ -310,6 +310,32 @@
         <!-- The stroke holds where b. ended, not b.'s target: a block against a face is not pushed into it -->
         <!-- Course start keeps place + off: no face to hold, meas re-adds its in-air miss -->
         <Sequence _skipIf="(place_approach_x - place_x) * (place_approach_x - place_x) + (place_approach_y - place_y) * (place_approach_y - place_y) &lt; 0.0001">  <!-- < 1 cm: course start, TF noise -->
+          <!-- Re-fly b while the block is > 2 cm short on the open side: small slew moves deliver
+               about a third of the command. off_b integrates 0.7 x the FK miss, clamped to 3 cm per
+               axis, so a target inside the real face cannot wind the aim up against it -->
+          <Script code="off_b_x := 0.0; off_b_y := 0.0; refly_done := false"/>
+          <Fallback>
+            <Repeat num_cycles="2">
+              <Sequence>
+                <Script code="mi_window_s := 2.7"/>  <!-- one pendulum period -->
+                <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
+                  window_s="{mi_window_s}"
+                  x="{meas_x}" y="{meas_y}" z="{meas_z}" tilt="{grip_tilt}"/>
+                <Script code="b_short := (place_x - meas_x) * (place_x - place_approach_x) + (place_y - meas_y) * (place_y - place_approach_y); b_len2 := (place_x - place_approach_x) * (place_x - place_approach_x) + (place_y - place_approach_y) * (place_y - place_approach_y)"/>
+                <Script code="refly_done := !(b_short &gt; 0.0 &amp;&amp; b_short * b_short &gt; 0.0004 * b_len2)"/>  <!-- 0.02 m along the entry -->
+                <ScriptCondition code="!refly_done"/>
+                <Script code="off_b_x := off_b_x + 0.7 * (place_x - meas_x); off_b_y := off_b_y + 0.7 * (place_y - meas_y)"/>
+                <Script code="off_b_x := off_b_x &gt; 0.03 ? 0.03 : (off_b_x &lt; -0.03 ? -0.03 : off_b_x); off_b_y := off_b_y &gt; 0.03 ? 0.03 : (off_b_y &lt; -0.03 ? -0.03 : off_b_y)"/>
+                <Script code="dz_x := place_x + off_x + off_b_x; dz_y := place_y + off_y + off_b_y; ex_until_landed := false; ex_watch_landed := true; load_off := false"/>
+                <Decorator ID="RetryUntilSuccessful" num_attempts="2">
+                  <SubTree ID="SubTreeDescendTo" _autoremap="true"/>
+                </Decorator>
+                <Script code="refly_done := true" _skipIf="!load_off"/>
+                <ScriptCondition code="!load_off"/>
+              </Sequence>
+            </Repeat>
+            <ScriptCondition code="refly_done"/>  <!-- converged or contact; 2 flown: the hold measures it -->
+          </Fallback>
           <Script code="mi_window_s := 0.5"/>
           <Action ID="MeasureBlockFromGripper" grasp_offset="{grasp_offset}"
             window_s="{mi_window_s}"
