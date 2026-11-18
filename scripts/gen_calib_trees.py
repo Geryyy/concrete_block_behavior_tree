@@ -58,13 +58,15 @@ a = p.parse_args()
 args = f"centre={a.centre} sweep={a.sweep} park_r={a.park_r} park_z={a.park_z} clear={a.clear}"
 lo, hi = a.centre - a.sweep, a.centre + a.sweep
 
-# A: 5 deg stops out and back, 30 s each (the 2 s and 30 s scans come from the same dwell)
-n = int(round(2 * a.sweep / 5))
-out = [lo + 5 * i for i in range(n + 1)]
+# A: 10 deg stops out and back, 5 s dwell; 20 s at every third angle (both passes) for the
+# direction term, which fades in ~30 s
+n = int(round(2 * a.sweep / 10))
+out = [lo + 10 * i for i in range(n + 1)]
 bear = out + out[-2::-1]
 write(a.out / "calib_phase_a.xml", "CalibPhaseA", "false",
-      "Static slew sweep, empty hook parked high and close; 30 s dwell per stop.", args,
-      [stop(f"A{i:02d}_{b:+.0f}deg", a.park_r, b, a.park_z, b, 30000) for i, b in enumerate(bear)])
+      "Static slew sweep, empty hook parked high and close; 5 s dwell, 20 s every third angle.",
+      args, [stop(f"A{i:02d}_{b:+.0f}deg", a.park_r, b, a.park_z, b,
+                  20000 if out.index(b) % 3 == 1 else 5000) for i, b in enumerate(bear)])
 
 # C: continuous slews end to end; slow_down stretches time (1 = A2B full speed), 2 passes each way
 st = [stop("C_start", a.park_r, lo, a.park_z, lo, 3000)]
