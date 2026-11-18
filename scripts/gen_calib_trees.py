@@ -8,6 +8,10 @@ from pathlib import Path
 
 GROUND_Z = -1.07  # K0, lidar 11-18
 TCP_TO_BLOCK_BOTTOM = 0.98 + 0.30  # lidar: centre 0.98 below TCP; + half block height
+TIP_TO_TCP = 0.9935  # mv_z is the K5 tip, planner adds the hanging tip->TCP drop
+K8_TO_BLOCK_CENTRE = (
+    0.98 + 0.049
+)  # TCP 0.049 below K8; nan centres the block on K8 -> refused
 
 HEAD = """<?xml version="1.0"?>
 <root main_tree_to_execute="{tid}" BTCPP_format="4">
@@ -17,11 +21,13 @@ HEAD = """<?xml version="1.0"?>
       <Script code="slow_down := 1.0; mv_carries := '{carries}'"/>
       <SetBlackboard output_key="s_log_8_x" value="0.0"/>
       <SetBlackboard output_key="s_log_8_y" value="0.0"/>
-      <SetBlackboard output_key="s_log_8_z" value="nan"/>
+      <SetBlackboard output_key="s_log_8_z" value="{com_z}"/>
       <SetBlackboard output_key="payload_mass" value="880.0"/>
       <SetBlackboard output_key="log_shape_text" value="{shape}"/>
 """
-INC = '  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/{}.xml"/>\n'
+INC = (
+    '  <include ros_pkg="concrete_block_behavior_tree" path="behavior_trees/{}.xml"/>\n'
+)
 SHAPE = "radius_top: 0.541, radius_bottom: 0.541, length: 0.60"  # as operator_guided_single_block
 TAIL = """    </Sequence>
   </BehaviorTree>
@@ -31,29 +37,60 @@ TAIL = """    </Sequence>
 
 def stop(name, r, bearing, z, yaw, dwell_ms, slow=None):
     b = radians(bearing)
-    code = f"mv_x := {r * cos(b):.3f}; mv_y := {r * sin(b):.3f}; mv_z := {z:.3f}; " \
-           f"mv_yaw := {radians(yaw):.4f}" + (f"; slow_down := {slow:.1f}" if slow else "")
-    return (f'      <Sequence name="{name}">\n        <Script code="{code}"/>\n'
-            f'        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>\n'
-            + (f'        <Sleep msec="{dwell_ms}"/>\n' if dwell_ms else '') + '      </Sequence>\n')
+    code = (
+        f"mv_x := {r * cos(b):.3f}; mv_y := {r * sin(b):.3f}; mv_z := {z + TIP_TO_TCP:.3f}; "
+        f"mv_yaw := {radians(yaw):.4f}" + (f"; slow_down := {slow:.1f}" if slow else "")
+    )
+    return (
+        f'      <Sequence name="{name}">\n        <Script code="{code}"/>\n'
+        f'        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>\n'
+        + (f'        <Sleep msec="{dwell_ms}"/>\n' if dwell_ms else "")
+        + "      </Sequence>\n"
+    )
 
 
 def write(path, tid, carries, doc, args, stops):
-    inc = "".join(INC.format(f) for f in ("cbs_subtree_a2b_movement", "subtree_move_above"))
-    head = HEAD.format(tid=tid, carries=carries, doc=doc, args=args, includes=inc, shape=SHAPE)
+    com_z = K8_TO_BLOCK_CENTRE if carries == "true" else "nan"
+    inc = "".join(
+        INC.format(f) for f in ("cbs_subtree_a2b_movement", "subtree_move_above")
+    )
+    head = HEAD.format(
+        tid=tid,
+        carries=carries,
+        doc=doc,
+        args=args,
+        includes=inc,
+        shape=SHAPE,
+        com_z=com_z,
+    )
     path.write_text(head + "".join(stops) + TAIL)
     print(path, len(stops), "stops")
 
 
 p = argparse.ArgumentParser()
-p.add_argument("--centre", type=float, default=-4.0, help="scene centre bearing, deg (q1)")
+p.add_argument(
+    "--centre", type=float, default=-4.0, help="scene centre bearing, deg (q1)"
+)
 p.add_argument("--sweep", type=float, default=45.0, help="half sweep, deg")
-p.add_argument("--park-r", type=float, default=3.5, help="A/C TCP radius, m: gripper close")
-p.add_argument("--park-z", type=float, default=2.5, help="A/C TCP z in K0, m: gripper high")
-p.add_argument("--clear", type=float, default=-75.0, help="B bearing, deg: no targets there")
-p.add_argument("--survey", type=float, nargs=3, default=[8.5, -20.0, 2.5],
-               help="store viewpoint: TCP r m, bearing deg, K0 z; beyond the store, off hedge")
-p.add_argument("--out", type=Path, default=Path(__file__).resolve().parents[1] / "behavior_trees")
+p.add_argument(
+    "--park-r", type=float, default=3.5, help="A/C TCP radius, m: gripper close"
+)
+p.add_argument(
+    "--park-z", type=float, default=2.5, help="A/C TCP z in K0, m: gripper high"
+)
+p.add_argument(
+    "--clear", type=float, default=-35.0, help="B bearing, deg: hedge at y -5.3 m K0"
+)
+p.add_argument(
+    "--survey",
+    type=float,
+    nargs=3,
+    default=[8.5, -20.0, 2.5],
+    help="store viewpoint: TCP r m, bearing deg, K0 z; beyond the store, off hedge",
+)
+p.add_argument(
+    "--out", type=Path, default=Path(__file__).resolve().parents[1] / "behavior_trees"
+)
 a = p.parse_args()
 args = f"centre={a.centre} sweep={a.sweep} park_r={a.park_r} park_z={a.park_z} clear={a.clear}"
 lo, hi = a.centre - a.sweep, a.centre + a.sweep
@@ -63,40 +100,83 @@ lo, hi = a.centre - a.sweep, a.centre + a.sweep
 n = int(round(2 * a.sweep / 10))
 out = [lo + 10 * i for i in range(n + 1)]
 bear = out + out[-2::-1]
-write(a.out / "calib_phase_a.xml", "CalibPhaseA", "false",
-      "Static slew sweep, empty hook parked high and close; 5 s dwell, 20 s every third angle.",
-      args, [stop(f"A{i:02d}_{b:+.0f}deg", a.park_r, b, a.park_z, b,
-                  20000 if out.index(b) % 3 == 1 else 5000) for i, b in enumerate(bear)])
+write(
+    a.out / "calib_phase_a.xml",
+    "CalibPhaseA",
+    "false",
+    "Static slew sweep, empty hook parked high and close; 5 s dwell, 20 s every third angle.",
+    args,
+    [
+        stop(
+            f"A{i:02d}_{b:+.0f}deg",
+            a.park_r,
+            b,
+            a.park_z,
+            b,
+            20000 if out.index(b) % 3 == 1 else 5000,
+        )
+        for i, b in enumerate(bear)
+    ],
+)
 
 # C: continuous slews end to end; slow_down stretches time (1 = A2B full speed), 2 passes each way
 st = [stop("C_start", a.park_r, lo, a.park_z, lo, 3000)]
 for slow in (4.0, 2.0, 1.0):
     for rep in range(2):
         for nm, b in (("out", hi), ("back", lo)):
-            st.append(stop(f"C_slow{slow:.0f}_{rep}_{nm}", a.park_r, b, a.park_z, b, 3000, slow))
-write(a.out / "calib_phase_c.xml", "CalibPhaseC", "false",
-      "Dynamic slews through the scene at three speeds, both directions. Same parking as A.",
-      args, st)
+            st.append(
+                stop(
+                    f"C_slow{slow:.0f}_{rep}_{nm}", a.park_r, b, a.park_z, b, 3000, slow
+                )
+            )
+write(
+    a.out / "calib_phase_c.xml",
+    "CalibPhaseC",
+    "false",
+    "Dynamic slews through the scene at three speeds, both directions. Same parking as A.",
+    args,
+    st,
+)
 
 # B: block already in the jaws. Range x block-bottom grid, rotator -60/0/+60 in snake order
 # (OptimizeTargetAngle flips a yaw > 90 deg from the current one by pi). Grid corners only:
 # range and height spread carry the yaw and height. 5 s after settle.
 st, k = [], 0
 for r in (4.0, 7.0):
-    for bottom in (0.5, 2.0):
+    for bottom in (1.5, 3.0):
         rots = (-60, 0, 60) if k % 2 == 0 else (60, 0, -60)
         for rot in rots:
-            st.append(stop(f"B_r{r:.1f}_h{bottom:.1f}_rot{rot:+d}", r, a.clear,
-                           GROUND_Z + bottom + TCP_TO_BLOCK_BOTTOM, a.clear + rot, 5000))
+            st.append(
+                stop(
+                    f"B_r{r:.1f}_h{bottom:.1f}_rot{rot:+d}",
+                    r,
+                    a.clear,
+                    GROUND_Z + bottom + TCP_TO_BLOCK_BOTTOM,
+                    a.clear + rot,
+                    5000,
+                )
+            )
         k += 1
-write(a.out / "calib_phase_b.xml", "CalibPhaseB", "true",
-      "Block in the jaws before start. Range x height grid in a clear sector, rotator -60/0/+60.",
-      args, st)
+write(
+    a.out / "calib_phase_b.xml",
+    "CalibPhaseB",
+    "true",
+    "Block in the jaws before start. Range x height grid in a clear sector, rotator -60/0/+60.",
+    args,
+    st,
+)
 
 # Survey: empty move to a viewpoint on the store, then scene discovery; activate the plan after
 r, brg, z = a.survey
-disc = ('      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"\n'
-        '        server_timeout="12000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>\n')
-write(a.out / "calib_survey.xml", "CalibSurvey", "false",
-      "Move empty to a viewpoint on the block store, then SCENE_DISCOVERY.", args,
-      [stop("survey_viewpoint", r, brg, z, brg, 3000), disc])
+disc = (
+    '      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"\n'
+    '        server_timeout="12000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>\n'
+)
+write(
+    a.out / "calib_survey.xml",
+    "CalibSurvey",
+    "false",
+    "Move empty to a viewpoint on the block store, then SCENE_DISCOVERY.",
+    args,
+    [stop("survey_viewpoint", r, brg, z, brg, 3000), disc],
+)

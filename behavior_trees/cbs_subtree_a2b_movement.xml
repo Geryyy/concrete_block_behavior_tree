@@ -124,6 +124,7 @@
               <WaitForMoveComplete trajectory="{trajectory}" _skipIf="ex_until_landed"
                 joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
                 goal_tolerance="{ex_goal_tolerance}"
+                goal_tolerances="theta8_rotator_joint:0.10"
                 sway_bound="{ex_sway_bound}"
                 hold_s="{ex_hold_s}"
                 timeout_ms="120000"
@@ -271,12 +272,14 @@
          time to the bound. A settled arrival still leaves in ~3 s, which
          is what every empty move does, so this is a bound on the bad case and
          not a dwell. -->
+    <!-- rotator 0.10 on both waits: it stalls ~0.05 rad short and a 3 deg correction does not plan -->
     <Sequence _skipIf="ex_until_landed">
       <WaitForMoveComplete name="Wait for the load to settle" settle_only="true"
         _skipIf="mpc_drives"
         trajectory="{trajectory}"
         joints="theta1_slewing_joint,theta2_boom_joint,theta3_arm_joint,q4_big_telescope,theta8_rotator_joint"
         goal_tolerance="{ex_goal_tolerance}"
+        goal_tolerances="theta8_rotator_joint:0.10"
         sway_bound="{ex_sway_bound}"
         hold_s="{ex_hold_s}"
         timeout_ms="60000"
