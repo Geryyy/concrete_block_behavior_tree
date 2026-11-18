@@ -11,3 +11,9 @@ behavior_trees:
   # Appended, not inserted: test_cbs_a2b_tree.py pins the first three entries.
   - name: "Next block, step-by-step"
     path: "/behavior_trees/operator_guided_single_block.xml"
+  - name: "Calibration A: static slew sweep"
+    path: "/behavior_trees/calib_phase_a.xml"
+  - name: "Calibration B: block in the jaws, grid"
+    path: "/behavior_trees/calib_phase_b.xml"
+  - name: "Calibration C: dynamic slews"
+    path: "/behavior_trees/calib_phase_c.xml"
