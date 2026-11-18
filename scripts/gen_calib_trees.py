@@ -79,14 +79,15 @@ write(a.out / "calib_phase_c.xml", "CalibPhaseC", "false",
       args, st)
 
 # B: block already in the jaws. Range x block-bottom grid, rotator -60/0/+60 in snake order
-# (OptimizeTargetAngle flips a yaw > 90 deg from the current one by pi). 8 s after settle.
+# (OptimizeTargetAngle flips a yaw > 90 deg from the current one by pi). Grid corners only:
+# range and height spread carry the yaw and height. 5 s after settle.
 st, k = [], 0
-for r in (4.0, 5.5, 7.0):
-    for bottom in (0.5, 1.2, 2.1):
+for r in (4.0, 7.0):
+    for bottom in (0.5, 2.0):
         rots = (-60, 0, 60) if k % 2 == 0 else (60, 0, -60)
         for rot in rots:
             st.append(stop(f"B_r{r:.1f}_h{bottom:.1f}_rot{rot:+d}", r, a.clear,
-                           GROUND_Z + bottom + TCP_TO_BLOCK_BOTTOM, a.clear + rot, 8000))
+                           GROUND_Z + bottom + TCP_TO_BLOCK_BOTTOM, a.clear + rot, 5000))
         k += 1
 write(a.out / "calib_phase_b.xml", "CalibPhaseB", "true",
       "Block in the jaws before start. Range x height grid in a clear sector, rotator -60/0/+60.",

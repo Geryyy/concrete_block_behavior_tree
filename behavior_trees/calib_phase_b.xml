@@ -14,137 +14,62 @@
       <Sequence name="B_r4.0_h0.5_rot-60">
         <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 0.710; mv_yaw := -2.3562"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
       <Sequence name="B_r4.0_h0.5_rot+0">
         <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 0.710; mv_yaw := -1.3090"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
       <Sequence name="B_r4.0_h0.5_rot+60">
         <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 0.710; mv_yaw := -0.2618"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r4.0_h1.2_rot+60">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 1.410; mv_yaw := -0.2618"/>
+      <Sequence name="B_r4.0_h2.0_rot+60">
+        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.210; mv_yaw := -0.2618"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r4.0_h1.2_rot+0">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 1.410; mv_yaw := -1.3090"/>
+      <Sequence name="B_r4.0_h2.0_rot+0">
+        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.210; mv_yaw := -1.3090"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r4.0_h1.2_rot-60">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 1.410; mv_yaw := -2.3562"/>
+      <Sequence name="B_r4.0_h2.0_rot-60">
+        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.210; mv_yaw := -2.3562"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r4.0_h2.1_rot-60">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.310; mv_yaw := -2.3562"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r4.0_h2.1_rot+0">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.310; mv_yaw := -1.3090"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r4.0_h2.1_rot+60">
-        <Script code="mv_x := 1.035; mv_y := -3.864; mv_z := 2.310; mv_yaw := -0.2618"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h0.5_rot+60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 0.710; mv_yaw := -0.2618"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h0.5_rot+0">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 0.710; mv_yaw := -1.3090"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h0.5_rot-60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 0.710; mv_yaw := -2.3562"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h1.2_rot-60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 1.410; mv_yaw := -2.3562"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h1.2_rot+0">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 1.410; mv_yaw := -1.3090"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h1.2_rot+60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 1.410; mv_yaw := -0.2618"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h2.1_rot+60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 2.310; mv_yaw := -0.2618"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h2.1_rot+0">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 2.310; mv_yaw := -1.3090"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r5.5_h2.1_rot-60">
-        <Script code="mv_x := 1.424; mv_y := -5.313; mv_z := 2.310; mv_yaw := -2.3562"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
       <Sequence name="B_r7.0_h0.5_rot-60">
         <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 0.710; mv_yaw := -2.3562"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
       <Sequence name="B_r7.0_h0.5_rot+0">
         <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 0.710; mv_yaw := -1.3090"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
       <Sequence name="B_r7.0_h0.5_rot+60">
         <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 0.710; mv_yaw := -0.2618"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r7.0_h1.2_rot+60">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 1.410; mv_yaw := -0.2618"/>
+      <Sequence name="B_r7.0_h2.0_rot+60">
+        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.210; mv_yaw := -0.2618"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r7.0_h1.2_rot+0">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 1.410; mv_yaw := -1.3090"/>
+      <Sequence name="B_r7.0_h2.0_rot+0">
+        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.210; mv_yaw := -1.3090"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
-      <Sequence name="B_r7.0_h1.2_rot-60">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 1.410; mv_yaw := -2.3562"/>
+      <Sequence name="B_r7.0_h2.0_rot-60">
+        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.210; mv_yaw := -2.3562"/>
         <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r7.0_h2.1_rot-60">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.310; mv_yaw := -2.3562"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r7.0_h2.1_rot+0">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.310; mv_yaw := -1.3090"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
-      </Sequence>
-      <Sequence name="B_r7.0_h2.1_rot+60">
-        <Script code="mv_x := 1.812; mv_y := -6.761; mv_z := 2.310; mv_yaw := -0.2618"/>
-        <SubTree ID="SubTreeMoveAbove" _autoremap="true"/>
-        <Sleep msec="8000"/>
+        <Sleep msec="5000"/>
       </Sequence>
     </Sequence>
   </BehaviorTree>
