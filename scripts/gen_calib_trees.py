@@ -51,6 +51,8 @@ p.add_argument("--sweep", type=float, default=45.0, help="half sweep, deg")
 p.add_argument("--park-r", type=float, default=3.5, help="A/C TCP radius, m: gripper close")
 p.add_argument("--park-z", type=float, default=2.5, help="A/C TCP z in K0, m: gripper high")
 p.add_argument("--clear", type=float, default=-75.0, help="B bearing, deg: no targets there")
+p.add_argument("--survey", type=float, nargs=3, default=[8.5, -20.0, 2.5],
+               help="store viewpoint: TCP r m, bearing deg, K0 z; beyond the store, off hedge")
 p.add_argument("--out", type=Path, default=Path(__file__).resolve().parents[1] / "behavior_trees")
 a = p.parse_args()
 args = f"centre={a.centre} sweep={a.sweep} park_r={a.park_r} park_z={a.park_z} clear={a.clear}"
@@ -87,3 +89,11 @@ for r in (4.0, 5.5, 7.0):
 write(a.out / "calib_phase_b.xml", "CalibPhaseB", "true",
       "Block in the jaws before start. Range x height grid in a clear sector, rotator -60/0/+60.",
       args, st)
+
+# Survey: empty move to a viewpoint on the store, then scene discovery; activate the plan after
+r, brg, z = a.survey
+disc = ('      <RunPoseEstimation service_name="/world_model_node/run_pose_estimation"\n'
+        '        server_timeout="12000" mode="SCENE_DISCOVERY" timeout_s="10.0"/>\n')
+write(a.out / "calib_survey.xml", "CalibSurvey", "false",
+      "Move empty to a viewpoint on the block store, then SCENE_DISCOVERY.", args,
+      [stop("survey_viewpoint", r, brg, z, brg, 3000), disc])
