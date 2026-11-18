@@ -17,5 +17,3 @@ behavior_trees:
     path: "/behavior_trees/calib_phase_b.xml"
   - name: "Calibration C: dynamic slews"
     path: "/behavior_trees/calib_phase_c.xml"
-  - name: "Calibration: survey block store (then activate calib_scene)"
-    path: "/behavior_trees/calib_survey.xml"
